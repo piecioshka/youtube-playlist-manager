@@ -40,6 +40,10 @@ test('opens a playlist profile from the table', async ({ page }) => {
     page.getByRole('link', { name: 'Otwórz na YouTube' }),
   ).toHaveAttribute('href', 'https://www.youtube.com/playlist?list=PL-algo');
   expect(await videoTitles(page)).toEqual(ALGO_VIDEOS);
+  // Przy filmie stoi data jego publikacji na YouTube, a nie data dodania do playlisty
+  await expect(
+    videoList(page).getByRole('listitem').first().locator('time'),
+  ).toHaveText('2019-03-14');
 });
 
 test('moves a video down with the arrow key on its handle', async ({
@@ -250,6 +254,10 @@ test('adds a video by its youtu.be link', async ({ page, youtube }) => {
   await expect
     .poll(() => videoTitles(page))
     .toEqual([...ALGO_VIDEOS, 'Added video dQw4w9WgXcQ']);
+  // Dodany film od razu ma datę publikacji, bez ponownego wczytania listy
+  await expect(
+    videoList(page).getByRole('listitem').last().locator('time'),
+  ).toHaveText('2009-10-25');
   await expect(page.getByRole('textbox', { name: 'Dodaj film' })).toHaveValue(
     '',
   );

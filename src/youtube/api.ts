@@ -68,6 +68,7 @@ function toVideo(
     channelTitle,
     position: resource.snippet.position,
     thumbnailUrl: pickThumbnail(resource.snippet.thumbnails),
+    videoPublishedAt: resource.contentDetails?.videoPublishedAt ?? null,
     available,
   };
 }
@@ -229,7 +230,8 @@ export async function listPlaylistVideos(
     token,
     () => {
       const url = new URL(PLAYLIST_ITEMS_URL);
-      url.searchParams.set('part', 'snippet');
+      // contentDetails niesie datę publikacji filmu i nie kosztuje dodatkowych jednostek limitu
+      url.searchParams.set('part', 'snippet,contentDetails');
       url.searchParams.set('playlistId', playlistId);
       url.searchParams.set('maxResults', '50');
       return url;
@@ -332,7 +334,8 @@ export async function addPlaylistItem(
   videoId: string,
 ): Promise<PlaylistVideo> {
   const url = new URL(PLAYLIST_ITEMS_URL);
-  url.searchParams.set('part', 'snippet');
+  // `part` wyznacza też pola odpowiedzi: contentDetails zwraca datę publikacji dodanego filmu
+  url.searchParams.set('part', 'snippet,contentDetails');
   const response = await request(token, url, 'POST', {
     snippet: {
       playlistId,

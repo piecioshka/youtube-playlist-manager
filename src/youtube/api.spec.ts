@@ -228,6 +228,7 @@ describe('listPlaylistVideos', () => {
     channelTitle: 'Kanał',
     position: 0,
     thumbnailUrl: 'https://i.ytimg.com/vi/v1/mqdefault.jpg',
+    videoPublishedAt: null,
     available: true,
   };
 
@@ -243,7 +244,8 @@ describe('listPlaylistVideos', () => {
     expect(`${url.origin}${url.pathname}`).toBe(
       'https://www.googleapis.com/youtube/v3/playlistItems',
     );
-    expect(url.searchParams.get('part')).toBe('snippet');
+    // contentDetails niesie datę publikacji filmu; snippet.publishedAt to data dodania do playlisty
+    expect(url.searchParams.get('part')).toBe('snippet,contentDetails');
     expect(url.searchParams.get('playlistId')).toBe('PL-x');
     expect(url.searchParams.get('maxResults')).toBe('50');
     expect(url.searchParams.has('pageToken')).toBe(false);
@@ -280,6 +282,32 @@ describe('listPlaylistVideos', () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(videos).toHaveLength(2);
+  });
+
+  it('reads the date the video was published, not the date it was added', async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        items: [
+          {
+            ...item('v1', 'Kanał'),
+            snippet: {
+              ...item('v1', 'Kanał').snippet,
+              publishedAt: '2024-05-06T07:08:09Z',
+            },
+            contentDetails: {
+              videoId: 'v1',
+              videoPublishedAt: '2016-08-11T12:00:00Z',
+            },
+          },
+        ],
+      }),
+    );
+
+    const videos = await listPlaylistVideos('t', 'PL-x');
+
+    expect(videos).toEqual([
+      { ...v1, videoPublishedAt: '2016-08-11T12:00:00Z' },
+    ]);
   });
 
   it('skips deleted and private videos', async () => {
@@ -334,6 +362,7 @@ describe('listPlaylistVideos', () => {
         channelTitle: '',
         position: 1,
         thumbnailUrl: 'https://i.ytimg.com/vi/v-del/mqdefault.jpg',
+        videoPublishedAt: null,
         available: false,
       },
       {
@@ -343,6 +372,7 @@ describe('listPlaylistVideos', () => {
         channelTitle: '',
         position: 2,
         thumbnailUrl: 'https://i.ytimg.com/vi/v-priv/mqdefault.jpg',
+        videoPublishedAt: null,
         available: false,
       },
       {
@@ -352,6 +382,7 @@ describe('listPlaylistVideos', () => {
         channelTitle: '',
         position: 3,
         thumbnailUrl: 'https://i.ytimg.com/vi/undefined/mqdefault.jpg',
+        videoPublishedAt: null,
         available: false,
       },
     ]);
@@ -636,7 +667,7 @@ describe('addPlaylistItem', () => {
     expect(`${url.origin}${url.pathname}`).toBe(
       'https://www.googleapis.com/youtube/v3/playlistItems',
     );
-    expect(url.searchParams.get('part')).toBe('snippet');
+    expect(url.searchParams.get('part')).toBe('snippet,contentDetails');
     expect(calledInit(0)?.method).toBe('POST');
     expect(new Headers(calledInit(0)?.headers).get('Authorization')).toBe(
       'Bearer tok-a',
@@ -655,6 +686,7 @@ describe('addPlaylistItem', () => {
       channelTitle: '',
       position: 3,
       thumbnailUrl: 'https://i.ytimg.com/vi/x/default.jpg',
+      videoPublishedAt: null,
       available: true,
     });
   });
@@ -669,12 +701,14 @@ describe('addPlaylistItem', () => {
           videoOwnerChannelTitle: 'Kanał',
           resourceId: { videoId: 'abcdefghijk' },
         },
+        contentDetails: { videoPublishedAt: '2009-10-25T06:57:33Z' },
       }),
     );
 
     const added = await addPlaylistItem('t', 'PL-x', 'abcdefghijk');
 
     expect(added.channelTitle).toBe('Kanał');
+    expect(added.videoPublishedAt).toBe('2009-10-25T06:57:33Z');
     expect(added.thumbnailUrl).toBeNull();
   });
 

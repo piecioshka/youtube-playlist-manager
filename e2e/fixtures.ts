@@ -105,7 +105,11 @@ export type FakeVideo = {
   videoId: string;
   title: string;
   channelTitle: string;
+  // Data publikacji filmu na YouTube; data dodania do playlisty jest celowo inna
+  publishedAt?: string;
 };
+
+const ADDED_TO_PLAYLIST_AT = '2025-01-02T03:04:05Z';
 
 const SEED_VIDEOS: Record<string, FakeVideo[]> = {
   'PL-music': [
@@ -141,6 +145,7 @@ const SEED_VIDEOS: Record<string, FakeVideo[]> = {
       videoId: 'vid-quicksort',
       title: 'Quicksort in 4 minutes',
       channelTitle: 'Michael Sambol',
+      publishedAt: '2019-03-14T15:00:00Z',
     },
     {
       itemId: 'item-bigo',
@@ -200,11 +205,21 @@ const itemPostBodySchema = z.object({
   }),
 });
 
-function toPlaylistItem(video: FakeVideo, position: number) {
+// Jak prawdziwe API: contentDetails wraca tylko wtedy, gdy żądanie wymienia je w `part`
+function toPlaylistItem(video: FakeVideo, position: number, parts: string) {
   return {
     kind: 'youtube#playlistItem',
     id: video.itemId,
+    ...(parts.split(',').includes('contentDetails') && {
+      contentDetails: {
+        videoId: video.videoId,
+        ...(video.publishedAt !== undefined && {
+          videoPublishedAt: video.publishedAt,
+        }),
+      },
+    }),
     snippet: {
+      publishedAt: ADDED_TO_PLAYLIST_AT,
       title: video.title,
       position,
       thumbnails: {},
@@ -304,7 +319,9 @@ export class FakeYouTube {
         headers: CORS_HEADERS,
         json: {
           kind: 'youtube#playlistItemListResponse',
-          items: (this.videos[playlistId] ?? []).map(toPlaylistItem),
+          items: (this.videos[playlistId] ?? []).map((video, position) =>
+            toPlaylistItem(video, position, url.searchParams.get('part') ?? ''),
+          ),
         },
       });
       return;
@@ -344,7 +361,11 @@ export class FakeYouTube {
       this.videos[snippet.playlistId] = rest;
       await route.fulfill({
         headers: CORS_HEADERS,
-        json: toPlaylistItem(moved, rest.indexOf(moved)),
+        json: toPlaylistItem(
+          moved,
+          rest.indexOf(moved),
+          url.searchParams.get('part') ?? '',
+        ),
       });
       return;
     }
@@ -366,6 +387,7 @@ export class FakeYouTube {
         videoId: resourceId.videoId,
         title: `Added video ${resourceId.videoId}`,
         channelTitle: 'E2E channel',
+        publishedAt: '2009-10-25T06:57:33Z',
       };
       const list = [...(this.videos[playlistId] ?? []), added];
       this.videos[playlistId] = list;
@@ -376,6 +398,14 @@ export class FakeYouTube {
         json: {
           kind: 'youtube#playlistItem',
           id: added.itemId,
+          ...((url.searchParams.get('part') ?? '')
+            .split(',')
+            .includes('contentDetails') && {
+            contentDetails: {
+              videoId: added.videoId,
+              videoPublishedAt: added.publishedAt,
+            },
+          }),
           snippet: {
             title: added.title,
             position: list.length - 1,

@@ -30,6 +30,7 @@ const quicksort = makeVideo({
   videoId: 'v-qs',
   title: 'Quicksort',
   channelTitle: 'Michael Sambol',
+  videoPublishedAt: '2016-08-11T12:00:00Z',
   position: 0,
   thumbnailUrl: 'https://i.ytimg.com/vi/v-qs/mq.jpg',
 });
@@ -417,7 +418,19 @@ describe('PlaylistProfile', () => {
       expect(videoTitles()).toEqual(['Quicksort', 'Big O', 'Grafy']);
       const first = item('Quicksort');
       expect(first).toHaveTextContent(/^1/);
-      expect(first).toHaveTextContent('Michael Sambol');
+      // Data publikacji filmu na YouTube stoi przy kanale; film bez daty jej nie ma
+      expect(first).toHaveTextContent('Michael Sambol · 2016-08-11');
+      expect(first.querySelector('time')).toHaveAttribute(
+        'datetime',
+        '2016-08-11',
+      );
+      expect(first.querySelector('time')).toHaveAttribute(
+        'title',
+        'Data publikacji na YouTube',
+      );
+      expect(item('Big O').querySelector('time')).toBeNull();
+      expect(item('Big O')).toHaveTextContent('CS Dojo');
+      expect(item('Big O')).not.toHaveTextContent('CS Dojo ·');
       expect(
         within(first).getByRole('link', { name: 'Quicksort' }),
       ).toHaveAttribute(

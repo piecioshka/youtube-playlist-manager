@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { useI18n } from '../i18n/LocaleProvider';
+import { formatDate } from '../playlists/format';
 import type { PlaylistVideo } from '../youtube/types';
 import { YouTubeLink } from '../youtube/YouTubeLink';
 import type { DropPlacement } from './reorder';
@@ -123,6 +124,9 @@ export function VideoItem({
   // Niedostępny film ma od YouTube tylko „Deleted video” albo „Private video”, więc nazywamy go numerem
   const name = video.available ? video.title : t.unavailableVideoName(number);
   const target = <span className="visually-hidden">{t.videoTarget(name)}</span>;
+  // Data publikacji filmu na YouTube, nie data dodania do playlisty
+  const published =
+    video.videoPublishedAt === null ? null : formatDate(video.videoPublishedAt);
 
   return (
     <li
@@ -184,8 +188,16 @@ export function VideoItem({
             >
               {video.title}
             </YouTubeLink>
-            {video.channelTitle !== '' && (
-              <span className="video-item__channel">{video.channelTitle}</span>
+            {(video.channelTitle !== '' || published !== null) && (
+              <span className="video-item__channel">
+                {video.channelTitle}
+                {video.channelTitle !== '' && published !== null && ' · '}
+                {published !== null && (
+                  <time dateTime={published} title={t.videoPublishedTitle}>
+                    {published}
+                  </time>
+                )}
+              </span>
             )}
           </>
         ) : (

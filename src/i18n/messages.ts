@@ -175,6 +175,7 @@ const pl = {
   loadingVideos: 'Wczytywanie filmów...',
   playlistEmpty: 'Ta playlista jest pusta.',
   videoTarget: (title: string) => `„${title}”`,
+  videoPublishedTitle: 'Data publikacji na YouTube',
   moveVideo: 'Przenieś',
   dragToReorder:
     'Przeciągnij albo użyj strzałek w górę i w dół, aby zmienić kolejność',
@@ -331,6 +332,7 @@ const en: Messages = {
   loadingVideos: 'Loading videos...',
   playlistEmpty: 'This playlist is empty.',
   videoTarget: (title) => `"${title}"`,
+  videoPublishedTitle: 'Published on YouTube',
   moveVideo: 'Move',
   dragToReorder: 'Drag, or use the up and down arrow keys, to reorder',
   videoMoved: (title, position) => `Moved "${title}" to position ${position}.`,

@@ -44,6 +44,10 @@ export const playlistItemResourceSchema = z.object({
     videoOwnerChannelTitle: z.string().optional(),
     resourceId: z.object({ videoId: z.string().optional() }),
   }),
+  // Data publikacji filmu; `snippet.publishedAt` to data dodania do playlisty. Brak dla filmów usuniętych i prywatnych
+  contentDetails: z
+    .object({ videoPublishedAt: z.string().optional() })
+    .optional(),
 });
 
 export type PlaylistItemResource = z.infer<typeof playlistItemResourceSchema>;

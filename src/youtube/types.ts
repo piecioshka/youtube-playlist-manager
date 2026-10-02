@@ -31,6 +31,8 @@ export type PlaylistVideo = {
   channelTitle: string;
   position: number;
   thumbnailUrl: string | null;
+  // Kiedy film opublikowano na YouTube (nie kiedy trafił na playlistę); null, gdy YouTube tego nie podaje
+  videoPublishedAt: string | null;
   // false dla usuniętego albo prywatnego filmu: zostaje na playliście, ale nie da się go obejrzeć
   available: boolean;
 };
