@@ -1,4 +1,10 @@
-import { expect, test as base, type Page, type Route } from '@playwright/test';
+import {
+  expect,
+  test as base,
+  type Locator,
+  type Page,
+  type Route,
+} from '@playwright/test';
 import { z } from 'zod';
 
 export type FakePlaylist = {
@@ -239,6 +245,11 @@ export async function signIn(page: Page): Promise<void> {
   );
 }
 
+// Wiersze z danymi, bez wiersza nagłówka tabeli
+export function playlistRows(page: Page): Locator {
+  return page.getByRole('rowgroup').nth(1).getByRole('row');
+}
+
 export function playlistTitles(page: Page): Promise<string[]> {
-  return page.getByRole('heading', { level: 3 }).allTextContents();
+  return page.getByRole('rowheader').allTextContents();
 }

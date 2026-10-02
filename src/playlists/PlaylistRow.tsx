@@ -7,7 +7,7 @@ import {
   type KeyboardEvent,
 } from 'react';
 import type { Playlist } from '../youtube/types';
-import { formatDate, formatVideoCount, privacyLabel } from './format';
+import { formatDate, privacyLabel } from './format';
 
 export const MAX_TITLE_LENGTH = 150;
 
@@ -132,23 +132,12 @@ export function PlaylistRow({
   const hasError = error !== null;
 
   return (
-    <li className="playlist-row">
-      {playlist.thumbnailUrl ? (
-        <img
-          className="playlist-row__thumbnail"
-          src={playlist.thumbnailUrl}
-          alt=""
-          width={160}
-          height={90}
-          loading="lazy"
-        />
-      ) : (
-        <div
-          className="playlist-row__thumbnail playlist-row__thumbnail--empty"
-          aria-hidden="true"
-        />
-      )}
-      <div className="playlist-row__body">
+    <tr className="playlist-row" role="row">
+      <th
+        className="playlist-row__cell playlist-row__title"
+        scope="row"
+        role="rowheader"
+      >
         {mode === 'edit' ? (
           <form
             className="playlist-row__edit"
@@ -172,14 +161,14 @@ export function PlaylistRow({
             />
             <button
               type="submit"
-              className="button button--primary"
+              className="button button--primary button--small"
               disabled={pending}
             >
               {pending ? 'Zapisywanie...' : 'Zapisz'}
             </button>
             <button
               type="button"
-              className="button"
+              className="button button--small"
               onClick={cancelEdit}
               disabled={pending}
             >
@@ -187,29 +176,79 @@ export function PlaylistRow({
             </button>
           </form>
         ) : (
-          <h3 className="playlist-row__title">
-            <a
-              className="playlist-row__link"
-              href={`https://www.youtube.com/playlist?list=${encodeURIComponent(playlist.id)}`}
-              target="_blank"
-              rel="noreferrer"
-            >
-              {playlist.title}
-            </a>
-          </h3>
+          <a
+            className="playlist-row__link"
+            href={`https://www.youtube.com/playlist?list=${encodeURIComponent(playlist.id)}`}
+            target="_blank"
+            rel="noreferrer"
+            title={playlist.title}
+          >
+            {playlist.title}
+          </a>
         )}
-        <p className="playlist-row__meta">
-          {formatVideoCount(playlist.itemCount)} ·{' '}
-          {privacyLabel(playlist.privacyStatus)} · utworzona{' '}
+        {hasError && (
+          <p id={errorId} className="playlist-row__error" role="alert">
+            {error}
+          </p>
+        )}
+      </th>
+      <td
+        className="playlist-row__cell playlist-row__cell--number"
+        role="cell"
+        data-label="Filmy"
+      >
+        {playlist.itemCount}
+      </td>
+      <td
+        className="playlist-row__cell playlist-row__cell--nowrap"
+        role="cell"
+        data-label="Widoczność"
+      >
+        {privacyLabel(playlist.privacyStatus)}
+      </td>
+      <td
+        className="playlist-row__cell playlist-row__cell--nowrap"
+        role="cell"
+        data-label="Utworzona"
+      >
+        <time dateTime={playlist.publishedAt}>
           {formatDate(playlist.publishedAt)}
-        </p>
-        {mode === 'view' && (
-          <div className="playlist-row__actions">
+        </time>
+      </td>
+      <td className="playlist-row__cell playlist-row__actions" role="cell">
+        {mode === 'confirmDelete' ? (
+          <div
+            className="playlist-row__buttons"
+            role="group"
+            aria-label={`Potwierdzenie usunięcia playlisty ${playlist.title}`}
+          >
+            <span className="playlist-row__question">Usunąć na stałe?</span>
+            <button
+              type="button"
+              className="button button--danger button--small"
+              onClick={handleConfirmDelete}
+              disabled={pending}
+            >
+              {pending ? 'Usuwanie...' : 'Usuń na stałe'}
+            </button>
+            <button
+              ref={cancelDeleteRef}
+              type="button"
+              className="button button--small"
+              onClick={() => switchMode('view', 'delete')}
+              disabled={pending}
+            >
+              Anuluj
+            </button>
+          </div>
+        ) : (
+          <div className="playlist-row__buttons">
             <button
               ref={renameButtonRef}
               type="button"
-              className="button"
+              className="button button--small"
               onClick={startEdit}
+              disabled={mode === 'edit'}
             >
               Zmień nazwę{' '}
               <span className="visually-hidden">
@@ -219,8 +258,9 @@ export function PlaylistRow({
             <button
               ref={deleteButtonRef}
               type="button"
-              className="button button--danger"
+              className="button button--danger button--small"
               onClick={() => switchMode('confirmDelete', 'cancelDelete')}
+              disabled={mode === 'edit'}
             >
               Usuń{' '}
               <span className="visually-hidden">
@@ -229,40 +269,7 @@ export function PlaylistRow({
             </button>
           </div>
         )}
-        {mode === 'confirmDelete' && (
-          <div
-            className="playlist-row__confirm"
-            role="group"
-            aria-label={`Potwierdzenie usunięcia playlisty ${playlist.title}`}
-          >
-            <p className="playlist-row__question">
-              Usunąć playlistę „{playlist.title}” na stałe?
-            </p>
-            <button
-              type="button"
-              className="button button--danger"
-              onClick={handleConfirmDelete}
-              disabled={pending}
-            >
-              {pending ? 'Usuwanie...' : 'Usuń na stałe'}
-            </button>
-            <button
-              ref={cancelDeleteRef}
-              type="button"
-              className="button"
-              onClick={() => switchMode('view', 'delete')}
-              disabled={pending}
-            >
-              Anuluj
-            </button>
-          </div>
-        )}
-        {hasError && (
-          <p id={errorId} className="playlist-row__error" role="alert">
-            {error}
-          </p>
-        )}
-      </div>
-    </li>
+      </td>
+    </tr>
   );
 }

@@ -1,5 +1,12 @@
 import AxeBuilder from '@axe-core/playwright';
-import { expect, LONG_TITLE, playlistTitles, signIn, test } from './fixtures';
+import {
+  expect,
+  LONG_TITLE,
+  playlistRows,
+  playlistTitles,
+  signIn,
+  test,
+} from './fixtures';
 
 test('signs in and lists playlists newest first', async ({ page, youtube }) => {
   await signIn(page);
@@ -43,7 +50,7 @@ test('renames a playlist and keeps its description', async ({
 }) => {
   await signIn(page);
   // Po wejściu w edycję tytuł znika z tekstu wiersza, więc filtr po tekście przestałby go łapać
-  const row = page.getByRole('listitem').nth(2);
+  const row = playlistRows(page).nth(2);
 
   await row.getByRole('button', { name: /^Zmień nazwę/ }).click();
   const input = row.getByRole('textbox', { name: 'Nowa nazwa playlisty' });
@@ -65,11 +72,13 @@ test('renames a playlist and keeps its description', async ({
 
 test('deletes a playlist after confirmation', async ({ page, youtube }) => {
   await signIn(page);
-  const row = page.getByRole('listitem').filter({ hasText: 'Muzyka do pracy' });
+  const row = playlistRows(page).filter({ hasText: 'Muzyka do pracy' });
 
   await row.getByRole('button', { name: /^Usuń playlistę/ }).click();
   await expect(
-    row.getByText('Usunąć playlistę „Muzyka do pracy” na stałe?'),
+    row.getByRole('group', {
+      name: 'Potwierdzenie usunięcia playlisty Muzyka do pracy',
+    }),
   ).toBeVisible();
   await row.getByRole('button', { name: 'Usuń na stałe' }).click();
 
@@ -94,7 +103,7 @@ test('returns to the sign-in screen when the session expires', async ({
   await signIn(page);
   youtube.failNextRequestWith(401);
   // Po wejściu w edycję tytuł znika z tekstu wiersza, więc filtr po tekście przestałby go łapać
-  const row = page.getByRole('listitem').first();
+  const row = playlistRows(page).first();
 
   await row.getByRole('button', { name: /^Zmień nazwę/ }).click();
   await row

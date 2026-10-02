@@ -140,10 +140,14 @@ body {
   font-size: 1.25rem;
 }
 
+/* Live region zostaje w DOM, ale pusty nie zabiera miejsca nad tabelą */
 .playlists__notice {
-  min-height: 1.5em;
-  margin: 8px 0;
+  margin: 12px 0 0;
   color: var(--color-muted);
+}
+
+.playlists__notice:not(:empty) {
+  margin-bottom: 8px;
 }
 
 .playlists__state {
@@ -154,12 +158,28 @@ body {
   margin: 0 0 8px;
 }
 
-.playlists__list {
-  display: grid;
-  gap: 12px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
+/* Tabela z border-collapse: separate, bo tylko wtedy działa zaokrąglona ramka */
+.playlists__table {
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  border-spacing: 0;
+  background: var(--color-surface);
+  font-size: 0.9375rem;
+}
+
+.playlists__column {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.playlists__column--number {
+  text-align: right;
 }
 
 .sort-control {
@@ -186,87 +206,143 @@ body {
   cursor: pointer;
 }
 
-.playlist-row {
-  position: relative;
-  display: grid;
-  grid-template-columns: 160px minmax(0, 1fr);
-  gap: 16px;
-  padding: 12px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  background: var(--color-surface);
+.playlist-row:hover {
+  background: color-mix(in srgb, var(--color-border) 35%, transparent);
 }
 
-.playlist-row__thumbnail {
-  display: block;
-  width: 160px;
-  height: auto;
-  aspect-ratio: 16 / 9;
-  border-radius: 6px;
-  object-fit: cover;
-  background: var(--color-border);
+.playlist-row__cell {
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: middle;
 }
 
-.playlist-row__body {
-  display: grid;
-  gap: 6px;
-  align-content: start;
-  min-width: 0;
+.playlist-row:last-child .playlist-row__cell {
+  border-bottom: 0;
 }
 
+.playlist-row__cell--number {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.playlist-row__cell--nowrap {
+  white-space: nowrap;
+}
+
+/* max-width: 0 przy width: 100% oddaje tytułowi resztę miejsca i pozwala uciąć go wielokropkiem */
 .playlist-row__title {
-  margin: 0;
-  font-size: 1.05rem;
-  overflow-wrap: anywhere;
+  position: relative;
+  width: 100%;
+  max-width: 0;
+  font-weight: 500;
+  text-align: left;
 }
 
 .playlist-row__link {
+  display: block;
+  overflow: hidden;
   color: inherit;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.playlist-row__meta {
-  margin: 0;
-  color: var(--color-muted);
-  font-size: 0.9rem;
-}
-
-.playlist-row__actions,
-.playlist-row__confirm,
+.playlist-row__buttons,
 .playlist-row__edit {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
   align-items: center;
 }
 
+.playlist-row__buttons {
+  justify-content: flex-end;
+  white-space: nowrap;
+}
+
 .playlist-row__question {
-  flex-basis: 100%;
-  margin: 0;
-  overflow-wrap: anywhere;
+  color: var(--color-danger);
+  font-size: 0.8125rem;
 }
 
 .playlist-row__input {
-  flex: 1 1 240px;
+  flex: 1 1 auto;
   min-width: 0;
-  padding: 6px 10px;
+  padding: 2px 8px;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: 6px;
   background: var(--color-bg);
   color: var(--color-text);
   font: inherit;
 }
 
 .playlist-row__error {
-  margin: 0;
+  margin: 4px 0 0;
   color: var(--color-danger);
+  font-size: 0.8125rem;
+  font-weight: 400;
+  white-space: normal;
 }
 
-@media (max-width: 560px) {
-  .playlist-row {
-    grid-template-columns: minmax(0, 1fr);
+.button--small {
+  padding: 2px 10px;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+}
+
+/* Na telefonie wiersz staje się kartą: tytuł i akcje na całą szerokość, dane w trzech kolumnach z etykietami */
+@media (max-width: 640px) {
+  .playlists__head {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
   }
 
-  .playlist-row__thumbnail {
-    width: 100%;
+  .playlists {
+    position: relative;
+  }
+
+  .playlist-row {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px 12px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .playlist-row:last-child {
+    border-bottom: 0;
+  }
+
+  .playlist-row__cell {
+    padding: 0;
+    border-bottom: 0;
+  }
+
+  .playlist-row__cell--number {
+    text-align: left;
+  }
+
+  .playlist-row__cell::before {
+    content: attr(data-label);
+    display: block;
+    color: var(--color-muted);
+    font-size: 0.75rem;
+  }
+
+  .playlist-row__title,
+  .playlist-row__actions {
+    grid-column: 1 / -1;
+    max-width: none;
+  }
+
+  .playlist-row__link {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .playlist-row__buttons {
+    justify-content: flex-start;
   }
 }

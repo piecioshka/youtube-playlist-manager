@@ -21,42 +21,43 @@ function renderRow(overrides: Partial<Playlist> = {}) {
     .fn<(playlist: Playlist) => Promise<void>>()
     .mockResolvedValue(undefined);
   render(
-    <ul>
-      <PlaylistRow
-        playlist={playlist}
-        onRename={onRename}
-        onDelete={onDelete}
-      />
-    </ul>,
+    <table>
+      <tbody>
+        <PlaylistRow
+          playlist={playlist}
+          onRename={onRename}
+          onDelete={onDelete}
+        />
+      </tbody>
+    </table>,
   );
   return { playlist, onRename, onDelete, user: userEvent.setup() };
 }
 
 describe('PlaylistRow', () => {
-  it('shows the playlist details', () => {
-    renderRow({ thumbnailUrl: 'https://i.ytimg.com/PL1/mq.jpg' });
+  it('shows the playlist details in table cells', () => {
+    renderRow();
 
+    const rowHeader = screen.getByRole('rowheader');
     const link = screen.getByRole('link', { name: 'Muzyka' });
+    expect(rowHeader).toContainElement(link);
     expect(link).toHaveAttribute(
       'href',
       'https://www.youtube.com/playlist?list=PL1',
     );
     expect(link).toHaveAttribute('target', '_blank');
-    expect(
-      screen.getByText('3 filmy · Niepubliczna · utworzona 2026-03-01'),
-    ).toBeInTheDocument();
-    expect(document.querySelector('img')).toHaveAttribute(
-      'src',
-      'https://i.ytimg.com/PL1/mq.jpg',
-    );
+    expect(link).toHaveAttribute('title', 'Muzyka');
+    const cells = screen.getAllByRole('cell').map((cell) => cell.textContent);
+    expect(cells.slice(0, 3)).toEqual(['3', 'Niepubliczna', '2026-03-01']);
   });
 
-  it('renders an empty thumbnail box when there is no thumbnail', () => {
-    renderRow({ thumbnailUrl: null });
-    expect(document.querySelector('img')).toBeNull();
-    expect(
-      document.querySelector('.playlist-row__thumbnail--empty'),
-    ).not.toBeNull();
+  it('labels every data cell for the stacked phone layout', () => {
+    renderRow();
+
+    const labels = screen
+      .getAllByRole('cell')
+      .map((cell) => cell.getAttribute('data-label'));
+    expect(labels.slice(0, 3)).toEqual(['Filmy', 'Widoczność', 'Utworzona']);
   });
 
   it('renames with Enter and returns focus to the rename button', async () => {
@@ -193,8 +194,10 @@ describe('PlaylistRow', () => {
     await user.click(screen.getByRole('button', { name: /^Usuń playlistę/ }));
 
     expect(
-      screen.getByText('Usunąć playlistę „Muzyka” na stałe?'),
-    ).toBeInTheDocument();
+      screen.getByRole('group', {
+        name: 'Potwierdzenie usunięcia playlisty Muzyka',
+      }),
+    ).toHaveTextContent('Usunąć na stałe?');
     expect(screen.getByRole('button', { name: 'Anuluj' })).toHaveFocus();
     expect(onDelete).not.toHaveBeenCalled();
 

@@ -34,14 +34,12 @@ const algorytmy = makePlaylist({
 const playlists = [zupa, cwiczenia, algorytmy];
 
 function rowTitles(): string[] {
-  return screen
-    .getAllByRole('heading', { level: 3 })
-    .map((heading) => heading.textContent ?? '');
+  return screen.getAllByRole('rowheader').map((cell) => cell.textContent ?? '');
 }
 
 function rowOf(title: string): HTMLElement {
   const row = screen
-    .getAllByRole('listitem')
+    .getAllByRole('row')
     .find((item) => item.textContent?.includes(title));
   if (!row) {
     throw new Error(`No row for ${title}`);
@@ -76,6 +74,25 @@ describe('PlaylistsView', () => {
     ).toBeInTheDocument();
     expect(rowTitles()).toEqual(['Ćwiczenia', 'Zupa', 'Algorytmy']);
     expect(listMyPlaylists).toHaveBeenCalledWith('tok');
+  });
+
+  it('shows playlists as a table with labelled columns', async () => {
+    vi.mocked(listMyPlaylists).mockResolvedValue(playlists);
+    renderView();
+
+    const table = await screen.findByRole('table', {
+      name: 'Twoje playlisty (3)',
+    });
+    const headers = within(table)
+      .getAllByRole('columnheader')
+      .map((header) => header.textContent);
+    expect(headers).toEqual([
+      'Tytuł',
+      'Filmy',
+      'Widoczność',
+      'Utworzona',
+      'Akcje',
+    ]);
   });
 
   it('switches to alphabetical order and remembers it', async () => {

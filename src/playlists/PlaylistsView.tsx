@@ -159,16 +159,46 @@ export function PlaylistsView({ token, onUnauthorized }: PlaylistsViewProps) {
         <p className="playlists__state">Nie masz jeszcze żadnych playlist.</p>
       )}
       {loadState.status === 'ready' && sortedPlaylists.length > 0 && (
-        <ul className="playlists__list">
-          {sortedPlaylists.map((playlist) => (
-            <PlaylistRow
-              key={playlist.id}
-              playlist={playlist}
-              onRename={handleRename}
-              onDelete={handleDelete}
-            />
-          ))}
-        </ul>
+        // Jawne role: na telefonie wiersze dostają display: grid, co w części przeglądarek gubi semantykę tabeli
+        <table
+          className="playlists__table"
+          role="table"
+          aria-labelledby="playlists-heading"
+        >
+          <thead className="playlists__head" role="rowgroup">
+            <tr role="row">
+              <th className="playlists__column" scope="col" role="columnheader">
+                Tytuł
+              </th>
+              <th
+                className="playlists__column playlists__column--number"
+                scope="col"
+                role="columnheader"
+              >
+                Filmy
+              </th>
+              <th className="playlists__column" scope="col" role="columnheader">
+                Widoczność
+              </th>
+              <th className="playlists__column" scope="col" role="columnheader">
+                Utworzona
+              </th>
+              <th className="playlists__column" scope="col" role="columnheader">
+                <span className="visually-hidden">Akcje</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody role="rowgroup">
+            {sortedPlaylists.map((playlist) => (
+              <PlaylistRow
+                key={playlist.id}
+                playlist={playlist}
+                onRename={handleRename}
+                onDelete={handleDelete}
+              />
+            ))}
+          </tbody>
+        </table>
       )}
     </section>
   );
