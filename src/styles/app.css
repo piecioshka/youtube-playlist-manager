@@ -133,6 +133,7 @@ body {
 }
 
 .button:focus-visible,
+.visibility-filter__option:focus-visible,
 .app__footer-link:focus-visible,
 .playlist-row__input:focus-visible,
 .playlist-row__link:focus-visible,
@@ -178,6 +179,34 @@ body {
 .playlists__heading {
   margin: 0;
   font-size: 1.25rem;
+}
+
+.visibility-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 12px 0;
+}
+
+.visibility-filter__option {
+  padding: 3px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.visibility-filter__option:hover {
+  border-color: var(--color-muted);
+}
+
+.visibility-filter__option[aria-pressed='true'] {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-accent-text);
 }
 
 /* Live region zostaje w DOM, ale pusty nie zabiera miejsca nad tabelą */

@@ -33,6 +33,27 @@ const algorytmy = makePlaylist({
 });
 const playlists = [zupa, cwiczenia, algorytmy];
 
+const VISIBILITY_KEY = 'youtube-playlist-manager.visibility';
+const privateOne = makePlaylist({
+  id: 'p',
+  title: 'Tajna',
+  privacyStatus: 'private',
+  publishedAt: '2026-02-01T00:00:00Z',
+});
+const unlistedOne = makePlaylist({
+  id: 'u',
+  title: 'Z linkiem',
+  privacyStatus: 'unlisted',
+  publishedAt: '2026-02-02T00:00:00Z',
+});
+const mixed = [zupa, cwiczenia, privateOne, unlistedOne];
+
+function filterButton(name: RegExp): HTMLElement {
+  return within(
+    screen.getByRole('group', { name: 'Filtruj po widoczności' }),
+  ).getByRole('button', { name });
+}
+
 function rowTitles(): string[] {
   return screen.getAllByRole('rowheader').map((cell) => cell.textContent ?? '');
 }
@@ -324,5 +345,118 @@ describe('PlaylistsView', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Nie znaleziono kanału YouTube na tym koncie.',
     );
+  });
+
+  describe('visibility filter', () => {
+    it('shows the filter with counts of the full list', async () => {
+      vi.mocked(listMyPlaylists).mockResolvedValue(mixed);
+      renderView();
+      await screen.findByRole('table');
+
+      const buttons = within(
+        screen.getByRole('group', { name: 'Filtruj po widoczności' }),
+      ).getAllByRole('button');
+      expect(buttons.map((button) => button.textContent?.trim())).toEqual([
+        'Wszystkie (4)',
+        'Publiczne (2)',
+        'Niepubliczne (1)',
+        '🔒 Prywatne (1)',
+      ]);
+      expect(filterButton(/^Wszystkie/)).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      );
+      expect(filterButton(/^Prywatne/)).toHaveAttribute(
+        'aria-pressed',
+        'false',
+      );
+    });
+
+    it('filters rows, updates the heading and toggles aria-pressed', async () => {
+      vi.mocked(listMyPlaylists).mockResolvedValue(mixed);
+      const { user } = renderView();
+      await screen.findByRole('table');
+
+      await user.click(filterButton(/^Prywatne/));
+
+      expect(rowTitles()).toEqual(['Tajna']);
+      expect(
+        screen.getByRole('heading', {
+          level: 2,
+          name: 'Twoje playlisty (1 z 4)',
+        }),
+      ).toBeInTheDocument();
+      expect(filterButton(/^Prywatne/)).toHaveAttribute('aria-pressed', 'true');
+      expect(filterButton(/^Wszystkie/)).toHaveAttribute(
+        'aria-pressed',
+        'false',
+      );
+      expect(localStorage.getItem(VISIBILITY_KEY)).toBe('private');
+
+      await user.click(filterButton(/^Wszystkie/));
+
+      expect(rowTitles()).toHaveLength(4);
+      expect(
+        screen.getByRole('heading', { level: 2, name: 'Twoje playlisty (4)' }),
+      ).toBeInTheDocument();
+    });
+
+    it('applies the stored preference on mount', async () => {
+      localStorage.setItem(VISIBILITY_KEY, 'unlisted');
+      vi.mocked(listMyPlaylists).mockResolvedValue(mixed);
+      renderView();
+      await screen.findByRole('table');
+
+      expect(rowTitles()).toEqual(['Z linkiem']);
+      expect(filterButton(/^Niepubliczne/)).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      );
+    });
+
+    it('keeps the sort order inside a filter', async () => {
+      vi.mocked(listMyPlaylists).mockResolvedValue([
+        ...mixed,
+        makePlaylist({
+          id: 'q',
+          title: 'Druga tajna',
+          privacyStatus: 'private',
+          publishedAt: '2026-04-01T00:00:00Z',
+        }),
+      ]);
+      const { user } = renderView();
+      await screen.findByRole('table');
+
+      await user.click(filterButton(/^Prywatne/));
+
+      expect(rowTitles()).toEqual(['Druga tajna', 'Tajna']);
+    });
+
+    it('explains an empty result and keeps the filter visible', async () => {
+      vi.mocked(listMyPlaylists).mockResolvedValue(playlists);
+      const { user } = renderView();
+      await screen.findByRole('table');
+
+      await user.click(filterButton(/^Prywatne/));
+
+      expect(
+        screen.getByText('Brak playlist o tej widoczności.'),
+      ).toBeInTheDocument();
+      expect(screen.queryByRole('table')).not.toBeInTheDocument();
+      expect(filterButton(/^Wszystkie/)).toBeInTheDocument();
+    });
+
+    it('is hidden while loading and for an empty account', async () => {
+      vi.mocked(listMyPlaylists).mockResolvedValue([]);
+      renderView();
+
+      expect(
+        screen.queryByRole('group', { name: 'Filtruj po widoczności' }),
+      ).not.toBeInTheDocument();
+      await screen.findByText('Nie masz jeszcze żadnych playlist.');
+      expect(
+        screen.queryByRole('group', { name: 'Filtruj po widoczności' }),
+      ).not.toBeInTheDocument();
+    });
   });
 });

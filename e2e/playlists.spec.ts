@@ -45,6 +45,17 @@ test('sorts alphabetically and remembers the choice after reload', async ({
   expect(await playlistTitles(page)).toEqual(alphabetical);
 });
 
+test('filters playlists by visibility', async ({ page }) => {
+  await signIn(page);
+
+  await page.getByRole('button', { name: /^Prywatne/ }).click();
+
+  expect(await playlistTitles(page)).toEqual(['Ćwiczenia']);
+  await expect(page.getByRole('heading', { level: 2 })).toHaveText(
+    'Twoje playlisty (1 z 4)',
+  );
+});
+
 test('renames a playlist and keeps its description', async ({
   page,
   youtube,

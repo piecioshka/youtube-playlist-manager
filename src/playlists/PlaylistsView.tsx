@@ -6,6 +6,11 @@ import {
 } from '../youtube/api';
 import { errorMessage } from '../youtube/errorMessage';
 import { ApiError, type Playlist } from '../youtube/types';
+import {
+  countByVisibility,
+  filterByVisibility,
+  type VisibilityFilter as Filter,
+} from './filterPlaylists';
 import { PlaylistRow } from './PlaylistRow';
 import {
   nextSort,
@@ -14,6 +19,11 @@ import {
   type SortState,
 } from './sortPlaylists';
 import { readSort, writeSort } from './sortPreference';
+import { VisibilityFilter } from './VisibilityFilter';
+import {
+  readVisibilityFilter,
+  writeVisibilityFilter,
+} from './visibilityPreference';
 
 type LoadState =
   | { status: 'loading' }
@@ -44,6 +54,7 @@ export function PlaylistsView({ token, onUnauthorized }: PlaylistsViewProps) {
   const [loadState, setLoadState] = useState<LoadState>({ status: 'loading' });
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [sort, setSort] = useState<SortState>(readSort);
+  const [visibility, setVisibility] = useState<Filter>(readVisibilityFilter);
   const [notice, setNotice] = useState('');
   const [reloadKey, setReloadKey] = useState(0);
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -81,15 +92,24 @@ export function PlaylistsView({ token, onUnauthorized }: PlaylistsViewProps) {
     };
   }, [token, reloadKey]);
 
+  const visibleCounts = useMemo(
+    () => countByVisibility(playlists),
+    [playlists],
+  );
   const sortedPlaylists = useMemo(
-    () => sortPlaylists(playlists, sort),
-    [playlists, sort],
+    () => sortPlaylists(filterByVisibility(playlists, visibility), sort),
+    [playlists, visibility, sort],
   );
 
   function handleSort(key: SortKey) {
     const next = nextSort(sort, key);
     setSort(next);
     writeSort(next);
+  }
+
+  function handleVisibility(next: Filter) {
+    setVisibility(next);
+    writeVisibilityFilter(next);
   }
 
   function handleRetry() {
@@ -140,7 +160,12 @@ export function PlaylistsView({ token, onUnauthorized }: PlaylistsViewProps) {
     headingRef.current?.focus();
   }
 
-  const count = loadState.status === 'ready' ? ` (${playlists.length})` : '';
+  const count =
+    loadState.status !== 'ready'
+      ? ''
+      : visibility === 'all'
+        ? ` (${playlists.length})`
+        : ` (${sortedPlaylists.length} z ${playlists.length})`;
 
   return (
     <section className="playlists" aria-labelledby="playlists-heading">
@@ -154,6 +179,13 @@ export function PlaylistsView({ token, onUnauthorized }: PlaylistsViewProps) {
           Twoje playlisty{count}
         </h2>
       </div>
+      {loadState.status === 'ready' && playlists.length > 0 && (
+        <VisibilityFilter
+          value={visibility}
+          counts={visibleCounts}
+          onChange={handleVisibility}
+        />
+      )}
       <p className="playlists__notice" role="status">
         {notice}
       </p>
@@ -168,9 +200,14 @@ export function PlaylistsView({ token, onUnauthorized }: PlaylistsViewProps) {
           </button>
         </div>
       )}
-      {loadState.status === 'ready' && sortedPlaylists.length === 0 && (
+      {loadState.status === 'ready' && playlists.length === 0 && (
         <p className="playlists__state">Nie masz jeszcze żadnych playlist.</p>
       )}
+      {loadState.status === 'ready' &&
+        playlists.length > 0 &&
+        sortedPlaylists.length === 0 && (
+          <p className="playlists__state">Brak playlist o tej widoczności.</p>
+        )}
       {loadState.status === 'ready' && sortedPlaylists.length > 0 && (
         // Jawne role: na telefonie wiersze dostają display: grid, co w części przeglądarek gubi semantykę tabeli
         <table
