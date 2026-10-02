@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { makePlaylist } from '../test/playlistFactory';
 import { renderWithI18n } from '../test/renderWithI18n';
 import type { Locale } from '../i18n/messages';
-import type { Playlist } from '../youtube/types';
+import type { Playlist, PrivacyStatus } from '../youtube/types';
 import { PlaylistRow } from './PlaylistRow';
 
 function renderRow(overrides: Partial<Playlist> = {}, locale: Locale = 'pl') {
@@ -60,6 +60,30 @@ describe('PlaylistRow', () => {
     expect(lock).toHaveAttribute('aria-hidden', 'true');
     expect(lock).toHaveTextContent('🔒');
     expect(cell).toHaveTextContent('🔒 Prywatna');
+  });
+
+  const coloredStatuses: [PrivacyStatus, string, string][] = [
+    ['public', 'Publiczna', 'privacy-status--public'],
+    ['unlisted', 'Niepubliczna', 'privacy-status--unlisted'],
+  ];
+
+  it.each(coloredStatuses)(
+    'colors the %s status so it stands out in the column',
+    (privacyStatus, label, className) => {
+      renderRow({ privacyStatus });
+
+      expect(screen.getByText(label)).toHaveClass('privacy-status', className);
+    },
+  );
+
+  it('leaves the private status in the default color, marked by its lock', () => {
+    renderRow({ privacyStatus: 'private' });
+
+    expect(screen.getByText('Prywatna')).toHaveClass('privacy-status');
+    expect(screen.getByText('Prywatna')).not.toHaveClass(
+      'privacy-status--public',
+      'privacy-status--unlisted',
+    );
   });
 
   it('shows no lock for an unlisted playlist', () => {

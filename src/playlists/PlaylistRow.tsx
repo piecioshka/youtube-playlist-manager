@@ -222,7 +222,12 @@ export function PlaylistRow({
             </span>{' '}
           </>
         )}
-        {t.privacy[playlist.privacyStatus]}
+        {/* Publiczna i niepubliczna mają własne kolory, prywatną wyróżnia kłódka */}
+        <span
+          className={`privacy-status privacy-status--${playlist.privacyStatus}`}
+        >
+          {t.privacy[playlist.privacyStatus]}
+        </span>
       </td>
       <td
         className="playlist-row__cell playlist-row__cell--nowrap"

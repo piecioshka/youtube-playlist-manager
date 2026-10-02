@@ -279,8 +279,14 @@ test('has no accessibility violations on the playlist screen', async ({
 }) => {
   await signIn(page);
 
-  const results = await new AxeBuilder({ page }).analyze();
-  expect(results.violations).toEqual([]);
+  const dark = await new AxeBuilder({ page }).analyze();
+  expect(dark.violations).toEqual([]);
+
+  // Kolory statusów widoczności muszą mieć kontrast także w jasnym motywie
+  await page.getByRole('button', { name: 'Ciemny motyw' }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  const light = await new AxeBuilder({ page }).analyze();
+  expect(light.violations).toEqual([]);
 });
 
 test('starts dark and remembers the light theme after reload', async ({
