@@ -25,7 +25,19 @@ html {
 
 body {
   margin: 0;
-  background: var(--color-bg);
+  background-color: var(--color-bg);
+  background-image:
+    radial-gradient(
+      1100px 600px at 0% -10%,
+      color-mix(in srgb, var(--color-accent) 7%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      900px 500px at 100% 0%,
+      color-mix(in srgb, var(--color-focus) 6%, transparent),
+      transparent 70%
+    );
+  background-attachment: fixed;
   color: var(--color-text);
   font-family: var(--font);
   line-height: 1.5;
