@@ -129,144 +129,158 @@ export function VideoItem({
     video.videoPublishedAt === null ? null : formatDate(video.videoPublishedAt);
 
   return (
-    <li
+    <tr
       className={classNames(
         'video-item',
         !video.available && 'video-item--unavailable',
         dragging && 'video-item--dragging',
+        confirming && 'video-item--confirming',
         dropIndicator !== null && `video-item--drop-${dropIndicator}`,
       )}
+      role="row"
     >
-      <button
-        ref={handleRef}
-        type="button"
-        className={
-          dragHandlers === null
-            ? 'video-item__handle video-item__handle--disabled'
-            : 'video-item__handle'
-        }
-        aria-label={`${t.moveVideo} ${t.videoTarget(name)}`}
-        // aria-disabled zamiast disabled: uchwyt nie gubi fokusa na czas żądania
-        aria-disabled={dragHandlers === null ? true : undefined}
-        title={t.dragToReorder}
-        onKeyDown={handleKeyDown}
-        {...dragHandlers}
+      <td className="video-item__cell video-item__cell--handle" role="cell">
+        <button
+          ref={handleRef}
+          type="button"
+          className={
+            dragHandlers === null
+              ? 'video-item__handle video-item__handle--disabled'
+              : 'video-item__handle'
+          }
+          aria-label={`${t.moveVideo} ${t.videoTarget(name)}`}
+          // aria-disabled zamiast disabled: uchwyt nie gubi fokusa na czas żądania
+          aria-disabled={dragHandlers === null ? true : undefined}
+          title={t.dragToReorder}
+          onKeyDown={handleKeyDown}
+          {...dragHandlers}
+        >
+          <svg width="12" height="16" viewBox="0 0 12 16" aria-hidden="true">
+            <circle cx="3" cy="3" r="1.5" />
+            <circle cx="9" cy="3" r="1.5" />
+            <circle cx="3" cy="8" r="1.5" />
+            <circle cx="9" cy="8" r="1.5" />
+            <circle cx="3" cy="13" r="1.5" />
+            <circle cx="9" cy="13" r="1.5" />
+          </svg>
+        </button>
+      </td>
+      <td className="video-item__cell video-item__cell--number" role="cell">
+        {number}
+      </td>
+      <td className="video-item__cell video-item__cell--thumbnail" role="cell">
+        {video.available && video.thumbnailUrl ? (
+          <img
+            className="video-item__thumbnail"
+            src={video.thumbnailUrl}
+            alt=""
+            width={64}
+            height={36}
+            loading="lazy"
+            decoding="async"
+          />
+        ) : (
+          <span
+            className="video-item__thumbnail video-item__thumbnail--empty"
+            aria-hidden="true"
+          />
+        )}
+      </td>
+      <th
+        className="video-item__cell video-item__cell--title"
+        scope="row"
+        role="rowheader"
       >
-        <svg width="12" height="16" viewBox="0 0 12 16" aria-hidden="true">
-          <circle cx="3" cy="3" r="1.5" />
-          <circle cx="9" cy="3" r="1.5" />
-          <circle cx="3" cy="8" r="1.5" />
-          <circle cx="9" cy="8" r="1.5" />
-          <circle cx="3" cy="13" r="1.5" />
-          <circle cx="9" cy="13" r="1.5" />
-        </svg>
-      </button>
-      <span className="video-item__position">{number}</span>
-      {video.available && video.thumbnailUrl ? (
-        <img
-          className="video-item__thumbnail"
-          src={video.thumbnailUrl}
-          alt=""
-          width={64}
-          height={36}
-          loading="lazy"
-          decoding="async"
-        />
-      ) : (
-        <span
-          className="video-item__thumbnail video-item__thumbnail--empty"
-          aria-hidden="true"
-        />
-      )}
-      <div className="video-item__text">
         {video.available ? (
-          <>
-            <YouTubeLink
-              className="video-item__link"
-              href={`https://www.youtube.com/watch?v=${encodeURIComponent(video.videoId)}&list=${encodeURIComponent(playlistId)}`}
-              title={video.title}
-            >
-              {video.title}
-            </YouTubeLink>
-            {(video.channelTitle !== '' || published !== null) && (
-              <span className="video-item__channel">
-                {video.channelTitle}
-                {video.channelTitle !== '' && published !== null && ' · '}
-                {published !== null && (
-                  <time dateTime={published} title={t.videoPublishedTitle}>
-                    {published}
-                  </time>
-                )}
-              </span>
-            )}
-          </>
+          <YouTubeLink
+            className="video-item__link"
+            href={`https://www.youtube.com/watch?v=${encodeURIComponent(video.videoId)}&list=${encodeURIComponent(playlistId)}`}
+            title={video.title}
+          >
+            {video.title}
+          </YouTubeLink>
         ) : (
           <span className="video-item__unavailable">{t.videoUnavailable}</span>
         )}
-      </div>
-      {confirming ? (
-        <div
-          className="video-item__actions"
-          role="group"
-          aria-label={t.removeVideoQuestion(name)}
-        >
-          <span className="video-item__question">
-            {t.removeVideoQuestion(name)}
-          </span>
-          <button
-            type="button"
-            className="button button--danger button--small"
-            onClick={confirmRemove}
-            disabled={disabled}
+        {error !== null && (
+          <p className="video-item__error" role="alert">
+            {error}
+          </p>
+        )}
+      </th>
+      <td className="video-item__cell video-item__cell--channel" role="cell">
+        {video.available ? video.channelTitle : ''}
+      </td>
+      <td className="video-item__cell video-item__cell--published" role="cell">
+        {published !== null && (
+          <time dateTime={published} title={t.videoPublishedTitle}>
+            {published}
+          </time>
+        )}
+      </td>
+      <td className="video-item__cell video-item__cell--actions" role="cell">
+        {confirming ? (
+          <div
+            className="video-item__actions"
+            role="group"
+            aria-label={t.removeVideoQuestion(name)}
           >
-            {t.remove}
-          </button>
-          <button
-            ref={cancelRef}
-            type="button"
-            className="button button--small"
-            onClick={cancelConfirm}
-            disabled={disabled}
-          >
-            {t.cancel}
-          </button>
-          {pending && <span className="video-item__working">{t.working}</span>}
-        </div>
-      ) : (
-        <div className="video-item__actions">
-          {pending && <span className="video-item__working">{t.working}</span>}
-          <button
-            ref={removeRef}
-            type="button"
-            className="button button--danger button--small video-item__button"
-            onClick={startConfirm}
-            disabled={disabled}
-          >
-            <svg
-              className="video-item__icon"
-              width="16"
-              height="16"
-              viewBox="0 0 16 16"
-              aria-hidden="true"
+            {/* Pełne pytanie z tytułem jest nazwą grupy; w wąskiej kolumnie widać krótkie */}
+            <span className="video-item__question">{t.removeVideoShort}</span>
+            <button
+              type="button"
+              className="button button--danger button--small"
+              onClick={confirmRemove}
+              disabled={disabled}
             >
-              <path
-                d="M4 4l8 8M12 4l-8 8"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
-            </svg>
-            <span className="video-item__button-label">{t.removeVideo}</span>{' '}
-            {target}
-          </button>
-        </div>
-      )}
-      {error !== null && (
-        <p className="video-item__error" role="alert">
-          {error}
-        </p>
-      )}
-    </li>
+              {t.remove}
+            </button>
+            <button
+              ref={cancelRef}
+              type="button"
+              className="button button--small"
+              onClick={cancelConfirm}
+              disabled={disabled}
+            >
+              {t.cancel}
+            </button>
+            {pending && (
+              <span className="video-item__working">{t.working}</span>
+            )}
+          </div>
+        ) : (
+          <div className="video-item__actions">
+            {pending && (
+              <span className="video-item__working">{t.working}</span>
+            )}
+            <button
+              ref={removeRef}
+              type="button"
+              className="button button--danger button--small video-item__button"
+              onClick={startConfirm}
+              disabled={disabled}
+            >
+              <svg
+                className="video-item__icon"
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                aria-hidden="true"
+              >
+                <path
+                  d="M4 4l8 8M12 4l-8 8"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+              </svg>
+              <span className="video-item__button-label">{t.removeVideo}</span>{' '}
+              {target}
+            </button>
+          </div>
+        )}
+      </td>
+    </tr>
   );
 }

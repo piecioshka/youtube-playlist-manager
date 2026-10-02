@@ -812,32 +812,71 @@ a.external-link:focus-visible .external-link__text {
   font-size: 1.125rem;
 }
 
-.video-list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
+/* Filmy playlisty jako tabela o stałych szerokościach kolumn: długi tytuł ucina się, zamiast rozpychać resztę */
+.video-table {
+  width: 100%;
+  table-layout: fixed;
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
+  border-spacing: 0;
   background: var(--color-surface);
   font-size: 0.9375rem;
 }
 
-/* Kolumny: uchwyt, numer, miniatura, tytuł z kanałem (reszta miejsca), przyciski */
-.video-item {
-  display: grid;
-  grid-template-columns: auto 2rem 64px minmax(0, 1fr) auto;
-  gap: 4px 12px;
-  align-items: center;
+.video-table__column {
   padding: 8px 12px;
   border-bottom: 1px solid var(--color-border);
+  color: var(--color-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
 }
 
-.video-item:last-child {
-  border-bottom: 0;
+.video-table__column--handle {
+  width: 32px;
+  padding-right: 0;
+}
+
+.video-table__column--number {
+  width: 44px;
+  text-align: right;
+}
+
+.video-table__column--thumbnail {
+  width: 88px;
+}
+
+.video-table__column--channel {
+  width: 22%;
+}
+
+.video-table__column--published {
+  width: 124px;
+}
+
+.video-table__column--actions {
+  width: 176px;
 }
 
 .video-item:hover {
   background: color-mix(in srgb, var(--color-border) 35%, transparent);
+}
+
+.video-item__cell {
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--color-border);
+  font-weight: normal;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.video-item:last-child .video-item__cell {
+  border-bottom: 0;
+}
+
+.video-item__cell--handle {
+  padding-right: 0;
 }
 
 .video-item__handle {
@@ -845,8 +884,8 @@ a.external-link:focus-visible .external-link__text {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  align-self: stretch;
   width: 20px;
+  height: 36px;
   padding: 0;
   border: 0;
   border-radius: 4px;
@@ -884,16 +923,16 @@ a.external-link:focus-visible .external-link__text {
   opacity: 0.5;
 }
 
-/* Kreska nie przesuwa układu, bo jest cieniem we wnętrzu wiersza */
-.video-item--drop-before {
+/* Kreska nie przesuwa układu, bo jest cieniem we wnętrzu komórek */
+.video-item--drop-before .video-item__cell {
   box-shadow: inset 0 2px 0 var(--color-accent);
 }
 
-.video-item--drop-after {
+.video-item--drop-after .video-item__cell {
   box-shadow: inset 0 -2px 0 var(--color-accent);
 }
 
-.video-item__position {
+.video-item__cell--number {
   color: var(--color-muted);
   font-size: 0.875rem;
   font-variant-numeric: tabular-nums;
@@ -909,16 +948,9 @@ a.external-link:focus-visible .external-link__text {
   background: var(--color-border);
 }
 
-/* Kolumna nie rośnie razem z długim tytułem, więc tytuł ucina się przed przyciskami */
-.video-item__text {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  min-width: 0;
-}
-
 /* Ucina się tekst linku, a nie cały link, żeby piktogram na końcu został widoczny */
 .video-item__link .external-link__text,
-.video-item__channel {
+.video-item__cell--channel {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -930,9 +962,15 @@ a.external-link:focus-visible .external-link__text {
   text-decoration: none;
 }
 
-.video-item__channel {
+.video-item__cell--channel,
+.video-item__cell--published {
   color: var(--color-muted);
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
+}
+
+.video-item__cell--published {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 /* Krótki stały tekst, więc zawija się zamiast ucinać wielokropkiem na telefonie */
@@ -941,20 +979,13 @@ a.external-link:focus-visible .external-link__text {
   font-style: italic;
 }
 
+/* Przyciski trzymają się prawej krawędzi; potwierdzenie zawija się w wąskiej kolumnie */
 .video-item__actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
   align-items: center;
   justify-content: flex-end;
-  white-space: nowrap;
-}
-
-/* Potwierdzenie z tytułem filmu nie mieści się obok, więc dostaje własny wiersz */
-.video-item__actions[role='group'] {
-  grid-column: 1 / -1;
-  flex-wrap: wrap;
-  justify-content: flex-start;
-  white-space: normal;
 }
 
 /* Na szerokim ekranie przycisk usuwania ma tekst; ikonę włącza telefon */
@@ -974,8 +1005,7 @@ a.external-link:focus-visible .external-link__text {
 }
 
 .video-item__error {
-  grid-column: 1 / -1;
-  margin: 0;
+  margin: 2px 0 0;
   color: var(--color-danger);
   font-size: 0.8125rem;
 }
@@ -1191,11 +1221,99 @@ a.external-link:focus-visible .external-link__text {
     font-size: 1.125rem;
   }
 
-  /* Wiersz filmu mieści się w jednym rzędzie: usuwanie to ikona */
+  /*
+   * Na telefonie wiersz tabeli staje się siatką: uchwyt, numer i miniatura po lewej,
+   * tytuł nad kanałem i datą, usuwanie jako ikona po prawej.
+   */
+  .video-table,
+  .video-table tbody {
+    display: block;
+  }
+
+  .video-table {
+    position: relative;
+  }
+
+  .video-table__head {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
   .video-item {
-    grid-template-columns: auto 1.25rem 56px minmax(0, 1fr) auto;
-    gap: 4px 8px;
+    display: grid;
+    grid-template-columns: auto 1.25rem 56px minmax(0, 1fr) auto auto;
+    grid-template-areas:
+      'handle number thumbnail title title actions'
+      'handle number thumbnail channel published actions';
+    gap: 2px 8px;
+    align-items: center;
     padding: 8px;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .video-item:last-child {
+    border-bottom: 0;
+  }
+
+  /* Potwierdzenie usunięcia dostaje własny rząd pod filmem */
+  .video-item--confirming {
+    grid-template-areas:
+      'handle number thumbnail title title title'
+      'handle number thumbnail channel published published'
+      'actions actions actions actions actions actions';
+  }
+
+  .video-item__cell {
+    min-width: 0;
+    padding: 0;
+    border-bottom: 0;
+  }
+
+  .video-item__cell--handle {
+    grid-area: handle;
+  }
+
+  .video-item__cell--number {
+    grid-area: number;
+  }
+
+  .video-item__cell--thumbnail {
+    grid-area: thumbnail;
+  }
+
+  .video-item__cell--title {
+    grid-area: title;
+  }
+
+  .video-item__cell--channel {
+    grid-area: channel;
+    font-size: 0.8125rem;
+  }
+
+  .video-item__cell--published {
+    grid-area: published;
+    font-size: 0.8125rem;
+  }
+
+  .video-item__cell--actions {
+    grid-area: actions;
+  }
+
+  .video-item--drop-before .video-item__cell,
+  .video-item--drop-after .video-item__cell {
+    box-shadow: none;
+  }
+
+  .video-item--drop-before {
+    box-shadow: inset 0 2px 0 var(--color-accent);
+  }
+
+  .video-item--drop-after {
+    box-shadow: inset 0 -2px 0 var(--color-accent);
   }
 
   .video-item__thumbnail {

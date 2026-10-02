@@ -45,20 +45,23 @@ async function renderVideos(list: PlaylistVideo[] = videos) {
     youtube,
     'pl',
   );
-  await screen.findByRole('list', { name: /^Filmy/ });
+  await screen.findByRole('table', { name: /^Filmy/ });
   return { user: userEvent.setup() };
 }
 
 function titles(): string[] {
-  return within(screen.getByRole('list', { name: /^Filmy/ }))
+  return within(screen.getByRole('table', { name: /^Filmy/ }))
     .getAllByRole('link')
     .map((link) => link.textContent ?? '');
 }
 
+// Wiersze filmów, bez wiersza nagłówków tabeli
+function rows(): HTMLElement[] {
+  return [...document.querySelectorAll<HTMLElement>('.video-item')];
+}
+
 function item(title: string): HTMLElement {
-  const found = screen
-    .getAllByRole('listitem')
-    .find((element) => element.textContent?.includes(title));
+  const found = rows().find((element) => element.textContent?.includes(title));
   if (!found) {
     throw new Error(`No video ${title}`);
   }
@@ -75,7 +78,7 @@ function handle(title: string): HTMLElement {
 
 // jsdom nie liczy układu: wiersze stoją jeden pod drugim, każdy ma 100 px wysokości
 function layOutRows() {
-  screen.getAllByRole('listitem').forEach((row, index) => {
+  rows().forEach((row, index) => {
     row.getBoundingClientRect = () => new DOMRect(0, index * 100, 300, 100);
   });
 }

@@ -11,7 +11,7 @@ import {
 } from './fixtures';
 
 function videoList(page: Page) {
-  return page.getByRole('list', { name: /^Filmy/ });
+  return page.getByRole('table', { name: /^Filmy/ });
 }
 
 function videoTitles(page: Page): Promise<string[]> {
@@ -42,7 +42,7 @@ test('opens a playlist profile from the table', async ({ page }) => {
   expect(await videoTitles(page)).toEqual(ALGO_VIDEOS);
   // Przy filmie stoi data jego publikacji na YouTube, a nie data dodania do playlisty
   await expect(
-    videoList(page).getByRole('listitem').first().locator('time'),
+    videoList(page).locator('tbody tr').first().locator('time'),
   ).toHaveText('2019-03-14');
 });
 
@@ -89,7 +89,7 @@ test.describe('drag and drop', () => {
 
   test('drags the first video onto the last one', async ({ page, youtube }) => {
     await openAlgorithms(page);
-    const items = videoList(page).getByRole('listitem');
+    const items = videoList(page).locator('tbody tr');
     const handle = items.first().locator('.video-item__handle');
     const last = items.last();
 
@@ -146,7 +146,7 @@ test.describe('touch drag and drop', () => {
     await videoList(page).evaluate((list) =>
       list.scrollIntoView({ block: 'center' }),
     );
-    const items = videoList(page).getByRole('listitem');
+    const items = videoList(page).locator('tbody tr');
     const handle = await items
       .first()
       .locator('.video-item__handle')
@@ -193,7 +193,7 @@ test('removes a video after confirmation and shows the new count in the table', 
   youtube,
 }) => {
   await openAlgorithms(page);
-  const last = videoList(page).getByRole('listitem').last();
+  const last = videoList(page).locator('tbody tr').last();
 
   await last.getByRole('button', { name: /^Usuń z playlisty/ }).click();
   await expect(
@@ -225,7 +225,7 @@ test('stays at the removed video instead of jumping up to the heading', async ({
   await page.setViewportSize({ width: 1280, height: 320 });
   await signIn(page);
   await page.getByRole('link', { name: 'Muzyka do pracy' }).click();
-  const items = videoList(page).getByRole('listitem');
+  const items = videoList(page).locator('tbody tr');
   await expect(items).toHaveCount(4);
   const heading = page.getByRole('heading', { level: 3 });
 
@@ -256,7 +256,7 @@ test('adds a video by its youtu.be link', async ({ page, youtube }) => {
     .toEqual([...ALGO_VIDEOS, 'Added video dQw4w9WgXcQ']);
   // Dodany film od razu ma datę publikacji, bez ponownego wczytania listy
   await expect(
-    videoList(page).getByRole('listitem').last().locator('time'),
+    videoList(page).locator('tbody tr').last().locator('time'),
   ).toHaveText('2009-10-25');
   await expect(page.getByRole('textbox', { name: 'Dodaj film' })).toHaveValue(
     '',
@@ -464,8 +464,8 @@ test('lays the profile out for a phone', async ({ page }) => {
   expect(title.y).toBeLessThan(thumbnail.y + thumbnail.height);
 
   // Usuwanie to ikona w tym samym rzędzie co tytuł
-  const item = videoList(page).getByRole('listitem').first();
-  const text = await item.locator('.video-item__text').boundingBox();
+  const item = videoList(page).locator('tbody tr').first();
+  const text = await item.locator('.video-item__cell--title').boundingBox();
   const remove = item.getByRole('button', {
     name: 'Usuń z playlisty „Quicksort in 4 minutes”',
   });
@@ -496,7 +496,7 @@ for (const width of [1280, 375]) {
       'Bardzo długi tytuł filmu, który nie mieści się w wierszu. '.repeat(6);
     await page.setViewportSize({ width, height: 800 });
     await openAlgorithms(page);
-    const item = videoList(page).getByRole('listitem').first();
+    const item = videoList(page).locator('tbody tr').first();
 
     const link = await item.locator('.video-item__link').boundingBox();
     const remove = await item

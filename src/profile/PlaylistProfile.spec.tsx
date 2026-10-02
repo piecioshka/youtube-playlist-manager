@@ -97,12 +97,12 @@ function meta(): Element | null {
 
 async function renderLoaded(options: RenderOptions = {}) {
   const rendered = renderProfile(options);
-  await screen.findByRole('list', { name: /^Filmy/ });
+  await screen.findByRole('table', { name: /^Filmy/ });
   return rendered;
 }
 
 function videoTitles(): string[] {
-  const list = screen.getByRole('list', { name: /^Filmy/ });
+  const list = screen.getByRole('table', { name: /^Filmy/ });
   return within(list)
     .getAllByRole('link')
     .map((link) => link.textContent ?? '');
@@ -110,7 +110,7 @@ function videoTitles(): string[] {
 
 function item(title: string): HTMLElement {
   const found = screen
-    .getAllByRole('listitem')
+    .getAllByRole('row')
     .find((element) => element.textContent?.includes(title));
   if (!found) {
     throw new Error(`No video ${title}`);
@@ -165,7 +165,7 @@ describe('PlaylistProfile', () => {
       const thumbnail = document.querySelector('.profile__thumbnail');
       expect(thumbnail).toHaveAttribute('src', algo.thumbnailUrl);
       expect(thumbnail).toHaveAttribute('alt', '');
-      await screen.findByRole('list', { name: /^Filmy/ });
+      await screen.findByRole('table', { name: /^Filmy/ });
     });
 
     it('shows a placeholder without a thumbnail', async () => {
@@ -174,7 +174,7 @@ describe('PlaylistProfile', () => {
       expect(
         document.querySelector('.profile__thumbnail--empty'),
       ).toBeInTheDocument();
-      await screen.findByRole('list', { name: /^Filmy/ });
+      await screen.findByRole('table', { name: /^Filmy/ });
     });
   });
 
@@ -419,7 +419,32 @@ describe('PlaylistProfile', () => {
       const first = item('Quicksort');
       expect(first).toHaveTextContent(/^1/);
       // Data publikacji filmu na YouTube stoi przy kanale; film bez daty jej nie ma
-      expect(first).toHaveTextContent('Michael Sambol · 2016-08-11');
+      expect(within(first).getByRole('rowheader')).toHaveTextContent(
+        'Quicksort',
+      );
+      expect(
+        within(first)
+          .getAllByRole('cell')
+          .map((cell) => cell.textContent),
+      ).toEqual([
+        '',
+        '1',
+        '',
+        'Michael Sambol',
+        '2016-08-11',
+        'Usuń z playlisty „Quicksort”',
+      ]);
+      expect(
+        screen.getAllByRole('columnheader').map((header) => header.textContent),
+      ).toEqual([
+        'Kolejność',
+        'Nr',
+        'Miniatura',
+        'Tytuł',
+        'Kanał',
+        'Opublikowano',
+        'Akcje',
+      ]);
       expect(first.querySelector('time')).toHaveAttribute(
         'datetime',
         '2016-08-11',
@@ -430,7 +455,6 @@ describe('PlaylistProfile', () => {
       );
       expect(item('Big O').querySelector('time')).toBeNull();
       expect(item('Big O')).toHaveTextContent('CS Dojo');
-      expect(item('Big O')).not.toHaveTextContent('CS Dojo ·');
       expect(
         within(first).getByRole('link', { name: 'Quicksort' }),
       ).toHaveAttribute(
@@ -494,7 +518,7 @@ describe('PlaylistProfile', () => {
         screen.getByRole('button', { name: 'Spróbuj ponownie' }),
       );
 
-      await screen.findByRole('list', { name: /^Filmy/ });
+      await screen.findByRole('table', { name: /^Filmy/ });
       expect(videoTitles()).toEqual(['Quicksort', 'Big O', 'Grafy']);
     });
 
@@ -723,7 +747,7 @@ describe('PlaylistProfile', () => {
 
     function unavailableItems(): HTMLElement[] {
       return screen
-        .getAllByRole('listitem')
+        .getAllByRole('row')
         .filter((element) =>
           element.classList.contains('video-item--unavailable'),
         );
@@ -799,7 +823,8 @@ describe('PlaylistProfile', () => {
         2,
       );
       expect(videoTitles()).toEqual(['Quicksort', 'Big O']);
-      expect(screen.getAllByRole('listitem')[2]).toHaveClass(
+      // Wiersz 0 to nagłówki tabeli, więc trzeci film ma indeks 3
+      expect(screen.getAllByRole('row')[3]).toHaveClass(
         'video-item--unavailable',
       );
     });
@@ -914,7 +939,7 @@ describe('PlaylistProfile', () => {
     it('labels unavailable videos in English', async () => {
       youtube.listPlaylistVideos.mockResolvedValue(withUnavailable);
       renderProfile({ locale: 'en' });
-      await screen.findByRole('list', { name: 'Videos (4)' });
+      await screen.findByRole('table', { name: 'Videos (4)' });
 
       expect(
         screen.getAllByText('Unavailable video (deleted or private)'),
@@ -1014,7 +1039,7 @@ describe('PlaylistProfile', () => {
       );
       const user = userEvent.setup();
       renderProfile({ locale: 'en' });
-      await screen.findByRole('list', { name: /^Videos/ });
+      await screen.findByRole('table', { name: /^Videos/ });
 
       await user.type(
         screen.getByRole('textbox', { name: 'Add a video' }),
@@ -1030,7 +1055,7 @@ describe('PlaylistProfile', () => {
 
   it('translates the profile to English', async () => {
     renderProfile({ locale: 'en' });
-    await screen.findByRole('list', { name: 'Videos (3)' });
+    await screen.findByRole('table', { name: 'Videos (3)' });
 
     expect(
       screen.getByRole('link', { name: 'All playlists' }),

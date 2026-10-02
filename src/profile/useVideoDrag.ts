@@ -19,8 +19,8 @@ export type DragHandlers = {
 };
 
 export type VideoDrag = {
-  // Lista, której kolejne elementy odpowiadają kolejnym filmom
-  listRef: RefObject<HTMLOListElement | null>;
+  // Element, którego kolejne dzieci odpowiadają kolejnym filmom
+  listRef: RefObject<HTMLTableSectionElement | null>;
   draggingId: string | null;
   dropIndicator: (index: number, itemId: string) => DropPlacement | null;
   handlers: (itemId: string) => DragHandlers;
@@ -48,7 +48,7 @@ export function useVideoDrag(
   onMove: (from: number, to: number) => void,
 ): VideoDrag {
   const [drag, setDrag] = useState<Drag>(null);
-  const listRef = useRef<HTMLOListElement>(null);
+  const listRef = useRef<HTMLTableSectionElement>(null);
 
   // Górna połowa wiersza to „przed”, dolna „za”; poza listą nie ma celu
   function targetAt(clientY: number): DropTarget | null {

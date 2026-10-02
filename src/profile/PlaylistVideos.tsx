@@ -125,35 +125,94 @@ export function PlaylistVideos({
           />
         )}
       {load.status === 'ready' && videos.length > 0 && (
-        <ol
-          ref={listRef}
-          className="video-list"
+        // Jawne role: na telefonie wiersze dostają display: grid, co w części przeglądarek gubi semantykę tabeli
+        <table
+          className="video-table"
+          role="table"
           aria-labelledby="profile-videos"
         >
-          {videos.map((video, index) => (
-            <VideoItem
-              key={video.itemId}
-              video={video}
-              playlistId={playlistId}
-              number={index + 1}
-              isFirst={index === 0}
-              isLast={index === videos.length - 1}
-              pending={
-                pending?.kind === 'item' && pending.itemId === video.itemId
-              }
-              locked={pending !== null}
-              error={
-                itemError?.itemId === video.itemId ? itemError.message : null
-              }
-              dragHandlers={canDrag ? handlers(video.itemId) : null}
-              dragging={draggingId === video.itemId}
-              dropIndicator={dropIndicator(index, video.itemId)}
-              focusRemove={focusItemId === video.itemId}
-              onMove={(direction) => void move(index, direction)}
-              onRemove={() => remove(video)}
-            />
-          ))}
-        </ol>
+          <thead className="video-table__head" role="rowgroup">
+            <tr role="row">
+              <th
+                className="video-table__column video-table__column--handle"
+                scope="col"
+                role="columnheader"
+              >
+                <span className="visually-hidden">{t.videoColumnOrder}</span>
+              </th>
+              <th
+                className="video-table__column video-table__column--number"
+                scope="col"
+                role="columnheader"
+              >
+                {t.videoColumnNumber}
+              </th>
+              <th
+                className="video-table__column video-table__column--thumbnail"
+                scope="col"
+                role="columnheader"
+              >
+                <span className="visually-hidden">
+                  {t.videoColumnThumbnail}
+                </span>
+              </th>
+              <th
+                className="video-table__column"
+                scope="col"
+                role="columnheader"
+              >
+                {t.columnTitle}
+              </th>
+              <th
+                className="video-table__column video-table__column--channel"
+                scope="col"
+                role="columnheader"
+              >
+                {t.videoColumnChannel}
+              </th>
+              <th
+                className="video-table__column video-table__column--published"
+                scope="col"
+                role="columnheader"
+              >
+                {t.videoColumnPublished}
+              </th>
+              <th
+                className="video-table__column video-table__column--actions"
+                scope="col"
+                role="columnheader"
+              >
+                <span className="visually-hidden">{t.columnActions}</span>
+              </th>
+            </tr>
+          </thead>
+          {/* Kolejne wiersze odpowiadają kolejnym filmom: na tym opiera się przeciąganie */}
+          <tbody ref={listRef} role="rowgroup">
+            {videos.map((video, index) => (
+              <VideoItem
+                key={video.itemId}
+                video={video}
+                playlistId={playlistId}
+                number={index + 1}
+                isFirst={index === 0}
+                isLast={index === videos.length - 1}
+                pending={
+                  pending?.kind === 'item' && pending.itemId === video.itemId
+                }
+                locked={pending !== null}
+                error={
+                  itemError?.itemId === video.itemId ? itemError.message : null
+                }
+                dragHandlers={canDrag ? handlers(video.itemId) : null}
+                dragging={draggingId === video.itemId}
+                dropIndicator={dropIndicator(index, video.itemId)}
+                focusRemove={focusItemId === video.itemId}
+                onMove={(direction) => void move(index, direction)}
+                onRemove={() => remove(video)}
+              />
+            ))}
+          </tbody>
+        </table>
       )}
       <p className="visually-hidden" role="status">
         {announcement}
