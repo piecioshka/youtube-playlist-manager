@@ -151,6 +151,31 @@ test('removes a video after confirmation and shows the new count in the table', 
   await expect(row.getByRole('cell').first()).toHaveText('2');
 });
 
+test('stays at the removed video instead of jumping up to the heading', async ({
+  page,
+}) => {
+  // Niskie okno: nagłówek listy filmów nie mieści się razem z ostatnim filmem
+  await page.setViewportSize({ width: 1280, height: 320 });
+  await signIn(page);
+  await page.getByRole('link', { name: 'Muzyka do pracy' }).click();
+  const items = videoList(page).getByRole('listitem');
+  await expect(items).toHaveCount(4);
+  const heading = page.getByRole('heading', { level: 3 });
+
+  await items
+    .last()
+    .getByRole('button', { name: /^Usuń z playlisty/ })
+    .click();
+  await expect(heading).not.toBeInViewport();
+  await items.last().getByRole('button', { name: 'Usuń', exact: true }).click();
+
+  await expect(items).toHaveCount(3);
+  await expect(
+    items.last().getByRole('button', { name: /^Usuń z playlisty/ }),
+  ).toBeFocused();
+  await expect(heading).not.toBeInViewport();
+});
+
 test('adds a video by its youtu.be link', async ({ page, youtube }) => {
   await openAlgorithms(page);
 

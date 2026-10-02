@@ -570,6 +570,57 @@ describe('PlaylistProfile', () => {
       expect(
         screen.getByRole('heading', { level: 3, name: 'Filmy (2)' }),
       ).toBeInTheDocument();
+      // Fokus zostaje w miejscu usuniętego filmu, a nie skacze na nagłówek nad listą
+      await waitFor(() =>
+        expect(
+          within(item('Grafy')).getByRole('button', {
+            name: 'Usuń z playlisty „Grafy”',
+          }),
+        ).toHaveFocus(),
+      );
+    });
+
+    it('moves the focus to the previous video after removing the last one', async () => {
+      youtube.removePlaylistItem.mockResolvedValue(undefined);
+      const { user } = await renderLoaded();
+
+      await user.click(
+        within(item('Grafy')).getByRole('button', {
+          name: 'Usuń z playlisty „Grafy”',
+        }),
+      );
+      await user.click(
+        within(item('Grafy')).getByRole('button', { name: 'Usuń' }),
+      );
+
+      await waitFor(() =>
+        expect(
+          within(item('Big O')).getByRole('button', {
+            name: 'Usuń z playlisty „Big O”',
+          }),
+        ).toHaveFocus(),
+      );
+    });
+
+    it('moves the focus to the heading after removing the only video', async () => {
+      youtube.listPlaylistVideos.mockResolvedValue([quicksort]);
+      youtube.removePlaylistItem.mockResolvedValue(undefined);
+      const { user } = await renderLoaded();
+
+      await user.click(
+        within(item('Quicksort')).getByRole('button', {
+          name: 'Usuń z playlisty „Quicksort”',
+        }),
+      );
+      await user.click(
+        within(item('Quicksort')).getByRole('button', { name: 'Usuń' }),
+      );
+
+      await waitFor(() =>
+        expect(
+          screen.getByRole('heading', { level: 3, name: 'Filmy (0)' }),
+        ).toHaveFocus(),
+      );
     });
 
     it('cancels removing a video', async () => {

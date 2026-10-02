@@ -27,6 +27,8 @@ type VideoItemProps = {
   // Jakiś film jest przeciągany, więc wiersz przyjmuje upuszczenie
   dragActive: boolean;
   dropIndicator: DropPlacement | null;
+  // Sąsiedni film został usunięty, więc fokus przechodzi na przycisk usuwania tego filmu
+  focusRemove: boolean;
   onDragStart: () => void;
   onDragOver: (placement: DropPlacement) => void;
   onDrop: (placement: DropPlacement) => void;
@@ -49,6 +51,7 @@ export function VideoItem({
   dragging,
   dragActive,
   dropIndicator,
+  focusRemove,
   onDragStart,
   onDragOver,
   onDrop,
@@ -87,6 +90,13 @@ export function VideoItem({
       cancelRef.current?.focus();
     }
   }, [disabled, confirming, isFirst, isLast]);
+
+  // Przycisk jest wyłączony do końca operacji, więc fokus bierze dopiero po niej
+  useEffect(() => {
+    if (focusRemove && !disabled) {
+      removeRef.current?.focus();
+    }
+  }, [focusRemove, disabled]);
 
   function move(direction: 'up' | 'down') {
     focusTargetRef.current = direction;

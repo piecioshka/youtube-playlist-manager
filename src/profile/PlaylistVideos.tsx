@@ -32,11 +32,19 @@ export function PlaylistVideos({
   const { load, videos, pending, itemError, progress, bulkError } = list;
   const [drag, setDrag] = useState<Drag>(null);
   const [announcement, setAnnouncement] = useState('');
+  // Film, którego przycisk usuwania przejmuje fokus po usunięciu sąsiada
+  const [focusItemId, setFocusItemId] = useState<string | null>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
+
+  // Każda nowa operacja zaczyna z czystym ogłoszeniem i bez zaległej prośby o fokus
+  function startOperation() {
+    setAnnouncement('');
+    setFocusItemId(null);
+  }
 
   async function moveVideo(from: number, to: number) {
     const video = videos[from];
-    setAnnouncement('');
+    startOperation();
     if (video !== undefined && (await list.move(from, to))) {
       setAnnouncement(
         t.videoMoved(
@@ -48,21 +56,28 @@ export function PlaylistVideos({
   }
 
   async function remove(video: PlaylistVideo): Promise<boolean> {
-    setAnnouncement('');
+    startOperation();
+    const index = videos.findIndex((item) => item.itemId === video.itemId);
+    const neighbour = videos[index + 1] ?? videos[index - 1];
     const removed = await list.remove(video);
     if (removed) {
-      headingRef.current?.focus();
+      // Fokus zostaje w miejscu usuniętego filmu: nagłówek nad listą przewinąłby stronę do góry
+      if (neighbour === undefined) {
+        headingRef.current?.focus();
+      } else {
+        setFocusItemId(neighbour.itemId);
+      }
     }
     return removed;
   }
 
   function add(videoId: string): Promise<void> {
-    setAnnouncement('');
+    startOperation();
     return list.add(videoId);
   }
 
   async function removeUnavailable(): Promise<void> {
-    setAnnouncement('');
+    startOperation();
     if (await list.removeUnavailable()) {
       headingRef.current?.focus();
     }
@@ -178,6 +193,7 @@ export function PlaylistVideos({
               dragging={drag?.itemId === video.itemId}
               dragActive={drag !== null}
               dropIndicator={dropIndicator(index, video.itemId)}
+              focusRemove={focusItemId === video.itemId}
               onDragStart={() =>
                 setDrag({
                   itemId: video.itemId,
