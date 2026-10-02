@@ -47,17 +47,19 @@ npm run format        # Prettier over the whole repository
 - Static SPA (Vite + React + TypeScript), no backend.
 - Sign-in: Google Identity Services token client (`src/auth/useGoogleAuth.ts`). The token is kept in `sessionStorage` for the current tab, so a refresh keeps the session, while closing the tab or expiry (~1 h) ends it; any `401` from the API brings back the sign-in screen.
 - API: `src/youtube/api.ts` calls YouTube Data API v3 with `fetch` and validates responses with zod (`src/youtube/schemas.ts`). Errors are `ApiError` with a `kind`; `src/youtube/errorMessage.ts` turns them into UI copy in the current language.
-- Rename uses `PUT playlists?part=snippet`. The request carries the current description and default language, because the API replaces the whole snippet.
-- UI: `src/playlists/PlaylistsView.tsx` (loading, sorting, list state) and `src/playlists/PlaylistRow.tsx` (inline rename and delete confirmation).
+- Rename and the playlist page form use `PUT playlists?part=snippet,status` (`updatePlaylist`). The request carries every writable field (title, description, default language, privacy status) merged with the changes, because the API replaces the whole snippet and status and clears whatever is left out.
+- UI: `src/playlists/usePlaylists.ts` loads the playlists once and holds their mutations; `App.tsx` keeps it (and the video index) above both views, so switching between the table and a playlist page fetches nothing again. `src/playlists/PlaylistsView.tsx` adds sorting, filtering and search, `src/playlists/PlaylistRow.tsx` the inline rename and delete confirmation.
+- Routing: `src/routing/` keeps the current view in the URL hash: `#/` is the table, `#/playlists/<id>` a playlist page. Hash routes need no server support, so a reload or a shared link works on GitHub Pages, which has no rewrites to `index.html`; Back and Forward work through `hashchange`, without a router library.
+- Playlist page: `src/profile/` edits the title, description and visibility, deletes the playlist, and lists its videos with move up/down (optimistic, reverted on error), remove (after an inline confirmation) and add by link or ID (`src/youtube/videoId.ts` reads `watch?v=`, `youtu.be`, `shorts` and `embed` links). It reuses videos already fetched for search and writes every change back to that index. Moving sends the neighbor's position from YouTube, not the index in the list, because positions also count deleted and private videos the list hides.
 - Search: `src/search/` filters by playlist titles and by the titles and channels of the videos inside. Video titles come from `playlistItems`, fetched lazily the first time the search field gets focus (at most 4 playlists at once), and stay in memory only. Indexing costs 1 quota unit per 50 videos of every playlist.
 - Languages: `src/i18n/messages.ts` holds every UI string in Polish (`pl`, the default) and English (`en`). The `Messages` type comes from the `pl` object and `en` is typed with it, so to add a string you add the key to `pl` and TypeScript makes you add it to `en`. Strings with parameters are functions (English plurals included). `LocaleProvider` keeps the chosen language in `localStorage`, sets `<html lang>` and gives components `useI18n()`; code outside components (`errorMessage`) takes the messages as an argument, and `useGoogleAuth` returns message keys that the sign-in screen translates.
 - Theme: `src/theme/` keeps the light/dark choice in `localStorage` (dark by default) and sets `data-theme` on `<html>`; `src/styles/app.css` defines the color tokens per theme. A small inline script in `index.html` sets the attribute before React mounts, so the page never flashes the wrong theme.
-- Quota: YouTube Data API allows 10 000 units a day. A list page costs 1 unit (playlists and `playlistItems` alike), a rename or a delete 50.
+- Quota: YouTube Data API allows 10 000 units a day. A list page costs 1 unit (playlists and `playlistItems` alike), a playlist update or delete 50, and so does every `playlistItems.insert`, `playlistItems.update` (a move) and `playlistItems.delete` (50 each).
 
 ## Tests
 
 - Unit and component tests sit next to the code (`src/**/*.spec.ts(x)`).
-- E2E tests (`e2e/`) never reach Google: Playwright serves a stub instead of `https://accounts.google.com/gsi/client` and answers `https://www.googleapis.com/youtube/v3/playlists` and `playlistItems` from in-memory data (`e2e/fixtures.ts`).
+- E2E tests (`e2e/`) never reach Google: Playwright serves a stub instead of `https://accounts.google.com/gsi/client` and answers `https://www.googleapis.com/youtube/v3/playlists` and `playlistItems` (list, insert, update, delete) from in-memory data (`e2e/fixtures.ts`).
 
 ## Deployment
 

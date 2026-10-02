@@ -13,5 +13,6 @@ Facts about THIS repository: architecture, traps, decisions that the code and gi
 ## Facts
 
 - [2026-10-02] [project] `PlaylistsView` has two `role="status"` live regions (action notice and search indexing status), so tests must pick one by text instead of a bare `getByRole('status')`.
-- [2026-10-02] [project] `PUT playlists?part=snippet` replaces the whole snippet: the current `description` and `defaultLanguage` must be sent with the new title, otherwise YouTube clears them.
+- [2026-10-02] [project] `playlistItems.update` (moving a video) needs `snippet.playlistId` and `snippet.resourceId` besides `snippet.position`, otherwise YouTube answers 400.
+- [2026-10-02] [project] `PUT playlists?part=snippet,status` replaces the whole snippet and status: the current `title`, `description`, `defaultLanguage` and `privacyStatus` must be sent with every change, otherwise YouTube clears them.
 - [2026-10-02] [project] OAuth Authorized JavaScript origins must match exactly. `npm run dev` takes the first free port from 3000, so CONTRIBUTING lists 3000-3002.

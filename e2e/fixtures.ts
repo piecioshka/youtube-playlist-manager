@@ -25,7 +25,7 @@ export type RecordedRequest = {
 const CORS_HEADERS = {
   'access-control-allow-origin': '*',
   'access-control-allow-headers': 'authorization, content-type',
-  'access-control-allow-methods': 'GET, PUT, DELETE, OPTIONS',
+  'access-control-allow-methods': 'GET, POST, PUT, DELETE, OPTIONS',
 };
 
 // Zastępuje https://accounts.google.com/gsi/client: token przychodzi od razu, bez okienka
@@ -87,6 +87,7 @@ const SEED_PLAYLISTS: FakePlaylist[] = [
 ];
 
 export type FakeVideo = {
+  itemId: string;
   videoId: string;
   title: string;
   channelTitle: string;
@@ -95,16 +96,19 @@ export type FakeVideo = {
 const SEED_VIDEOS: Record<string, FakeVideo[]> = {
   'PL-music': [
     {
+      itemId: 'item-lofi',
       videoId: 'vid-lofi',
       title: 'Lofi beats to study',
       channelTitle: 'Lofi Girl',
     },
     {
+      itemId: 'item-jazz',
       videoId: 'vid-jazz',
       title: 'Jazz for focus and study',
       channelTitle: 'Cafe Music BGM',
     },
     {
+      itemId: 'item-rain',
       videoId: 'vid-rain',
       title: 'Rain sounds',
       channelTitle: 'Relaxing White Noise',
@@ -112,14 +116,22 @@ const SEED_VIDEOS: Record<string, FakeVideo[]> = {
   ],
   'PL-algo': [
     {
+      itemId: 'item-quicksort',
       videoId: 'vid-quicksort',
       title: 'Quicksort in 4 minutes',
       channelTitle: 'Michael Sambol',
     },
     {
+      itemId: 'item-bigo',
       videoId: 'vid-bigo',
       title: 'Big O notation for beginners',
       channelTitle: 'CS Dojo',
+    },
+    {
+      itemId: 'item-dijkstra',
+      videoId: 'vid-dijkstra',
+      title: "Dijkstra's algorithm explained",
+      channelTitle: 'Computerphile',
     },
   ],
 };
@@ -151,10 +163,26 @@ function toResource(playlist: FakePlaylist) {
   };
 }
 
+const itemPutBodySchema = z.object({
+  id: z.string(),
+  snippet: z.object({
+    playlistId: z.string(),
+    resourceId: z.object({ kind: z.string(), videoId: z.string() }),
+    position: z.number().int().nonnegative(),
+  }),
+});
+
+const itemPostBodySchema = z.object({
+  snippet: z.object({
+    playlistId: z.string(),
+    resourceId: z.object({ kind: z.string(), videoId: z.string() }),
+  }),
+});
+
 function toPlaylistItem(video: FakeVideo, position: number) {
   return {
     kind: 'youtube#playlistItem',
-    id: `item-${video.videoId}`,
+    id: video.itemId,
     snippet: {
       title: video.title,
       position,
@@ -180,6 +208,7 @@ export class FakeYouTube {
   videos: Record<string, FakeVideo[]> = structuredClone(SEED_VIDEOS);
   requests: RecordedRequest[] = [];
   private nextFailureStatus: number | null = null;
+  private addedCount = 0;
 
   failNextRequestWith(status: number): void {
     this.nextFailureStatus = status;
@@ -201,19 +230,125 @@ export class FakeYouTube {
 
   private async handleItems(route: Route): Promise<void> {
     const request = route.request();
-    if (request.method() === 'OPTIONS') {
+    const method = request.method();
+    if (method === 'OPTIONS') {
       await route.fulfill({ status: 204, headers: CORS_HEADERS });
       return;
     }
     const url = new URL(request.url());
-    this.requests.push({ method: request.method(), url, body: null });
-    const playlistId = url.searchParams.get('playlistId') ?? '';
+    const rawBody = request.postData();
+    const body: unknown = rawBody ? JSON.parse(rawBody) : null;
+    this.requests.push({ method, url, body });
+
+    if (method === 'GET') {
+      const playlistId = url.searchParams.get('playlistId') ?? '';
+      await route.fulfill({
+        headers: CORS_HEADERS,
+        json: {
+          kind: 'youtube#playlistItemListResponse',
+          items: (this.videos[playlistId] ?? []).map(toPlaylistItem),
+        },
+      });
+      return;
+    }
+
+    if (method === 'DELETE') {
+      const itemId = url.searchParams.get('id');
+      const owner = this.findItemOwner(itemId);
+      if (owner === null) {
+        await this.fail(route, 404, 'playlistItemNotFound');
+        return;
+      }
+      this.videos[owner] = (this.videos[owner] ?? []).filter(
+        (video) => video.itemId !== itemId,
+      );
+      this.changeItemCount(owner, -1);
+      await route.fulfill({ status: 204, headers: CORS_HEADERS });
+      return;
+    }
+
+    if (method === 'PUT') {
+      // Jak YouTube: bez playlistId i resourceId sama pozycja kończy się 400
+      const parsed = itemPutBodySchema.safeParse(body);
+      if (!parsed.success) {
+        await this.fail(route, 400, 'invalidArgument');
+        return;
+      }
+      const { id, snippet } = parsed.data;
+      const list = this.videos[snippet.playlistId] ?? [];
+      const moved = list.find((video) => video.itemId === id);
+      if (moved === undefined) {
+        await this.fail(route, 404, 'playlistItemNotFound');
+        return;
+      }
+      const rest = list.filter((video) => video.itemId !== id);
+      rest.splice(snippet.position, 0, moved);
+      this.videos[snippet.playlistId] = rest;
+      await route.fulfill({
+        headers: CORS_HEADERS,
+        json: toPlaylistItem(moved, rest.indexOf(moved)),
+      });
+      return;
+    }
+
+    if (method === 'POST') {
+      const parsed = itemPostBodySchema.safeParse(body);
+      if (!parsed.success) {
+        await this.fail(route, 400, 'invalidArgument');
+        return;
+      }
+      const { playlistId, resourceId } = parsed.data.snippet;
+      this.addedCount += 1;
+      const added: FakeVideo = {
+        itemId: `item-added-${this.addedCount}`,
+        videoId: resourceId.videoId,
+        title: `Added video ${resourceId.videoId}`,
+        channelTitle: 'E2E channel',
+      };
+      const list = [...(this.videos[playlistId] ?? []), added];
+      this.videos[playlistId] = list;
+      this.changeItemCount(playlistId, 1);
+      // Świeżo dodany element YouTube zwraca czasem bez kanału właściciela
+      await route.fulfill({
+        headers: CORS_HEADERS,
+        json: {
+          kind: 'youtube#playlistItem',
+          id: added.itemId,
+          snippet: {
+            title: added.title,
+            position: list.length - 1,
+            thumbnails: {},
+            resourceId: { kind: 'youtube#video', videoId: added.videoId },
+          },
+        },
+      });
+      return;
+    }
+
+    await route.fulfill({ status: 405, headers: CORS_HEADERS });
+  }
+
+  private findItemOwner(itemId: string | null): string | null {
+    for (const [playlistId, list] of Object.entries(this.videos)) {
+      if (list.some((video) => video.itemId === itemId)) {
+        return playlistId;
+      }
+    }
+    return null;
+  }
+
+  private changeItemCount(playlistId: string, delta: number): void {
+    const playlist = this.playlists.find((item) => item.id === playlistId);
+    if (playlist) {
+      playlist.itemCount += delta;
+    }
+  }
+
+  private async fail(route: Route, status: number, reason: string) {
     await route.fulfill({
+      status,
       headers: CORS_HEADERS,
-      json: {
-        kind: 'youtube#playlistItemListResponse',
-        items: (this.videos[playlistId] ?? []).map(toPlaylistItem),
-      },
+      json: errorJson(status, reason),
     });
   }
 
@@ -242,11 +377,17 @@ export class FakeYouTube {
     }
 
     if (method === 'GET') {
+      // `id=` pyta o jedną playlistę (profil otwarty z adresu), `mine=true` o całą listę
+      const id = url.searchParams.get('id');
+      const playlists =
+        id === null
+          ? this.playlists
+          : this.playlists.filter((item) => item.id === id);
       await route.fulfill({
         headers: CORS_HEADERS,
         json: {
           kind: 'youtube#playlistListResponse',
-          items: this.playlists.map(toResource),
+          items: playlists.map(toResource),
         },
       });
       return;

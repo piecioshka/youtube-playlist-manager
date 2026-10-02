@@ -4,7 +4,7 @@
 
 ## What this is
 
-Static React SPA that signs in to a YouTube account with Google Identity Services and lists, sorts, renames and deletes the user's playlists through YouTube Data API v3. There is no backend: the access token is kept in `sessionStorage` of the current tab only.
+Static React SPA that signs in to a YouTube account with Google Identity Services and lists, sorts, renames and deletes the user's playlists through YouTube Data API v3. A playlist page edits its description and visibility and reorders, removes and adds its videos. There is no backend: the access token is kept in `sessionStorage` of the current tab only.
 
 ## Layout
 
@@ -12,7 +12,9 @@ Static React SPA that signs in to a YouTube account with Google Identity Service
 - `src/i18n/` UI strings in Polish and English (`messages.ts`), `LocaleProvider` with `useI18n()`
 - `src/theme/` light/dark theme switch (dark by default)
 - `src/auth/` Google Identity Services loader, `useGoogleAuth`, `LoginScreen`
-- `src/playlists/` sorting, formatting, `PlaylistsView`, `PlaylistRow`
+- `src/playlists/` sorting, formatting, `usePlaylists`, `PlaylistsView`, `PlaylistRow`
+- `src/routing/` hash routes (`#/`, `#/playlists/<id>`) and `useRoute`
+- `src/profile/` playlist page: edit form, videos (move, remove, add), delete
 - `src/**/*.spec.ts(x)` Vitest next to the code, `e2e/` Playwright against a stubbed Google
 - `tmp/` takes logs, screenshots and throwaway scripts, and is ignored by git
 
