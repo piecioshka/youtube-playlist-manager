@@ -244,5 +244,19 @@ describe('PlaylistsView', () => {
       'Tej playlisty już nie ma.',
     );
     expect(rowTitles()).toEqual(['Ćwiczenia', 'Algorytmy']);
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'Twoje playlisty (2)' }),
+    ).toHaveFocus();
+  });
+
+  it('explains a missing channel when loading returns not found', async () => {
+    vi.mocked(listMyPlaylists).mockRejectedValue(
+      new ApiError('notFound', 'x', 404),
+    );
+    renderView();
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Nie znaleziono kanału YouTube na tym koncie.',
+    );
   });
 });

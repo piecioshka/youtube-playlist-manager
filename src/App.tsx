@@ -24,7 +24,8 @@ function Layout({ actions, children }: LayoutProps) {
 }
 
 function AuthenticatedApp({ clientId }: { clientId: string }) {
-  const { status, token, message, signIn, signOut } = useGoogleAuth(clientId);
+  const { status, token, message, signIn, signOut, retry } =
+    useGoogleAuth(clientId);
   const handleUnauthorized = useCallback(
     () => signOut(SESSION_EXPIRED_MESSAGE),
     [signOut],
@@ -46,7 +47,12 @@ function AuthenticatedApp({ clientId }: { clientId: string }) {
 
   return (
     <Layout>
-      <LoginScreen status={status} message={message} onSignIn={signIn} />
+      <LoginScreen
+        status={status}
+        message={message}
+        onSignIn={signIn}
+        onRetry={retry}
+      />
     </Layout>
   );
 }

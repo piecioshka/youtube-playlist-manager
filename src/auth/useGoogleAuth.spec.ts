@@ -166,4 +166,19 @@ describe('useGoogleAuth', () => {
       'Nie udało się wczytać logowania Google. Sprawdź połączenie.',
     );
   });
+
+  it('retries after a failed script load', async () => {
+    vi.mocked(loadGis)
+      .mockRejectedValueOnce(new Error('offline'))
+      .mockResolvedValueOnce(undefined);
+    const { result } = renderHook(() => useGoogleAuth('client-1'));
+    await waitFor(() => expect(result.current.status).toBe('error'));
+
+    act(() => result.current.retry());
+
+    expect(result.current.status).toBe('loading');
+    expect(result.current.message).toBeNull();
+    await waitFor(() => expect(result.current.status).toBe('signedOut'));
+    expect(loadGis).toHaveBeenCalledTimes(2);
+  });
 });

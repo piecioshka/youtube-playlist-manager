@@ -11,6 +11,8 @@
 
 **Live:** https://piecioshka.github.io/youtube-playlist-manager/
 
+The hosted app only works for Google accounts added as test users of its OAuth client. To use it with your own account, deploy your own copy (see [CONTRIBUTING.md](CONTRIBUTING.md)).
+
 ## Features ✨
 
 - 📋 Every playlist on your account in one list _(also beyond the first 50)_

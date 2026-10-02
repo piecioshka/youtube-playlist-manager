@@ -62,6 +62,7 @@ describe('listMyPlaylists', () => {
         id: 'A',
         title: 'Playlist A',
         description: 'Opis A',
+        defaultLanguage: null,
         publishedAt: '2026-01-01T10:00:00Z',
         itemCount: 3,
         privacyStatus: 'unlisted',
@@ -71,6 +72,7 @@ describe('listMyPlaylists', () => {
         id: 'B',
         title: 'Playlist B',
         description: 'Opis B',
+        defaultLanguage: null,
         publishedAt: '2026-01-01T10:00:00Z',
         itemCount: 3,
         privacyStatus: 'unlisted',
@@ -93,6 +95,39 @@ describe('listMyPlaylists', () => {
     expect(new Headers(calledInit(0)?.headers).get('Authorization')).toBe(
       'Bearer token-123',
     );
+  });
+
+  it('maps defaultLanguage when present', async () => {
+    const withLanguage = resource('L');
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        items: [
+          {
+            ...withLanguage,
+            snippet: { ...withLanguage.snippet, defaultLanguage: 'pl' },
+          },
+        ],
+      }),
+    );
+
+    const [playlist] = await listMyPlaylists('t');
+
+    expect(playlist?.defaultLanguage).toBe('pl');
+  });
+
+  it('stops when the API repeats a nextPageToken', async () => {
+    fetchMock
+      .mockResolvedValueOnce(
+        jsonResponse({ items: [resource('A')], nextPageToken: 'same' }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({ items: [resource('B')], nextPageToken: 'same' }),
+      );
+
+    const playlists = await listMyPlaylists('t');
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(playlists).toHaveLength(2);
   });
 
   it('tolerates missing thumbnails and description', async () => {
@@ -179,6 +214,41 @@ describe('renamePlaylist', () => {
       snippet: { title: 'Nowa', description: 'Ważny opis' },
     });
     expect(updated).toEqual({ ...playlist, title: 'Nowa' });
+  });
+});
+
+describe('renamePlaylist defaultLanguage', () => {
+  function renameResponse() {
+    return jsonResponse({
+      id: 'P',
+      snippet: {
+        title: 'Nowa',
+        description: '',
+        publishedAt: '2026-01-01T10:00:00Z',
+      },
+    });
+  }
+
+  it('sends the current defaultLanguage', async () => {
+    fetchMock.mockResolvedValueOnce(renameResponse());
+    const playlist = makePlaylist({ id: 'P', defaultLanguage: 'pl' });
+
+    const updated = await renamePlaylist('t', playlist, 'Nowa');
+
+    expect(JSON.parse(String(calledInit(0)?.body))).toEqual({
+      id: 'P',
+      snippet: { title: 'Nowa', description: '', defaultLanguage: 'pl' },
+    });
+    expect(updated.defaultLanguage).toBe('pl');
+  });
+
+  it('omits defaultLanguage when the playlist has none', async () => {
+    fetchMock.mockResolvedValueOnce(renameResponse());
+
+    await renamePlaylist('t', makePlaylist({ id: 'P' }), 'Nowa');
+
+    const body: unknown = JSON.parse(String(calledInit(0)?.body));
+    expect(JSON.stringify(body)).not.toContain('defaultLanguage');
   });
 });
 

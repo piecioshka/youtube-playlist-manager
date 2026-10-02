@@ -4,6 +4,7 @@ export type Playlist = {
   id: string;
   title: string;
   description: string;
+  defaultLanguage: string | null;
   publishedAt: string;
   itemCount: number;
   privacyStatus: PrivacyStatus;

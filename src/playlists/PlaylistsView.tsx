@@ -21,6 +21,8 @@ type PlaylistsViewProps = {
   onUnauthorized: () => void;
 };
 
+const NO_CHANNEL_MESSAGE = 'Nie znaleziono kanału YouTube na tym koncie.';
+
 function isApiError(error: unknown, kind: ApiError['kind']): boolean {
   return error instanceof ApiError && error.kind === kind;
 }
@@ -52,7 +54,13 @@ export function PlaylistsView({ token, onUnauthorized }: PlaylistsViewProps) {
           notifyUnauthorized();
           return;
         }
-        setLoadState({ status: 'error', message: errorMessage(error) });
+        // 404 przy wczytywaniu listy znaczy brak kanału, nie brak playlisty
+        setLoadState({
+          status: 'error',
+          message: isApiError(error, 'notFound')
+            ? NO_CHANNEL_MESSAGE
+            : errorMessage(error),
+        });
       },
     );
     return () => {
@@ -87,6 +95,7 @@ export function PlaylistsView({ token, onUnauthorized }: PlaylistsViewProps) {
     if (isApiError(error, 'notFound')) {
       removePlaylist(playlist.id);
       setNotice(errorMessage(error));
+      headingRef.current?.focus();
     }
     return new Error(errorMessage(error));
   }

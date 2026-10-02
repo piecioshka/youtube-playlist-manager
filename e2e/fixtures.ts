@@ -82,7 +82,11 @@ const SEED_PLAYLISTS: FakePlaylist[] = [
 
 const putBodySchema = z.object({
   id: z.string(),
-  snippet: z.object({ title: z.string(), description: z.string() }),
+  snippet: z.object({
+    title: z.string(),
+    description: z.string(),
+    defaultLanguage: z.string().optional(),
+  }),
 });
 
 function toResource(playlist: FakePlaylist) {
@@ -165,7 +169,16 @@ export class FakeYouTube {
     }
 
     if (method === 'PUT') {
-      const update = putBodySchema.parse(body);
+      const parsed = putBodySchema.safeParse(body);
+      if (!parsed.success) {
+        await route.fulfill({
+          status: 400,
+          headers: CORS_HEADERS,
+          json: errorJson(400, 'invalidArgument'),
+        });
+        return;
+      }
+      const update = parsed.data;
       const playlist = this.playlists.find((item) => item.id === update.id);
       if (!playlist) {
         await route.fulfill({

@@ -32,6 +32,13 @@ jobs:
 
       - run: npm ci
 
+      - name: Require Google Client ID
+        run: test -n "$VITE_GOOGLE_CLIENT_ID" || { echo "::error::Set the repository variable GOOGLE_CLIENT_ID"; exit 1; }
+        env:
+          VITE_GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID }}
+
+      - run: npm test
+
       - name: Configure Pages
         id: pages
         uses: actions/configure-pages@v6

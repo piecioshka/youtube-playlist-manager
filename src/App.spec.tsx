@@ -34,6 +34,7 @@ function auth(overrides: Partial<GoogleAuth> = {}): GoogleAuth {
     message: null,
     signIn: vi.fn(),
     signOut: vi.fn(),
+    retry: vi.fn(),
     ...overrides,
   };
 }
@@ -83,6 +84,21 @@ describe('App', () => {
     expect(
       screen.getByRole('button', { name: 'Wczytywanie...' }),
     ).toBeDisabled();
+  });
+
+  it('offers a retry when the Google script failed to load', async () => {
+    const state = auth({ status: 'error', message: 'Nie udało się wczytać.' });
+    vi.mocked(useGoogleAuth).mockReturnValue(state);
+    render(<App />);
+
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Nie udało się wczytać.',
+    );
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Spróbuj ponownie' }),
+    );
+
+    expect(state.retry).toHaveBeenCalledTimes(1);
   });
 
   it('shows the auth message', () => {

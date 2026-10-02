@@ -19,6 +19,8 @@ function toPlaylist(resource: PlaylistResource, fallback?: Playlist): Playlist {
     id: resource.id,
     title: resource.snippet.title,
     description: resource.snippet.description,
+    defaultLanguage:
+      resource.snippet.defaultLanguage ?? fallback?.defaultLanguage ?? null,
     publishedAt: resource.snippet.publishedAt,
     itemCount: resource.contentDetails?.itemCount ?? fallback?.itemCount ?? 0,
     privacyStatus:
@@ -108,6 +110,7 @@ async function request(
 
 export async function listMyPlaylists(token: string): Promise<Playlist[]> {
   const playlists: Playlist[] = [];
+  const seenTokens = new Set<string>();
   let pageToken: string | undefined;
 
   do {
@@ -125,7 +128,12 @@ export async function listMyPlaylists(token: string): Promise<Playlist[]> {
       await readJson(response),
     );
     playlists.push(...page.items.map((item) => toPlaylist(item)));
-    pageToken = page.nextPageToken;
+    // Powtórzony token oznaczałby pętlę bez końca
+    const next = page.nextPageToken;
+    pageToken = next !== undefined && !seenTokens.has(next) ? next : undefined;
+    if (pageToken !== undefined) {
+      seenTokens.add(pageToken);
+    }
   } while (pageToken);
 
   return playlists;
@@ -139,10 +147,16 @@ export async function renamePlaylist(
   const url = new URL(PLAYLISTS_URL);
   url.searchParams.set('part', 'snippet');
 
-  // PUT nadpisuje cały snippet: bez opisu YouTube by go wyczyścił
+  // PUT nadpisuje cały snippet: pominięte pole (opis, język) YouTube by wyczyścił
   const response = await request(token, url, 'PUT', {
     id: playlist.id,
-    snippet: { title: newTitle, description: playlist.description },
+    snippet: {
+      title: newTitle,
+      description: playlist.description,
+      ...(playlist.defaultLanguage !== null && {
+        defaultLanguage: playlist.defaultLanguage,
+      }),
+    },
   });
 
   return toPlaylist(

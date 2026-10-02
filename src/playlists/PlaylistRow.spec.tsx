@@ -87,6 +87,19 @@ describe('PlaylistRow', () => {
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
   });
 
+  it('does not re-save a title that only differs by surrounding spaces', async () => {
+    const { user, onRename } = renderRow({ title: '  Muzyka  ' });
+
+    await user.click(screen.getByRole('button', { name: /^Zmień nazwę/ }));
+    await user.type(
+      screen.getByRole('textbox', { name: 'Nowa nazwa playlisty' }),
+      '{Enter}',
+    );
+
+    expect(onRename).not.toHaveBeenCalled();
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+  });
+
   it('cancels editing with Escape', async () => {
     const { user, onRename } = renderRow();
 

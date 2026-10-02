@@ -10,6 +10,7 @@ export type GoogleAuth = {
   message: string | null;
   signIn: () => void;
   signOut: (reason?: string) => void;
+  retry: () => void;
 };
 
 const SIGN_IN_FAILED = 'Nie udało się zalogować. Spróbuj ponownie.';
@@ -21,6 +22,7 @@ export function useGoogleAuth(clientId: string): GoogleAuth {
   const [status, setStatus] = useState<AuthStatus>('loading');
   const [token, setToken] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const tokenClientRef = useRef<google.accounts.oauth2.TokenClient | null>(
     null,
   );
@@ -66,11 +68,17 @@ export function useGoogleAuth(clientId: string): GoogleAuth {
     return () => {
       cancelled = true;
     };
-  }, [clientId]);
+  }, [clientId, loadAttempt]);
 
   const signIn = useCallback(() => {
     setMessage(null);
     tokenClientRef.current?.requestAccessToken();
+  }, []);
+
+  const retry = useCallback(() => {
+    setStatus('loading');
+    setMessage(null);
+    setLoadAttempt((attempt) => attempt + 1);
   }, []);
 
   const signOut = useCallback(
@@ -86,5 +94,5 @@ export function useGoogleAuth(clientId: string): GoogleAuth {
     [token],
   );
 
-  return { status, token, message, signIn, signOut };
+  return { status, token, message, signIn, signOut, retry };
 }

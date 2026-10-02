@@ -108,7 +108,7 @@ export function PlaylistRow({
       setError(`Nazwa może mieć najwyżej ${MAX_TITLE_LENGTH} znaków.`);
       return;
     }
-    if (title === playlist.title) {
+    if (title === playlist.title.trim()) {
       cancelEdit();
       return;
     }

@@ -12,5 +12,5 @@ Facts about THIS repository: architecture, traps, decisions that the code and gi
 
 ## Facts
 
-- [2026-10-02] [project] `PUT playlists?part=snippet` replaces the whole snippet: the current `description` must be sent with the new title, otherwise YouTube clears it.
+- [2026-10-02] [project] `PUT playlists?part=snippet` replaces the whole snippet: the current `description` and `defaultLanguage` must be sent with the new title, otherwise YouTube clears them.
 - [2026-10-02] [project] OAuth Authorized JavaScript origins must match exactly. `npm run dev` takes the first free port from 3000, so CONTRIBUTING lists 3000-3002.

@@ -7,6 +7,7 @@ export const playlistResourceSchema = z.object({
   snippet: z.object({
     title: z.string(),
     description: z.string().default(''),
+    defaultLanguage: z.string().optional(),
     publishedAt: z.string(),
     thumbnails: z
       .object({

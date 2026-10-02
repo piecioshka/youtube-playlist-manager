@@ -4,9 +4,15 @@ type LoginScreenProps = {
   status: AuthStatus;
   message: string | null;
   onSignIn: () => void;
+  onRetry: () => void;
 };
 
-export function LoginScreen({ status, message, onSignIn }: LoginScreenProps) {
+export function LoginScreen({
+  status,
+  message,
+  onSignIn,
+  onRetry,
+}: LoginScreenProps) {
   return (
     <section className="login" aria-labelledby="login-heading">
       <h2 id="login-heading" className="login__heading">
@@ -19,10 +25,15 @@ export function LoginScreen({ status, message, onSignIn }: LoginScreenProps) {
       {message && (
         <p
           className={status === 'error' ? 'notice notice--error' : 'notice'}
-          role="status"
+          role={status === 'error' ? 'alert' : 'status'}
         >
           {message}
         </p>
+      )}
+      {status === 'error' && (
+        <button type="button" className="button" onClick={onRetry}>
+          Spróbuj ponownie
+        </button>
       )}
       <button
         type="button"
