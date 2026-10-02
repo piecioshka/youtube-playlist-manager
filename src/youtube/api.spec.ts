@@ -1,0 +1,235 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { makePlaylist } from '../test/playlistFactory';
+import { deletePlaylist, listMyPlaylists, renamePlaylist } from './api';
+import { ApiError } from './types';
+
+const fetchMock = vi.fn<typeof fetch>();
+
+function jsonResponse(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+function resource(id: string) {
+  return {
+    kind: 'youtube#playlist',
+    id,
+    snippet: {
+      title: `Playlist ${id}`,
+      description: `Opis ${id}`,
+      publishedAt: '2026-01-01T10:00:00Z',
+      thumbnails: {
+        default: { url: `https://i.ytimg.com/${id}/default.jpg` },
+        medium: { url: `https://i.ytimg.com/${id}/mqdefault.jpg` },
+      },
+    },
+    contentDetails: { itemCount: 3 },
+    status: { privacyStatus: 'unlisted' },
+  };
+}
+
+function calledUrl(callIndex: number): URL {
+  return new URL(String(fetchMock.mock.calls[callIndex]?.[0]));
+}
+
+function calledInit(callIndex: number): RequestInit | undefined {
+  return fetchMock.mock.calls[callIndex]?.[1];
+}
+
+beforeEach(() => {
+  fetchMock.mockReset();
+  vi.stubGlobal('fetch', fetchMock);
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
+describe('listMyPlaylists', () => {
+  it('fetches every page and maps resources to playlists', async () => {
+    fetchMock
+      .mockResolvedValueOnce(
+        jsonResponse({ items: [resource('A')], nextPageToken: 'page-2' }),
+      )
+      .mockResolvedValueOnce(jsonResponse({ items: [resource('B')] }));
+
+    const playlists = await listMyPlaylists('token-123');
+
+    expect(playlists).toEqual([
+      {
+        id: 'A',
+        title: 'Playlist A',
+        description: 'Opis A',
+        publishedAt: '2026-01-01T10:00:00Z',
+        itemCount: 3,
+        privacyStatus: 'unlisted',
+        thumbnailUrl: 'https://i.ytimg.com/A/mqdefault.jpg',
+      },
+      {
+        id: 'B',
+        title: 'Playlist B',
+        description: 'Opis B',
+        publishedAt: '2026-01-01T10:00:00Z',
+        itemCount: 3,
+        privacyStatus: 'unlisted',
+        thumbnailUrl: 'https://i.ytimg.com/B/mqdefault.jpg',
+      },
+    ]);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+
+    const first = calledUrl(0);
+    expect(`${first.origin}${first.pathname}`).toBe(
+      'https://www.googleapis.com/youtube/v3/playlists',
+    );
+    expect(first.searchParams.get('part')).toBe(
+      'snippet,contentDetails,status',
+    );
+    expect(first.searchParams.get('mine')).toBe('true');
+    expect(first.searchParams.get('maxResults')).toBe('50');
+    expect(first.searchParams.has('pageToken')).toBe(false);
+    expect(calledUrl(1).searchParams.get('pageToken')).toBe('page-2');
+    expect(new Headers(calledInit(0)?.headers).get('Authorization')).toBe(
+      'Bearer token-123',
+    );
+  });
+
+  it('tolerates missing thumbnails and description', async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        items: [
+          {
+            id: 'C',
+            snippet: {
+              title: 'Bez miniatur',
+              publishedAt: '2026-02-02T00:00:00Z',
+            },
+            contentDetails: { itemCount: 0 },
+            status: { privacyStatus: 'private' },
+          },
+        ],
+      }),
+    );
+
+    const [playlist] = await listMyPlaylists('t');
+
+    expect(playlist).toMatchObject({
+      id: 'C',
+      description: '',
+      thumbnailUrl: null,
+      itemCount: 0,
+    });
+  });
+
+  it('returns an empty list when the account has no playlists', async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({ pageInfo: { totalResults: 0 } }),
+    );
+    expect(await listMyPlaylists('t')).toEqual([]);
+  });
+
+  it('rejects an unexpected response shape', async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse({ items: [{ id: 1 }] }));
+    await expect(listMyPlaylists('t')).rejects.toMatchObject({
+      kind: 'unknown',
+    });
+  });
+});
+
+describe('renamePlaylist', () => {
+  it('sends the new title together with the current description', async () => {
+    const playlist = makePlaylist({
+      id: 'P',
+      title: 'Stara',
+      description: 'Ważny opis',
+      itemCount: 7,
+      privacyStatus: 'private',
+      thumbnailUrl: 'https://i.ytimg.com/P/mq.jpg',
+    });
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        id: 'P',
+        snippet: {
+          title: 'Nowa',
+          description: 'Ważny opis',
+          publishedAt: playlist.publishedAt,
+        },
+      }),
+    );
+
+    const updated = await renamePlaylist('t', playlist, 'Nowa');
+
+    const url = calledUrl(0);
+    expect(url.pathname).toBe('/youtube/v3/playlists');
+    expect(url.searchParams.get('part')).toBe('snippet');
+    expect(calledInit(0)?.method).toBe('PUT');
+    expect(new Headers(calledInit(0)?.headers).get('Content-Type')).toBe(
+      'application/json',
+    );
+    expect(JSON.parse(String(calledInit(0)?.body))).toEqual({
+      id: 'P',
+      snippet: { title: 'Nowa', description: 'Ważny opis' },
+    });
+    expect(updated).toEqual({ ...playlist, title: 'Nowa' });
+  });
+});
+
+describe('deletePlaylist', () => {
+  it('sends DELETE with the playlist id', async () => {
+    fetchMock.mockResolvedValueOnce(new Response(null, { status: 204 }));
+
+    await deletePlaylist('t', 'PL-9');
+
+    expect(calledInit(0)?.method).toBe('DELETE');
+    expect(calledUrl(0).searchParams.get('id')).toBe('PL-9');
+  });
+});
+
+describe('API errors', () => {
+  function errorBody(reason: string) {
+    return {
+      error: {
+        code: 0,
+        message: 'API error',
+        errors: [{ reason, message: 'API error' }],
+      },
+    };
+  }
+
+  const cases: [number, string, string][] = [
+    [401, 'authError', 'unauthorized'],
+    [403, 'quotaExceeded', 'quotaExceeded'],
+    [403, 'dailyLimitExceeded', 'quotaExceeded'],
+    [403, 'insufficientPermissions', 'forbidden'],
+    [404, 'playlistNotFound', 'notFound'],
+    [500, 'backendError', 'unknown'],
+  ];
+
+  it.each(cases)('maps HTTP %i (%s) to %s', async (status, reason, kind) => {
+    fetchMock.mockResolvedValueOnce(jsonResponse(errorBody(reason), status));
+
+    const error = await deletePlaylist('t', 'X').catch(
+      (caught: unknown) => caught,
+    );
+
+    expect(error).toBeInstanceOf(ApiError);
+    expect(error).toMatchObject({ kind, status });
+  });
+
+  it('maps a non-JSON error body', async () => {
+    fetchMock.mockResolvedValueOnce(new Response('<html>', { status: 502 }));
+    await expect(deletePlaylist('t', 'X')).rejects.toMatchObject({
+      kind: 'unknown',
+      status: 502,
+    });
+  });
+
+  it('maps a failed fetch to a network error', async () => {
+    fetchMock.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+    await expect(listMyPlaylists('t')).rejects.toMatchObject({
+      kind: 'network',
+      status: null,
+    });
+  });
+});
