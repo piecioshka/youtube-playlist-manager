@@ -24,7 +24,6 @@ vi.mock('./youtube/api', () => ({
   listMyPlaylists: vi.fn(),
   listPlaylistVideos: vi.fn(),
   getPlaylist: vi.fn(),
-  renamePlaylist: vi.fn(),
   updatePlaylist: vi.fn(),
   deletePlaylist: vi.fn(),
   removePlaylistItem: vi.fn(),

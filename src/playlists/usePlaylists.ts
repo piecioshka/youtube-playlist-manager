@@ -1,12 +1,8 @@
-import { useEffect, useEffectEvent, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { Messages } from '../i18n/messages';
-import {
-  deletePlaylist,
-  listMyPlaylists,
-  renamePlaylist,
-} from '../youtube/api';
 import { errorMessage } from '../youtube/errorMessage';
 import { ApiError, type Playlist } from '../youtube/types';
+import { useYouTube } from '../youtube/YouTubeProvider';
 
 export type LoadState =
   | { status: 'loading' }
@@ -32,8 +28,6 @@ export type PlaylistsState = {
 };
 
 type UsePlaylistsOptions = {
-  token: string;
-  onUnauthorized: () => void;
   t: Messages;
 };
 
@@ -42,20 +36,16 @@ export function isApiError(error: unknown, kind: ApiError['kind']): boolean {
 }
 
 // Lista playlist wspólna dla tabeli i profilu playlisty: wczytana raz, zmiany z obu widoków trafiają tutaj
-export function usePlaylists({
-  token,
-  onUnauthorized,
-  t,
-}: UsePlaylistsOptions): PlaylistsState {
+export function usePlaylists({ t }: UsePlaylistsOptions): PlaylistsState {
+  const youtube = useYouTube();
   const [loadState, setLoadState] = useState<LoadState>({ status: 'loading' });
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [notice, setNotice] = useState<Notice>(null);
   const [reloadKey, setReloadKey] = useState(0);
-  const notifyUnauthorized = useEffectEvent(() => onUnauthorized());
 
   useEffect(() => {
     let cancelled = false;
-    listMyPlaylists(token).then(
+    youtube.listMyPlaylists().then(
       (items) => {
         if (cancelled) {
           return;
@@ -67,17 +57,13 @@ export function usePlaylists({
         if (cancelled) {
           return;
         }
-        if (isApiError(error, 'unauthorized')) {
-          notifyUnauthorized();
-          return;
-        }
         setLoadState({ status: 'error', error });
       },
     );
     return () => {
       cancelled = true;
     };
-  }, [token, reloadKey]);
+  }, [youtube, reloadKey]);
 
   function retry() {
     setLoadState({ status: 'loading' });
@@ -101,9 +87,6 @@ export function usePlaylists({
 
   // Zwraca błąd do pokazania w wierszu, a przypadki dotyczące całej listy obsługuje tutaj
   function toRowError(error: unknown, playlist: Playlist): Error {
-    if (isApiError(error, 'unauthorized')) {
-      onUnauthorized();
-    }
     if (isApiError(error, 'notFound')) {
       removePlaylist(playlist.id);
       setNotice({ kind: 'missing' });
@@ -116,7 +99,9 @@ export function usePlaylists({
     newTitle: string,
   ): Promise<void> {
     try {
-      replacePlaylist(await renamePlaylist(token, playlist, newTitle));
+      replacePlaylist(
+        await youtube.updatePlaylist(playlist, { title: newTitle }),
+      );
       setNotice(null);
     } catch (error) {
       throw toRowError(error, playlist);
@@ -125,7 +110,7 @@ export function usePlaylists({
 
   async function handleDelete(playlist: Playlist): Promise<void> {
     try {
-      await deletePlaylist(token, playlist.id);
+      await youtube.deletePlaylist(playlist.id);
     } catch (error) {
       throw toRowError(error, playlist);
     }

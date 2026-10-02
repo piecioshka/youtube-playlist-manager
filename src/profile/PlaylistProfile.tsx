@@ -2,27 +2,21 @@ import { useEffect, useEffectEvent, useState } from 'react';
 import { useI18n } from '../i18n/LocaleProvider';
 import type { LoadState } from '../playlists/usePlaylists';
 import { routeToHash, type Route } from '../routing/route';
-import {
-  deletePlaylist,
-  getPlaylist,
-  updatePlaylist,
-  type PlaylistChanges,
-} from '../youtube/api';
+import type { PlaylistChanges } from '../youtube/api';
+import { errorMessage } from '../youtube/errorMessage';
 import { ApiError, type Playlist } from '../youtube/types';
+import { useYouTube } from '../youtube/YouTubeProvider';
 import { DangerZone } from './DangerZone';
-import { reportError } from './errors';
 import { PlaylistForm } from './PlaylistForm';
 import { PlaylistVideos, type ProfileVideoIndex } from './PlaylistVideos';
 import { ProfileHeader } from './ProfileHeader';
 
 type PlaylistProfileProps = {
-  token: string;
   playlistId: string;
   // Playlista z listy; brak, gdy lista jeszcze się wczytuje albo jej tam nie ma
   playlist: Playlist | undefined;
   listStatus: LoadState['status'];
   videoIndex: ProfileVideoIndex;
-  onUnauthorized: () => void;
   onUpdated: (playlist: Playlist) => void;
   onDeleted: (playlist: Playlist) => void;
   onNavigate: (route: Route) => void;
@@ -34,17 +28,16 @@ type Lookup =
   | { status: 'error'; message: string };
 
 export function PlaylistProfile({
-  token,
   playlistId,
   playlist,
   listStatus,
   videoIndex,
-  onUnauthorized,
   onUpdated,
   onDeleted,
   onNavigate,
 }: PlaylistProfileProps) {
   const { t } = useI18n();
+  const youtube = useYouTube();
   // Wynik pobrania playlisty spoza listy, zapamiętany razem z id, którego dotyczy
   const [lookup, setLookup] = useState<{ id: string; result: Lookup } | null>(
     null,
@@ -53,7 +46,7 @@ export function PlaylistProfile({
   const [loadedCount, setLoadedCount] = useState<number | null>(null);
   const needsLookup = playlist === undefined && listStatus !== 'loading';
   const describeError = useEffectEvent((error: unknown) =>
-    reportError(error, t, onUnauthorized),
+    errorMessage(error, t),
   );
 
   // Profil otwarty z adresu, zanim lista go zawierała: pytamy YouTube o tę jedną playlistę
@@ -62,7 +55,7 @@ export function PlaylistProfile({
       return;
     }
     let cancelled = false;
-    getPlaylist(token, playlistId).then(
+    youtube.getPlaylist(playlistId).then(
       (found) => {
         if (!cancelled) {
           setLookup({
@@ -90,7 +83,7 @@ export function PlaylistProfile({
     return () => {
       cancelled = true;
     };
-  }, [token, playlistId, needsLookup]);
+  }, [youtube, playlistId, needsLookup]);
 
   const result = lookup?.id === playlistId ? lookup.result : null;
   const shown =
@@ -142,11 +135,11 @@ export function PlaylistProfile({
     changes: PlaylistChanges,
   ): Promise<Playlist> {
     try {
-      const updated = await updatePlaylist(token, current, changes);
+      const updated = await youtube.updatePlaylist(current, changes);
       handleUpdated(updated);
       return updated;
     } catch (error) {
-      throw new Error(reportError(error, t, onUnauthorized), {
+      throw new Error(errorMessage(error, t), {
         cause: error,
       });
     }
@@ -154,9 +147,9 @@ export function PlaylistProfile({
 
   async function remove(current: Playlist): Promise<void> {
     try {
-      await deletePlaylist(token, current.id);
+      await youtube.deletePlaylist(current.id);
     } catch (error) {
-      throw new Error(reportError(error, t, onUnauthorized), {
+      throw new Error(errorMessage(error, t), {
         cause: error,
       });
     }
@@ -177,10 +170,8 @@ export function PlaylistProfile({
       />
       <PlaylistVideos
         key={`videos-${shown.id}`}
-        token={token}
         playlist={shown}
         videoIndex={videoIndex}
-        onUnauthorized={onUnauthorized}
         onUpdated={handleUpdated}
         onCountChange={setLoadedCount}
       />

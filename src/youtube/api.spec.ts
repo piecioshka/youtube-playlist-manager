@@ -10,7 +10,6 @@ import {
   listPlaylistVideos,
   movePlaylistItem,
   removePlaylistItem,
-  renamePlaylist,
   updatePlaylist,
 } from './api';
 import { ApiError } from './types';
@@ -188,81 +187,6 @@ describe('listMyPlaylists', () => {
     await expect(listMyPlaylists('t')).rejects.toMatchObject({
       kind: 'unknown',
     });
-  });
-});
-
-describe('renamePlaylist', () => {
-  it('sends the new title together with the current description', async () => {
-    const playlist = makePlaylist({
-      id: 'P',
-      title: 'Stara',
-      description: 'Ważny opis',
-      itemCount: 7,
-      privacyStatus: 'private',
-      thumbnailUrl: 'https://i.ytimg.com/P/mq.jpg',
-    });
-    fetchMock.mockResolvedValueOnce(
-      jsonResponse({
-        id: 'P',
-        snippet: {
-          title: 'Nowa',
-          description: 'Ważny opis',
-          publishedAt: playlist.publishedAt,
-        },
-      }),
-    );
-
-    const updated = await renamePlaylist('t', playlist, 'Nowa');
-
-    const url = calledUrl(0);
-    expect(url.pathname).toBe('/youtube/v3/playlists');
-    expect(url.searchParams.get('part')).toBe('snippet,status');
-    expect(calledInit(0)?.method).toBe('PUT');
-    expect(new Headers(calledInit(0)?.headers).get('Content-Type')).toBe(
-      'application/json',
-    );
-    expect(JSON.parse(String(calledInit(0)?.body))).toEqual({
-      id: 'P',
-      snippet: { title: 'Nowa', description: 'Ważny opis' },
-      status: { privacyStatus: 'private' },
-    });
-    expect(updated).toEqual({ ...playlist, title: 'Nowa' });
-  });
-});
-
-describe('renamePlaylist defaultLanguage', () => {
-  function renameResponse() {
-    return jsonResponse({
-      id: 'P',
-      snippet: {
-        title: 'Nowa',
-        description: '',
-        publishedAt: '2026-01-01T10:00:00Z',
-      },
-    });
-  }
-
-  it('sends the current defaultLanguage', async () => {
-    fetchMock.mockResolvedValueOnce(renameResponse());
-    const playlist = makePlaylist({ id: 'P', defaultLanguage: 'pl' });
-
-    const updated = await renamePlaylist('t', playlist, 'Nowa');
-
-    expect(JSON.parse(String(calledInit(0)?.body))).toEqual({
-      id: 'P',
-      snippet: { title: 'Nowa', description: '', defaultLanguage: 'pl' },
-      status: { privacyStatus: 'public' },
-    });
-    expect(updated.defaultLanguage).toBe('pl');
-  });
-
-  it('omits defaultLanguage when the playlist has none', async () => {
-    fetchMock.mockResolvedValueOnce(renameResponse());
-
-    await renamePlaylist('t', makePlaylist({ id: 'P' }), 'Nowa');
-
-    const body: unknown = JSON.parse(String(calledInit(0)?.body));
-    expect(JSON.stringify(body)).not.toContain('defaultLanguage');
   });
 });
 
@@ -536,6 +460,9 @@ describe('updatePlaylist', () => {
     expect(new Headers(calledInit(0)?.headers).get('Authorization')).toBe(
       'Bearer tok-u',
     );
+    expect(new Headers(calledInit(0)?.headers).get('Content-Type')).toBe(
+      'application/json',
+    );
     expect(JSON.parse(String(calledInit(0)?.body))).toEqual({
       id: 'P',
       snippet: {
@@ -576,6 +503,42 @@ describe('updatePlaylist', () => {
       },
       status: { privacyStatus: 'public' },
     });
+  });
+
+  it('returns the playlist with the new title and the kept fields', async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        id: 'P',
+        snippet: {
+          title: 'Nowa',
+          description: 'Stary opis',
+          publishedAt: playlist.publishedAt,
+        },
+      }),
+    );
+
+    const updated = await updatePlaylist('t', playlist, { title: 'Nowa' });
+
+    expect(updated).toEqual({ ...playlist, title: 'Nowa' });
+    expect(updated.defaultLanguage).toBe('pl');
+  });
+
+  it('omits defaultLanguage when the playlist has none', async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        id: 'P',
+        snippet: {
+          title: 'Nowa',
+          description: '',
+          publishedAt: '2026-01-01T10:00:00Z',
+        },
+      }),
+    );
+
+    await updatePlaylist('t', makePlaylist({ id: 'P' }), { title: 'Nowa' });
+
+    const body: unknown = JSON.parse(String(calledInit(0)?.body));
+    expect(JSON.stringify(body)).not.toContain('defaultLanguage');
   });
 
   it('rejects with notFound when the playlist is gone', async () => {

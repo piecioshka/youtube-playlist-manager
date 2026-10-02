@@ -305,14 +305,6 @@ export async function updatePlaylist(
   );
 }
 
-export function renamePlaylist(
-  token: string,
-  playlist: Playlist,
-  newTitle: string,
-): Promise<Playlist> {
-  return updatePlaylist(token, playlist, { title: newTitle });
-}
-
 export async function deletePlaylist(
   token: string,
   playlistId: string,

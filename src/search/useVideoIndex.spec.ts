@@ -1,12 +1,13 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { makeFakeYouTube, type FakeYouTube } from '../test/fakeYouTube';
 import { makePlaylist } from '../test/playlistFactory';
+import { youTubeWrapper } from '../test/renderWithYouTube';
 import { makeVideo } from '../test/videoFactory';
-import { listPlaylistVideos } from '../youtube/api';
 import { ApiError, type Playlist, type PlaylistVideo } from '../youtube/types';
 import { useVideoIndex } from './useVideoIndex';
 
-vi.mock('../youtube/api', () => ({ listPlaylistVideos: vi.fn() }));
+let youtube: FakeYouTube;
 
 type Deferred = {
   resolve: (videos: PlaylistVideo[]) => void;
@@ -16,8 +17,8 @@ type Deferred = {
 // Każde wywołanie API czeka, aż test sam je rozstrzygnie
 function deferCalls(): Map<string, Deferred> {
   const pending = new Map<string, Deferred>();
-  vi.mocked(listPlaylistVideos).mockImplementation(
-    (_token, playlistId) =>
+  youtube.listPlaylistVideos.mockImplementation(
+    (playlistId) =>
       new Promise((resolve, reject) => {
         pending.set(playlistId, { resolve, reject });
       }),
@@ -54,15 +55,13 @@ const video: PlaylistVideo = makeVideo({
 });
 
 function renderIndex(playlists: Playlist[]) {
-  const onUnauthorized = vi.fn();
-  const hook = renderHook(() =>
-    useVideoIndex({ token: 'tok', playlists, onUnauthorized }),
-  );
-  return { ...hook, onUnauthorized };
+  return renderHook(() => useVideoIndex({ playlists }), {
+    wrapper: youTubeWrapper(youtube),
+  });
 }
 
 beforeEach(() => {
-  vi.mocked(listPlaylistVideos).mockReset();
+  youtube = makeFakeYouTube();
 });
 
 describe('useVideoIndex', () => {
@@ -71,7 +70,7 @@ describe('useVideoIndex', () => {
 
     expect(result.current.status).toBe('idle');
     expect(result.current.total).toBe(0);
-    expect(listPlaylistVideos).not.toHaveBeenCalled();
+    expect(youtube.listPlaylistVideos).not.toHaveBeenCalled();
   });
 
   it('reports progress and keeps the videos of each playlist', async () => {
@@ -86,7 +85,7 @@ describe('useVideoIndex', () => {
       total: 2,
       failed: 0,
     });
-    expect(listPlaylistVideos).toHaveBeenCalledWith('tok', 'PL0');
+    expect(youtube.listPlaylistVideos).toHaveBeenCalledWith('PL0');
 
     await act(async () => settle(pending, 'PL0', [video]));
 
@@ -105,12 +104,12 @@ describe('useVideoIndex', () => {
 
     act(() => result.current.start());
 
-    expect(listPlaylistVideos).toHaveBeenCalledTimes(4);
+    expect(youtube.listPlaylistVideos).toHaveBeenCalledTimes(4);
 
     await act(async () => settle(pending, 'PL1', []));
 
-    expect(listPlaylistVideos).toHaveBeenCalledTimes(5);
-    expect(listPlaylistVideos).toHaveBeenLastCalledWith('tok', 'PL4');
+    expect(youtube.listPlaylistVideos).toHaveBeenCalledTimes(5);
+    expect(youtube.listPlaylistVideos).toHaveBeenLastCalledWith('PL4');
   });
 
   it('counts a failed playlist and goes on', async () => {
@@ -132,28 +131,27 @@ describe('useVideoIndex', () => {
     expect(result.current.videosByPlaylist.has('PL0')).toBe(false);
   });
 
-  it('reports an expired session once and stops starting requests', async () => {
+  it('stops starting requests after a 401', async () => {
     const pending = deferCalls();
-    const { result, onUnauthorized } = renderIndex(makePlaylists(6));
+    const { result } = renderIndex(makePlaylists(6));
 
     act(() => result.current.start());
     const unauthorized = new ApiError('unauthorized', 'x', 401);
     await act(async () => settle(pending, 'PL0', unauthorized));
     await act(async () => settle(pending, 'PL1', unauthorized));
 
-    expect(onUnauthorized).toHaveBeenCalledTimes(1);
-    expect(listPlaylistVideos).toHaveBeenCalledTimes(4);
+    expect(youtube.listPlaylistVideos).toHaveBeenCalledTimes(4);
   });
 
   it('fetches only once when started twice', async () => {
-    vi.mocked(listPlaylistVideos).mockResolvedValue([video]);
+    youtube.listPlaylistVideos.mockResolvedValue([video]);
     const { result } = renderIndex(makePlaylists(2));
 
     act(() => result.current.start());
     act(() => result.current.start());
 
     await waitFor(() => expect(result.current.status).toBe('ready'));
-    expect(listPlaylistVideos).toHaveBeenCalledTimes(2);
+    expect(youtube.listPlaylistVideos).toHaveBeenCalledTimes(2);
   });
 
   it('is ready at once for an account without playlists', () => {
@@ -162,7 +160,7 @@ describe('useVideoIndex', () => {
     act(() => result.current.start());
 
     expect(result.current).toMatchObject({ status: 'ready', total: 0 });
-    expect(listPlaylistVideos).not.toHaveBeenCalled();
+    expect(youtube.listPlaylistVideos).not.toHaveBeenCalled();
   });
 
   it('ignores results that arrive after unmount', async () => {
@@ -173,11 +171,11 @@ describe('useVideoIndex', () => {
     unmount();
     await act(async () => settle(pending, 'PL0', [video]));
 
-    expect(listPlaylistVideos).toHaveBeenCalledTimes(4);
+    expect(youtube.listPlaylistVideos).toHaveBeenCalledTimes(4);
   });
 
   it('takes the videos of a playlist changed on its profile', async () => {
-    vi.mocked(listPlaylistVideos).mockResolvedValue([video]);
+    youtube.listPlaylistVideos.mockResolvedValue([video]);
     const { result } = renderIndex(makePlaylists(2));
     act(() => result.current.start());
     await waitFor(() => expect(result.current.status).toBe('ready'));

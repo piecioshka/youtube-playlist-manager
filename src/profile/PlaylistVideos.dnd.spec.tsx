@@ -7,19 +7,14 @@ import {
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { makeFakeYouTube, type FakeYouTube } from '../test/fakeYouTube';
 import { makePlaylist } from '../test/playlistFactory';
-import { renderWithI18n } from '../test/renderWithI18n';
+import { renderWithYouTube } from '../test/renderWithYouTube';
 import { makeVideo } from '../test/videoFactory';
-import { listPlaylistVideos, movePlaylistItem } from '../youtube/api';
 import { ApiError, type PlaylistVideo } from '../youtube/types';
 import { PlaylistVideos } from './PlaylistVideos';
 
-vi.mock('../youtube/api', () => ({
-  addPlaylistItem: vi.fn(),
-  listPlaylistVideos: vi.fn(),
-  movePlaylistItem: vi.fn(),
-  removePlaylistItem: vi.fn(),
-}));
+let youtube: FakeYouTube;
 
 const playlist = makePlaylist({ id: 'PL-algo', itemCount: 3 });
 const quicksort = makeVideo({
@@ -52,21 +47,19 @@ function dataTransfer() {
 }
 
 async function renderVideos(list: PlaylistVideo[] = videos) {
-  vi.mocked(listPlaylistVideos).mockResolvedValue(list);
-  const onUnauthorized = vi.fn();
-  renderWithI18n(
+  youtube.listPlaylistVideos.mockResolvedValue(list);
+  renderWithYouTube(
     <PlaylistVideos
-      token="tok"
       playlist={playlist}
       videoIndex={{ replaceVideos: vi.fn() }}
-      onUnauthorized={onUnauthorized}
       onUpdated={vi.fn()}
       onCountChange={vi.fn()}
     />,
+    youtube,
     'pl',
   );
   await screen.findByRole('list', { name: /^Filmy/ });
-  return { onUnauthorized, user: userEvent.setup() };
+  return { user: userEvent.setup() };
 }
 
 function titles(): string[] {
@@ -121,8 +114,7 @@ function dropOn(title: string, clientY: number) {
 }
 
 beforeEach(() => {
-  vi.mocked(listPlaylistVideos).mockReset();
-  vi.mocked(movePlaylistItem).mockReset();
+  youtube = makeFakeYouTube();
 });
 
 describe('drag and drop reordering', () => {
@@ -143,7 +135,7 @@ describe('drag and drop reordering', () => {
   });
 
   it('moves the first video below the third and announces it', async () => {
-    vi.mocked(movePlaylistItem).mockResolvedValue(undefined);
+    youtube.movePlaylistItem.mockResolvedValue(undefined);
     await renderVideos();
 
     fireEvent.dragStart(handle('Quicksort'), { dataTransfer: dataTransfer() });
@@ -151,9 +143,8 @@ describe('drag and drop reordering', () => {
     dropOn('Grafy', 80);
 
     expect(titles()).toEqual(['Big O', 'Grafy', 'Quicksort']);
-    expect(movePlaylistItem).toHaveBeenCalledTimes(1);
-    expect(movePlaylistItem).toHaveBeenCalledWith(
-      'tok',
+    expect(youtube.movePlaylistItem).toHaveBeenCalledTimes(1);
+    expect(youtube.movePlaylistItem).toHaveBeenCalledWith(
       'PL-algo',
       quicksort,
       2,
@@ -165,7 +156,7 @@ describe('drag and drop reordering', () => {
   });
 
   it('drops before the target when the pointer is in its upper half', async () => {
-    vi.mocked(movePlaylistItem).mockResolvedValue(undefined);
+    youtube.movePlaylistItem.mockResolvedValue(undefined);
     await renderVideos();
 
     fireEvent.dragStart(handle('Quicksort'), { dataTransfer: dataTransfer() });
@@ -173,8 +164,7 @@ describe('drag and drop reordering', () => {
     dropOn('Grafy', 20);
 
     expect(titles()).toEqual(['Big O', 'Quicksort', 'Grafy']);
-    expect(movePlaylistItem).toHaveBeenCalledWith(
-      'tok',
+    expect(youtube.movePlaylistItem).toHaveBeenCalledWith(
       'PL-algo',
       quicksort,
       1,
@@ -190,7 +180,7 @@ describe('drag and drop reordering', () => {
     dropOn('Big O', 20);
 
     expect(titles()).toEqual(['Quicksort', 'Big O', 'Grafy']);
-    expect(movePlaylistItem).not.toHaveBeenCalled();
+    expect(youtube.movePlaylistItem).not.toHaveBeenCalled();
   });
 
   it('does nothing when the drop would not change the order', async () => {
@@ -202,11 +192,11 @@ describe('drag and drop reordering', () => {
     dropOn('Big O', 20);
 
     expect(titles()).toEqual(['Quicksort', 'Big O', 'Grafy']);
-    expect(movePlaylistItem).not.toHaveBeenCalled();
+    expect(youtube.movePlaylistItem).not.toHaveBeenCalled();
   });
 
   it('reverts a failed move and shows the error on that item', async () => {
-    vi.mocked(movePlaylistItem).mockRejectedValue(
+    youtube.movePlaylistItem.mockRejectedValue(
       new ApiError('unknown', 'boom', 500),
     );
     await renderVideos();
@@ -220,19 +210,6 @@ describe('drag and drop reordering', () => {
     ).toHaveTextContent('Coś poszło nie tak (HTTP 500).');
     expect(titles()).toEqual(['Quicksort', 'Big O', 'Grafy']);
     expect(screen.queryByText(/^Przeniesiono/)).not.toBeInTheDocument();
-  });
-
-  it('reports an expired session on a failed drop', async () => {
-    vi.mocked(movePlaylistItem).mockRejectedValue(
-      new ApiError('unauthorized', 'expired', 401),
-    );
-    const { onUnauthorized } = await renderVideos();
-
-    fireEvent.dragStart(handle('Quicksort'), { dataTransfer: dataTransfer() });
-    dragOver('Grafy', 80);
-    dropOn('Grafy', 80);
-
-    await waitFor(() => expect(onUnauthorized).toHaveBeenCalled());
   });
 
   it('shows the drop indicator on dragover and clears it on dragend', async () => {
@@ -273,7 +250,7 @@ describe('drag and drop reordering', () => {
 
   it('makes the handles draggable and disables them while an item is pending', async () => {
     let finish: () => void = () => {};
-    vi.mocked(movePlaylistItem).mockImplementation(
+    youtube.movePlaylistItem.mockImplementation(
       () =>
         new Promise((resolve) => {
           finish = () => resolve(undefined);
@@ -309,7 +286,7 @@ describe('drag and drop reordering', () => {
   });
 
   it('keeps the buttons working and announces their moves', async () => {
-    vi.mocked(movePlaylistItem).mockResolvedValue(undefined);
+    youtube.movePlaylistItem.mockResolvedValue(undefined);
     const { user } = await renderVideos();
 
     await user.click(
@@ -319,8 +296,7 @@ describe('drag and drop reordering', () => {
     );
 
     expect(titles()).toEqual(['Big O', 'Quicksort', 'Grafy']);
-    expect(movePlaylistItem).toHaveBeenCalledWith(
-      'tok',
+    expect(youtube.movePlaylistItem).toHaveBeenCalledWith(
       'PL-algo',
       quicksort,
       1,

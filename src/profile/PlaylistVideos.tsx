@@ -1,15 +1,10 @@
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useI18n } from '../i18n/LocaleProvider';
 import type { VideoIndex } from '../search/useVideoIndex';
-import {
-  addPlaylistItem,
-  listPlaylistVideos,
-  movePlaylistItem,
-  removePlaylistItem,
-} from '../youtube/api';
+import { errorMessage } from '../youtube/errorMessage';
 import { ApiError, type Playlist, type PlaylistVideo } from '../youtube/types';
+import { useYouTube } from '../youtube/YouTubeProvider';
 import { AddVideoForm } from './AddVideoForm';
-import { reportError } from './errors';
 import { UnavailableBar } from './UnavailableBar';
 import { VideoItem } from './VideoItem';
 import { dropIndex, type DropPlacement } from './reorder';
@@ -38,10 +33,8 @@ type Drag = {
 } | null;
 
 type PlaylistVideosProps = {
-  token: string;
   playlist: Playlist;
   videoIndex: ProfileVideoIndex;
-  onUnauthorized: () => void;
   onUpdated: (playlist: Playlist) => void;
   // Liczba wszystkich elementów (także niedostępnych) po wczytaniu i po każdej zmianie
   onCountChange: (count: number) => void;
@@ -53,14 +46,13 @@ function availableOnly(videos: PlaylistVideo[]): PlaylistVideo[] {
 }
 
 export function PlaylistVideos({
-  token,
   playlist,
   videoIndex,
-  onUnauthorized,
   onUpdated,
   onCountChange,
 }: PlaylistVideosProps) {
   const { t } = useI18n();
+  const youtube = useYouTube();
   const playlistId = playlist.id;
   // Indeks wyszukiwania pomija niedostępne filmy, więc profil zawsze pobiera własną, pełną listę
   const [load, setLoad] = useState<LoadState>({ status: 'loading' });
@@ -80,12 +72,12 @@ export function PlaylistVideos({
     onCountChange(list.length);
   });
   const describeLoadError = useEffectEvent((error: unknown) =>
-    reportError(error, t, onUnauthorized),
+    errorMessage(error, t),
   );
 
   useEffect(() => {
     let cancelled = false;
-    listPlaylistVideos(token, playlistId, { includeUnavailable: true }).then(
+    youtube.listPlaylistVideos(playlistId, { includeUnavailable: true }).then(
       (list) => {
         if (cancelled) {
           return;
@@ -103,7 +95,7 @@ export function PlaylistVideos({
     return () => {
       cancelled = true;
     };
-  }, [token, playlistId, reloadKey]);
+  }, [youtube, playlistId, reloadKey]);
 
   function retry() {
     setLoad({ status: 'loading' });
@@ -147,7 +139,7 @@ export function PlaylistVideos({
     const next = moveVideos(videos, from, to);
     setVideos(next);
     try {
-      await movePlaylistItem(token, playlistId, video, destination.position);
+      await youtube.movePlaylistItem(playlistId, video, destination.position);
       videoIndex.replaceVideos(playlistId, availableOnly(next));
       setAnnouncement(
         t.videoMoved(
@@ -159,7 +151,7 @@ export function PlaylistVideos({
       setVideos(previous);
       setItemError({
         itemId: video.itemId,
-        message: reportError(error, t, onUnauthorized),
+        message: errorMessage(error, t),
       });
     } finally {
       finish();
@@ -210,11 +202,11 @@ export function PlaylistVideos({
       return false;
     }
     try {
-      await removePlaylistItem(token, video.itemId);
+      await youtube.removePlaylistItem(video.itemId);
     } catch (error) {
       setItemError({
         itemId: video.itemId,
-        message: reportError(error, t, onUnauthorized),
+        message: errorMessage(error, t),
       });
       return false;
     } finally {
@@ -231,7 +223,7 @@ export function PlaylistVideos({
       return;
     }
     try {
-      const added = await addPlaylistItem(token, playlistId, videoId);
+      const added = await youtube.addPlaylistItem(playlistId, videoId);
       commit([...videos, added]);
       onUpdated({ ...playlist, itemCount: playlist.itemCount + 1 });
     } catch (error) {
@@ -240,10 +232,9 @@ export function PlaylistVideos({
         error instanceof ApiError &&
         error.kind === 'notFound' &&
         error.reason !== 'playlistNotFound';
-      throw new Error(
-        missingVideo ? t.videoNotFound : reportError(error, t, onUnauthorized),
-        { cause: error },
-      );
+      throw new Error(missingVideo ? t.videoNotFound : errorMessage(error, t), {
+        cause: error,
+      });
     } finally {
       finish();
     }
@@ -264,9 +255,9 @@ export function PlaylistVideos({
     try {
       for (const video of targets) {
         try {
-          await removePlaylistItem(token, video.itemId);
+          await youtube.removePlaylistItem(video.itemId);
         } catch (error) {
-          setBulkError(reportError(error, t, onUnauthorized));
+          setBulkError(errorMessage(error, t));
           return;
         }
         removed += 1;

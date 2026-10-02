@@ -1,10 +1,11 @@
 import { renderHook, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { getMyChannel } from '../youtube/api';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { makeFakeYouTube, type FakeYouTube } from '../test/fakeYouTube';
+import { youTubeWrapper } from '../test/renderWithYouTube';
 import { ApiError, type Channel } from '../youtube/types';
 import { useChannel } from './useChannel';
 
-vi.mock('../youtube/api', () => ({ getMyChannel: vi.fn() }));
+let youtube: FakeYouTube;
 
 const channel: Channel = {
   id: 'UC-me',
@@ -18,73 +19,70 @@ const channel: Channel = {
 };
 
 beforeEach(() => {
-  vi.mocked(getMyChannel).mockReset();
+  youtube = makeFakeYouTube();
 });
 
 describe('useChannel', () => {
   it('starts loading and then exposes the channel', async () => {
-    vi.mocked(getMyChannel).mockResolvedValue(channel);
-    const { result } = renderHook(() =>
-      useChannel({ token: 'tok', onUnauthorized: vi.fn() }),
-    );
+    youtube.getMyChannel.mockResolvedValue(channel);
+    const { result } = renderHook(() => useChannel(), {
+      wrapper: youTubeWrapper(youtube),
+    });
     expect(result.current).toEqual({ status: 'loading', channel: null });
     await waitFor(() => expect(result.current.status).toBe('ready'));
     expect(result.current.channel).toEqual(channel);
-    expect(getMyChannel).toHaveBeenCalledWith('tok');
+    expect(youtube.getMyChannel).toHaveBeenCalledTimes(1);
   });
 
   it('is ready with no channel for an account without one', async () => {
-    vi.mocked(getMyChannel).mockResolvedValue(null);
-    const { result } = renderHook(() =>
-      useChannel({ token: 'tok', onUnauthorized: vi.fn() }),
-    );
+    youtube.getMyChannel.mockResolvedValue(null);
+    const { result } = renderHook(() => useChannel(), {
+      wrapper: youTubeWrapper(youtube),
+    });
     await waitFor(() => expect(result.current.status).toBe('ready'));
     expect(result.current.channel).toBeNull();
   });
 
-  it('fetches once per token, not on rerender', async () => {
-    vi.mocked(getMyChannel).mockResolvedValue(channel);
-    const { result, rerender } = renderHook(
-      ({ token }) => useChannel({ token, onUnauthorized: vi.fn() }),
-      { initialProps: { token: 'a' } },
-    );
+  it('fetches once, not on rerender', async () => {
+    youtube.getMyChannel.mockResolvedValue(channel);
+    const { result, rerender } = renderHook(() => useChannel(), {
+      wrapper: youTubeWrapper(youtube),
+    });
     await waitFor(() => expect(result.current.status).toBe('ready'));
-    rerender({ token: 'a' });
-    expect(getMyChannel).toHaveBeenCalledTimes(1);
-    rerender({ token: 'b' });
-    await waitFor(() => expect(getMyChannel).toHaveBeenCalledTimes(2));
+    rerender();
+    expect(youtube.getMyChannel).toHaveBeenCalledTimes(1);
   });
 
-  it('calls onUnauthorized on a 401', async () => {
-    vi.mocked(getMyChannel).mockRejectedValue(
+  it('becomes unavailable on a 401 like on any other error', async () => {
+    youtube.getMyChannel.mockRejectedValue(
       new ApiError('unauthorized', 'no', 401),
     );
-    const onUnauthorized = vi.fn();
-    renderHook(() => useChannel({ token: 'tok', onUnauthorized }));
-    await waitFor(() => expect(onUnauthorized).toHaveBeenCalledTimes(1));
+    const { result } = renderHook(() => useChannel(), {
+      wrapper: youTubeWrapper(youtube),
+    });
+    await waitFor(() => expect(result.current.status).toBe('unavailable'));
+    expect(result.current.channel).toBeNull();
   });
 
   it('becomes unavailable on any other error', async () => {
-    vi.mocked(getMyChannel).mockRejectedValue(new ApiError('network', 'down'));
-    const onUnauthorized = vi.fn();
-    const { result } = renderHook(() =>
-      useChannel({ token: 'tok', onUnauthorized }),
-    );
+    youtube.getMyChannel.mockRejectedValue(new ApiError('network', 'down'));
+    const { result } = renderHook(() => useChannel(), {
+      wrapper: youTubeWrapper(youtube),
+    });
     await waitFor(() => expect(result.current.status).toBe('unavailable'));
     expect(result.current.channel).toBeNull();
-    expect(onUnauthorized).not.toHaveBeenCalled();
   });
 
   it('ignores a result that arrives after unmount', async () => {
     let resolve: (value: Channel | null) => void = () => undefined;
-    vi.mocked(getMyChannel).mockReturnValue(
+    youtube.getMyChannel.mockReturnValue(
       new Promise((done) => {
         resolve = done;
       }),
     );
-    const { result, unmount } = renderHook(() =>
-      useChannel({ token: 'tok', onUnauthorized: vi.fn() }),
-    );
+    const { result, unmount } = renderHook(() => useChannel(), {
+      wrapper: youTubeWrapper(youtube),
+    });
     unmount();
     resolve(channel);
     await Promise.resolve();

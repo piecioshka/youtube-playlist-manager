@@ -1,43 +1,37 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { messages } from '../i18n/messages';
+import { makeFakeYouTube, type FakeYouTube } from '../test/fakeYouTube';
 import { makePlaylist } from '../test/playlistFactory';
-import { deletePlaylist, listMyPlaylists } from '../youtube/api';
+import { youTubeWrapper } from '../test/renderWithYouTube';
 import { ApiError } from '../youtube/types';
 import { usePlaylists } from './usePlaylists';
 
-vi.mock('../youtube/api', () => ({
-  listMyPlaylists: vi.fn(),
-  renamePlaylist: vi.fn(),
-  deletePlaylist: vi.fn(),
-}));
+let youtube: FakeYouTube;
 
 const zupa = makePlaylist({ id: 'a', title: 'Zupa' });
 const joga = makePlaylist({ id: 'b', title: 'Joga' });
 
 async function renderLoaded() {
-  const onUnauthorized = vi.fn();
-  const hook = renderHook(() =>
-    usePlaylists({ token: 'tok', onUnauthorized, t: messages.pl }),
-  );
+  const hook = renderHook(() => usePlaylists({ t: messages.pl }), {
+    wrapper: youTubeWrapper(youtube),
+  });
   await waitFor(() =>
     expect(hook.result.current.loadState.status).toBe('ready'),
   );
-  return { ...hook, onUnauthorized };
+  return hook;
 }
 
 beforeEach(() => {
-  vi.mocked(listMyPlaylists).mockReset();
-  vi.mocked(deletePlaylist).mockReset();
-  vi.mocked(listMyPlaylists).mockResolvedValue([zupa, joga]);
+  youtube = makeFakeYouTube();
+  youtube.listMyPlaylists.mockResolvedValue([zupa, joga]);
 });
 
 describe('usePlaylists', () => {
   it('loads the playlists once', async () => {
     const { result } = await renderLoaded();
     expect(result.current.playlists).toEqual([zupa, joga]);
-    expect(listMyPlaylists).toHaveBeenCalledTimes(1);
-    expect(listMyPlaylists).toHaveBeenCalledWith('tok');
+    expect(youtube.listMyPlaylists).toHaveBeenCalledTimes(1);
   });
 
   it('replaces a playlist updated elsewhere (the profile)', async () => {
@@ -60,11 +54,11 @@ describe('usePlaylists', () => {
     expect(result.current.notice).toBeNull();
   });
 
-  it('deletes through the API and reports 401 to the caller', async () => {
-    vi.mocked(deletePlaylist).mockRejectedValueOnce(
+  it('keeps the list and shows the message when deleting fails', async () => {
+    youtube.deletePlaylist.mockRejectedValueOnce(
       new ApiError('unauthorized', 'expired', 401),
     );
-    const { result, onUnauthorized } = await renderLoaded();
+    const { result } = await renderLoaded();
 
     await act(async () => {
       await expect(result.current.handleDelete(zupa)).rejects.toThrow(
@@ -72,7 +66,7 @@ describe('usePlaylists', () => {
       );
     });
 
-    expect(onUnauthorized).toHaveBeenCalledTimes(1);
+    expect(youtube.deletePlaylist).toHaveBeenCalledWith('a');
     expect(result.current.playlists).toEqual([zupa, joga]);
   });
 });

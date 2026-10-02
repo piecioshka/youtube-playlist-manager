@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { listPlaylistVideos } from '../youtube/api';
 import { ApiError, type Playlist, type PlaylistVideo } from '../youtube/types';
+import { useYouTube } from '../youtube/YouTubeProvider';
 
 const MAX_IN_FLIGHT = 4;
 
@@ -18,9 +18,7 @@ export type VideoIndex = IndexState & {
 };
 
 type UseVideoIndexOptions = {
-  token: string;
   playlists: readonly Playlist[];
-  onUnauthorized: () => void;
 };
 
 const INITIAL_STATE: IndexState = {
@@ -51,19 +49,16 @@ function finish(
 }
 
 // Tytuły filmów pobierane leniwie, przy pierwszym wyszukiwaniu; indeks żyje tylko w pamięci
-export function useVideoIndex({
-  token,
-  playlists,
-  onUnauthorized,
-}: UseVideoIndexOptions): VideoIndex {
+export function useVideoIndex({ playlists }: UseVideoIndexOptions): VideoIndex {
+  const youtube = useYouTube();
   const [state, setState] = useState<IndexState>(INITIAL_STATE);
-  const latestRef = useRef({ token, playlists, onUnauthorized });
+  const latestRef = useRef({ youtube, playlists });
   const startedRef = useRef(false);
   const cancelledRef = useRef(false);
 
   useEffect(() => {
-    latestRef.current = { token, playlists, onUnauthorized };
-  }, [token, playlists, onUnauthorized]);
+    latestRef.current = { youtube, playlists };
+  }, [youtube, playlists]);
 
   useEffect(() => {
     cancelledRef.current = false;
@@ -77,7 +72,7 @@ export function useVideoIndex({
       return;
     }
     startedRef.current = true;
-    const { token: currentToken, playlists: snapshot } = latestRef.current;
+    const { youtube: session, playlists: snapshot } = latestRef.current;
     const ids = snapshot.map((playlist) => playlist.id);
     setState({
       ...INITIAL_STATE,
@@ -96,7 +91,7 @@ export function useVideoIndex({
         }
         nextIndex += 1;
         try {
-          const videos = await listPlaylistVideos(currentToken, playlistId);
+          const videos = await session.listPlaylistVideos(playlistId);
           if (cancelledRef.current) {
             return;
           }
@@ -106,11 +101,8 @@ export function useVideoIndex({
             return;
           }
           if (error instanceof ApiError && error.kind === 'unauthorized') {
-            // Kilka równoległych 401 ma wylogować tylko raz
-            if (!stopped) {
-              stopped = true;
-              latestRef.current.onUnauthorized();
-            }
+            // Sesja sama wraca do logowania; tu wystarczy przestać pobierać
+            stopped = true;
             return;
           }
           setState((current) => finish(current, playlistId, null));

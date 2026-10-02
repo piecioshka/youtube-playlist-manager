@@ -1,4 +1,4 @@
-import { useCallback, useState, type ReactNode } from 'react';
+import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import { AccountChip } from './account/AccountChip';
 import { useChannel, type ChannelState } from './account/useChannel';
 import { LoginScreen } from './auth/LoginScreen';
@@ -13,6 +13,8 @@ import { useRoute } from './routing/useRoute';
 import { useVideoIndex } from './search/useVideoIndex';
 import { ThemeToggle } from './theme/ThemeToggle';
 import { useTheme } from './theme/useTheme';
+import { createYouTubeSession } from './youtube/session';
+import { YouTubeProvider } from './youtube/YouTubeProvider';
 
 type LayoutProps = {
   actions?: ReactNode;
@@ -80,21 +82,15 @@ function Layout({ actions, children }: LayoutProps) {
 }
 
 type SignedInAppProps = {
-  token: string;
   channel: ChannelState;
-  onUnauthorized: () => void;
 };
 
 // Lista playlist i indeks filmów są wspólne dla tabeli i profilu, więc przejście między nimi nic nie wczytuje od nowa
-function SignedInApp({ token, channel, onUnauthorized }: SignedInAppProps) {
+function SignedInApp({ channel }: SignedInAppProps) {
   const { t } = useI18n();
   const { route, navigate } = useRoute();
-  const list = usePlaylists({ token, onUnauthorized, t });
-  const index = useVideoIndex({
-    token,
-    playlists: list.playlists,
-    onUnauthorized,
-  });
+  const list = usePlaylists({ t });
+  const index = useVideoIndex({ playlists: list.playlists });
   const [shownRoute, setShownRoute] = useState(route);
 
   // Komunikat z listy nie czeka na powrót z profilu innej playlisty
@@ -109,12 +105,10 @@ function SignedInApp({ token, channel, onUnauthorized }: SignedInAppProps) {
     return (
       <PlaylistProfile
         key={route.id}
-        token={token}
         playlistId={route.id}
         playlist={list.playlists.find((item) => item.id === route.id)}
         listStatus={list.loadState.status}
         videoIndex={index}
-        onUnauthorized={onUnauthorized}
         onUpdated={list.replacePlaylist}
         onDeleted={list.markDeleted}
         onNavigate={navigate}
@@ -124,17 +118,9 @@ function SignedInApp({ token, channel, onUnauthorized }: SignedInAppProps) {
   return <PlaylistsView list={list} index={index} channel={channel} />;
 }
 
-function SignedInLayout({
-  token,
-  onSignOut,
-  onUnauthorized,
-}: {
-  token: string;
-  onSignOut: () => void;
-  onUnauthorized: () => void;
-}) {
+function SignedInLayout({ onSignOut }: { onSignOut: () => void }) {
   const { t } = useI18n();
-  const channel = useChannel({ token, onUnauthorized });
+  const channel = useChannel();
 
   return (
     <Layout
@@ -149,11 +135,7 @@ function SignedInLayout({
         </>
       }
     >
-      <SignedInApp
-        token={token}
-        channel={channel}
-        onUnauthorized={onUnauthorized}
-      />
+      <SignedInApp channel={channel} />
     </Layout>
   );
 }
@@ -166,13 +148,18 @@ function AuthenticatedApp({ clientId }: { clientId: string }) {
     [signOut],
   );
 
-  if (status === 'signedIn' && token !== null) {
+  // Jedna sesja na token: nowy obiekt przy każdym renderze wczytywałby wszystko od nowa
+  const session = useMemo(
+    () =>
+      token === null ? null : createYouTubeSession(token, handleUnauthorized),
+    [token, handleUnauthorized],
+  );
+
+  if (status === 'signedIn' && session !== null) {
     return (
-      <SignedInLayout
-        token={token}
-        onSignOut={() => signOut()}
-        onUnauthorized={handleUnauthorized}
-      />
+      <YouTubeProvider session={session}>
+        <SignedInLayout onSignOut={() => signOut()} />
+      </YouTubeProvider>
     );
   }
 
