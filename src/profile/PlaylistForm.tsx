@@ -169,7 +169,10 @@ export function PlaylistForm({ playlist, onSave }: PlaylistFormProps) {
         >
           {PRIVACY_STATUSES.map((status) => (
             <option key={status} value={status}>
-              {t.privacy[status]}
+              {/* Kłódka jak w tabeli i w filtrze; option przyjmuje tylko tekst */}
+              {status === 'private'
+                ? `🔒 ${t.privacy[status]}`
+                : t.privacy[status]}
             </option>
           ))}
         </select>

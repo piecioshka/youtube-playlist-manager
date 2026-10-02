@@ -217,7 +217,7 @@ test('saves the description and visibility', async ({ page, youtube }) => {
   await page.getByRole('textbox', { name: 'Opis' }).fill('Kurs algorytmów');
   await page
     .getByRole('combobox', { name: 'Widoczność' })
-    .selectOption('Prywatna');
+    .selectOption('🔒 Prywatna');
   await page.getByRole('button', { name: 'Zapisz' }).click();
 
   await expect(

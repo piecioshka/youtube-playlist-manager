@@ -212,7 +212,7 @@ describe('PlaylistProfile', () => {
       await user.type(description, 'Nowy opis');
       await user.selectOptions(
         screen.getByRole('combobox', { name: 'Widoczność' }),
-        'Prywatna',
+        '🔒 Prywatna',
       );
       await user.click(screen.getByRole('button', { name: 'Zapisz' }));
 
