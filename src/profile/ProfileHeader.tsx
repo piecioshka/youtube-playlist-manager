@@ -7,9 +7,18 @@ import { YouTubeLink } from '../youtube/YouTubeLink';
 
 type ProfileHeaderProps = {
   playlist: Playlist;
+  // Panel edycji jest otwarty; przycisk „Edytuj” go pokazuje i chowa
+  editing: boolean;
+  editorId: string;
+  onToggleEdit: () => void;
 };
 
-export function ProfileHeader({ playlist }: ProfileHeaderProps) {
+export function ProfileHeader({
+  playlist,
+  editing,
+  editorId,
+  onToggleEdit,
+}: ProfileHeaderProps) {
   const { t } = useI18n();
   const headingRef = useRef<HTMLHeadingElement>(null);
 
@@ -59,12 +68,24 @@ export function ProfileHeader({ playlist }: ProfileHeaderProps) {
             {formatDate(playlist.publishedAt)}
           </time>
         </p>
-        <YouTubeLink
-          className="profile__youtube"
-          href={`https://www.youtube.com/playlist?list=${encodeURIComponent(playlist.id)}`}
-        >
-          {t.openOnYouTube}
-        </YouTubeLink>
+        <div className="profile__actions">
+          <YouTubeLink
+            className="profile__youtube"
+            href={`https://www.youtube.com/playlist?list=${encodeURIComponent(playlist.id)}`}
+          >
+            {t.openOnYouTube}
+          </YouTubeLink>
+          <button
+            type="button"
+            className="button button--small"
+            aria-expanded={editing}
+            // Schowanego panelu nie ma w DOM, więc nie ma na co wskazywać
+            aria-controls={editing ? editorId : undefined}
+            onClick={onToggleEdit}
+          >
+            {t.editPlaylist}
+          </button>
+        </div>
       </div>
     </section>
   );

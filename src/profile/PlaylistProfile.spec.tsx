@@ -91,6 +91,13 @@ function renderProfile(options: RenderOptions = {}) {
   return { ...props, user: userEvent.setup() };
 }
 
+// Panel edycji jest schowany, dopóki ktoś nie kliknie „Edytuj”
+async function renderEditing(options: RenderOptions = {}) {
+  const rendered = await renderLoaded(options);
+  await rendered.user.click(screen.getByRole('button', { name: 'Edytuj' }));
+  return rendered;
+}
+
 function meta(): Element | null {
   return document.querySelector('.profile__meta');
 }
@@ -179,8 +186,44 @@ describe('PlaylistProfile', () => {
   });
 
   describe('edit form', () => {
+    it('stays hidden until Edit is clicked and hides again on a second click', async () => {
+      const { user } = await renderLoaded();
+      const toggle = screen.getByRole('button', { name: 'Edytuj' });
+
+      expect(toggle).toHaveAttribute('aria-expanded', 'false');
+      expect(
+        screen.queryByRole('form', { name: 'Ustawienia playlisty' }),
+      ).not.toBeInTheDocument();
+
+      await user.click(toggle);
+
+      expect(toggle).toHaveAttribute('aria-expanded', 'true');
+      expect(toggle).toHaveAttribute('aria-controls', form().id);
+      // Fokus idzie do pierwszego pola, żeby od razu dało się pisać
+      expect(screen.getByRole('textbox', { name: 'Nazwa' })).toHaveFocus();
+
+      await user.click(toggle);
+
+      expect(toggle).toHaveAttribute('aria-expanded', 'false');
+      expect(
+        screen.queryByRole('form', { name: 'Ustawienia playlisty' }),
+      ).not.toBeInTheDocument();
+    });
+
+    it('forgets an unsaved draft once the panel is closed', async () => {
+      const { user } = await renderEditing();
+
+      await user.type(screen.getByRole('textbox', { name: 'Opis' }), ' szkic');
+      await user.click(screen.getByRole('button', { name: 'Edytuj' }));
+      await user.click(screen.getByRole('button', { name: 'Edytuj' }));
+
+      expect(screen.getByRole('textbox', { name: 'Opis' })).toHaveValue(
+        'Wykłady',
+      );
+    });
+
     it('starts with the current values and nothing to save', async () => {
-      await renderLoaded();
+      await renderEditing();
 
       expect(screen.getByRole('textbox', { name: 'Nazwa' })).toHaveValue(
         'Algorytmy',
@@ -196,7 +239,7 @@ describe('PlaylistProfile', () => {
 
     it('saves only the changed title and announces it', async () => {
       const renamed = { ...algo, title: 'Algorytmy i struktury' };
-      const { user, onSave } = await renderLoaded();
+      const { user, onSave } = await renderEditing();
       onSave.mockResolvedValue(renamed);
 
       const title = screen.getByRole('textbox', { name: 'Nazwa' });
@@ -219,7 +262,7 @@ describe('PlaylistProfile', () => {
         description: 'Nowy opis',
         privacyStatus: 'private',
       };
-      const { user, onSave } = await renderLoaded();
+      const { user, onSave } = await renderEditing();
       onSave.mockResolvedValue(changed);
 
       const description = screen.getByRole('textbox', { name: 'Opis' });
@@ -242,7 +285,7 @@ describe('PlaylistProfile', () => {
 
     it('shows Saving... and blocks the form while the request runs', async () => {
       let finish: (playlist: Playlist) => void = () => {};
-      const { user, onSave } = await renderLoaded();
+      const { user, onSave } = await renderEditing();
       onSave.mockImplementation(
         () =>
           new Promise((resolve) => {
@@ -263,7 +306,7 @@ describe('PlaylistProfile', () => {
     });
 
     it('resets the fields', async () => {
-      const { user } = await renderLoaded();
+      const { user } = await renderEditing();
       const title = screen.getByRole('textbox', { name: 'Nazwa' });
 
       await user.type(title, ' 2');
@@ -275,7 +318,7 @@ describe('PlaylistProfile', () => {
     });
 
     it('rejects an empty title', async () => {
-      const { user, onSave } = await renderLoaded();
+      const { user, onSave } = await renderEditing();
       const title = screen.getByRole('textbox', { name: 'Nazwa' });
 
       await user.clear(title);
@@ -290,7 +333,7 @@ describe('PlaylistProfile', () => {
     });
 
     it('rejects a title longer than 150 characters', async () => {
-      const { user, onSave } = await renderLoaded();
+      const { user, onSave } = await renderEditing();
       const title = screen.getByRole('textbox', { name: 'Nazwa' });
 
       await user.clear(title);
@@ -305,7 +348,7 @@ describe('PlaylistProfile', () => {
     });
 
     it('limits the description to 5000 characters', async () => {
-      await renderLoaded();
+      await renderEditing();
       expect(screen.getByRole('textbox', { name: 'Opis' })).toHaveAttribute(
         'maxlength',
         '5000',
@@ -313,7 +356,7 @@ describe('PlaylistProfile', () => {
     });
 
     it('shows an API error under the form', async () => {
-      const { user, onSave } = await renderLoaded();
+      const { user, onSave } = await renderEditing();
       onSave.mockRejectedValue(
         new Error('Wyczerpano dzienny limit YouTube API. Spróbuj jutro.'),
       );
@@ -327,7 +370,7 @@ describe('PlaylistProfile', () => {
     });
 
     it('leaves the profile when the saved playlist is gone', async () => {
-      const { user, onSave, onNavigate } = await renderLoaded();
+      const { user, onSave, onNavigate } = await renderEditing();
       onSave.mockRejectedValue(
         new PlaylistGoneError('Tej playlisty już nie ma.'),
       );
@@ -1061,6 +1104,7 @@ describe('PlaylistProfile', () => {
       screen.getByRole('link', { name: 'All playlists' }),
     ).toBeInTheDocument();
     expect(meta()).toHaveTextContent('3 videos · Unlisted · 2023-03-05');
+    await userEvent.click(screen.getByRole('button', { name: 'Edit' }));
     expect(screen.getByRole('textbox', { name: 'Title' })).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'Move "Quicksort"' }),

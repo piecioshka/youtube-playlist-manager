@@ -693,6 +693,14 @@ a.external-link:focus-visible .external-link__text {
   text-decoration: none;
 }
 
+/* Link do YouTube i przycisk edycji w jednym rzędzie pod danymi playlisty */
+.profile__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+}
+
 /* Link w środku zdania musi odróżniać się od tekstu także bez kursora */
 .profile__back-inline {
   font-size: inherit;

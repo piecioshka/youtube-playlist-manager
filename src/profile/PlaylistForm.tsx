@@ -1,4 +1,4 @@
-import { useId, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { useI18n } from '../i18n/LocaleProvider';
 import { titleError } from '../playlists/playlistTitle';
 import type { PlaylistChanges } from '../youtube/api';
@@ -19,6 +19,8 @@ type Draft = {
 };
 
 type PlaylistFormProps = {
+  // Id panelu, na które wskazuje przycisk „Edytuj”
+  id: string;
   playlist: Playlist;
   // Odrzuca Error z gotowym komunikatem dla użytkownika
   onSave: (changes: PlaylistChanges) => Promise<Playlist>;
@@ -52,7 +54,7 @@ function changesFrom(draft: Draft, playlist: Playlist): PlaylistChanges {
   return changes;
 }
 
-export function PlaylistForm({ playlist, onSave }: PlaylistFormProps) {
+export function PlaylistForm({ id, playlist, onSave }: PlaylistFormProps) {
   const { t } = useI18n();
   const [draft, setDraft] = useState<Draft>(() => toDraft(playlist));
   const [pending, setPending] = useState(false);
@@ -67,6 +69,11 @@ export function PlaylistForm({ playlist, onSave }: PlaylistFormProps) {
   const errorId = useId();
 
   const changed = Object.keys(changesFrom(draft, playlist)).length > 0;
+
+  // Panel otwiera się na żądanie, więc od razu oddaje fokus pierwszemu polu
+  useEffect(() => {
+    titleRef.current?.focus();
+  }, []);
 
   function update(next: Partial<Draft>) {
     setDraft((current) => ({ ...current, ...next }));
@@ -117,6 +124,7 @@ export function PlaylistForm({ playlist, onSave }: PlaylistFormProps) {
     <form
       className="profile__form"
       aria-label={t.playlistSettings}
+      id={id}
       onSubmit={handleSubmit}
       noValidate
     >

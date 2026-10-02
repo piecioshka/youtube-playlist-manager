@@ -1,3 +1,4 @@
+import { useId, useState } from 'react';
 import { PlaylistGoneError } from '../playlists/usePlaylists';
 import type { Route } from '../routing/route';
 import type { PlaylistChanges } from '../youtube/api';
@@ -26,6 +27,10 @@ export function PlaylistProfile({
   onCountChange,
   onNavigate,
 }: PlaylistProfileProps) {
+  // Panel edycji pokazuje się dopiero po kliknięciu „Edytuj”; schowany gubi niezapisany szkic
+  const [editing, setEditing] = useState(false);
+  const editorId = useId();
+
   // Playlista, której już nie ma, zabiera profil ze sobą: komunikat pokaże lista
   function leaveIfGone(error: unknown): never {
     if (error instanceof PlaylistGoneError) {
@@ -53,8 +58,20 @@ export function PlaylistProfile({
 
   return (
     <div className="profile-page">
-      <ProfileHeader playlist={playlist} />
-      <PlaylistForm key={playlist.id} playlist={playlist} onSave={save} />
+      <ProfileHeader
+        playlist={playlist}
+        editing={editing}
+        editorId={editorId}
+        onToggleEdit={() => setEditing((open) => !open)}
+      />
+      {editing && (
+        <PlaylistForm
+          id={editorId}
+          key={playlist.id}
+          playlist={playlist}
+          onSave={save}
+        />
+      )}
       <PlaylistVideos
         key={`videos-${playlist.id}`}
         playlist={playlist}
