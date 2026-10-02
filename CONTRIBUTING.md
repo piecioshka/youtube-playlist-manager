@@ -23,6 +23,8 @@ The app needs an OAuth 2.0 Client ID. It is not a secret, but it only works for 
    - locally: `cp .env.example .env` and set `VITE_GOOGLE_CLIENT_ID=...`
    - GitHub Pages: repository **Settings > Secrets and variables > Actions > Variables**, add `GOOGLE_CLIENT_ID`
 
+On the first sign-in Google shows **Google hasn't verified this app**. That is expected in Testing mode: click **Continue**, and on the consent screen make sure the **Manage your YouTube account** permission is checked, otherwise every API call fails with `403`. With several channels (Brand Accounts) Google asks which one to use; the app shows the playlists of that channel only.
+
 `npm run dev` takes the first free port from 3000. If it lands outside 3000-3002, Google rejects the sign-in with `origin_mismatch`: free a port or add the new origin.
 
 ## Scripts
