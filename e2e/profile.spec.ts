@@ -255,6 +255,7 @@ test('goes back to the list when the saved playlist no longer exists', async ({
     /^Twoje playlisty/,
   );
   await expect(page.getByText('Tej playlisty już nie ma.')).toBeVisible();
+  await expect(page.getByRole('heading', { level: 2 })).toBeFocused();
   await expect(playlistRows(page).filter({ hasText: 'Algorytmy' })).toHaveCount(
     0,
   );

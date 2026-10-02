@@ -101,8 +101,13 @@ export function usePlaylists({ t }: UsePlaylistsOptions): PlaylistsState {
   ): Promise<Playlist> {
     try {
       const updated = await youtube.updatePlaylist(playlist, changes);
+      // Odpowiedź na zapis niesie liczbę filmów z chwili wysyłki, a lista mogła ją w międzyczasie poprawić
       setPlaylists((current) =>
-        current.map((item) => (item.id === updated.id ? updated : item)),
+        current.map((item) =>
+          item.id === updated.id
+            ? { ...updated, itemCount: item.itemCount }
+            : item,
+        ),
       );
       setNotice(null);
       return updated;

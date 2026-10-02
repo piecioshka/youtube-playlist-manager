@@ -244,6 +244,9 @@ describe('App', () => {
     expect(
       screen.queryByRole('link', { name: 'Zupa' }),
     ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 2, name: /^Twoje playlisty/ }),
+    ).toHaveFocus();
   });
 
   it('drops the list notice once another playlist profile is opened', async () => {

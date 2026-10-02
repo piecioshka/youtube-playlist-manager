@@ -138,7 +138,8 @@ describe('useVideoIndex', () => {
     act(() => result.current.start());
     const unauthorized = new ApiError('unauthorized', 'x', 401);
     await act(async () => settle(pending, 'PL0', unauthorized));
-    await act(async () => settle(pending, 'PL1', unauthorized));
+    // Pozostały wątek kończy swoją playlistę, ale nie może zacząć następnej
+    await act(async () => settle(pending, 'PL1', []));
 
     expect(youtube.listPlaylistVideos).toHaveBeenCalledTimes(4);
   });

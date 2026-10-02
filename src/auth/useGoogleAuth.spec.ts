@@ -162,6 +162,37 @@ describe('useGoogleAuth', () => {
     });
   });
 
+  it('ignores an expiry reported by a session that was signed out', async () => {
+    const { result } = await renderSignedOut();
+    act(() => config().callback(tokenResponse('tok-1')));
+    const staleSignOut = result.current.signOut;
+    act(() => result.current.signOut());
+
+    act(() => staleSignOut('sessionExpired'));
+
+    expect(result.current).toMatchObject({
+      status: 'signedOut',
+      token: null,
+      message: null,
+    });
+  });
+
+  it('ignores an expiry reported by a previous session after a new sign-in', async () => {
+    const { result } = await renderSignedOut();
+    act(() => config().callback(tokenResponse('tok-A')));
+    const staleSignOut = result.current.signOut;
+    act(() => result.current.signOut());
+    act(() => config().callback(tokenResponse('tok-B')));
+
+    act(() => staleSignOut('sessionExpired'));
+
+    expect(result.current).toMatchObject({
+      status: 'signedIn',
+      token: 'tok-B',
+      message: null,
+    });
+  });
+
   it('reports a script that failed to load', async () => {
     vi.mocked(loadGis).mockRejectedValue(new Error('offline'));
 

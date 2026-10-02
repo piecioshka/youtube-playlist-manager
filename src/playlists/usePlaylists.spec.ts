@@ -51,6 +51,31 @@ describe('usePlaylists', () => {
     expect(result.current.playlists).toEqual([renamed, joga]);
   });
 
+  it('keeps the corrected video count when a save finishes later', async () => {
+    let resolveSave: (playlist: Playlist) => void = () => {};
+    youtube.updatePlaylist.mockReturnValue(
+      new Promise<Playlist>((resolve) => {
+        resolveSave = resolve;
+      }),
+    );
+    const { result } = await renderLoaded();
+
+    let saving: Promise<Playlist> = Promise.resolve(zupa);
+    act(() => {
+      saving = result.current.updatePlaylist(zupa, { title: 'Rosół' });
+    });
+    act(() => result.current.setItemCount('a', 5));
+    await act(async () => {
+      resolveSave({ ...zupa, title: 'Rosół' });
+      await saving;
+    });
+
+    expect(result.current.playlists).toEqual([
+      { ...zupa, title: 'Rosół', itemCount: 5 },
+      joga,
+    ]);
+  });
+
   it('drops a playlist that is gone when updating it', async () => {
     youtube.updatePlaylist.mockRejectedValue(
       new ApiError('notFound', 'gone', 404),

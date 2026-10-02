@@ -76,6 +76,11 @@ export function useGoogleAuth(clientId: string): GoogleAuth {
     statusRef.current = status;
   }, [status]);
 
+  const tokenRef = useRef(token);
+  useEffect(() => {
+    tokenRef.current = token;
+  }, [token]);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -143,6 +148,10 @@ export function useGoogleAuth(clientId: string): GoogleAuth {
 
   const signOut = useCallback(
     (reason?: AuthMessage) => {
+      // Spóźniony 401 starej sesji nie wylogowuje nowej ani nie podmienia komunikatu po ręcznym wylogowaniu
+      if (reason === 'sessionExpired' && tokenRef.current !== token) {
+        return;
+      }
       // Wygasły token nie wymaga unieważnienia, ręczne wylogowanie tak
       if (
         token !== null &&
