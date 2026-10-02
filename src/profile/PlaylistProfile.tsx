@@ -1,181 +1,66 @@
-import { useEffect, useEffectEvent, useState } from 'react';
-import { useI18n } from '../i18n/LocaleProvider';
-import type { LoadState } from '../playlists/usePlaylists';
-import { routeToHash, type Route } from '../routing/route';
+import { PlaylistGoneError } from '../playlists/usePlaylists';
+import type { Route } from '../routing/route';
 import type { PlaylistChanges } from '../youtube/api';
-import { errorMessage } from '../youtube/errorMessage';
-import { ApiError, type Playlist } from '../youtube/types';
-import { useYouTube } from '../youtube/YouTubeProvider';
+import type { Playlist } from '../youtube/types';
 import { DangerZone } from './DangerZone';
 import { PlaylistForm } from './PlaylistForm';
 import { PlaylistVideos, type ProfileVideoIndex } from './PlaylistVideos';
 import { ProfileHeader } from './ProfileHeader';
 
 type PlaylistProfileProps = {
-  playlistId: string;
-  // Playlista z listy; brak, gdy lista jeszcze się wczytuje albo jej tam nie ma
-  playlist: Playlist | undefined;
-  listStatus: LoadState['status'];
+  playlist: Playlist;
   videoIndex: ProfileVideoIndex;
-  onUpdated: (playlist: Playlist) => void;
-  onDeleted: (playlist: Playlist) => void;
+  // Obie odrzucają Error z gotowym komunikatem; PlaylistGoneError, gdy playlisty już nie ma
+  onSave: (playlist: Playlist, changes: PlaylistChanges) => Promise<Playlist>;
+  onDelete: (playlist: Playlist) => Promise<void>;
+  onCountChange: (playlistId: string, count: number) => void;
   onNavigate: (route: Route) => void;
 };
 
-type Lookup =
-  | { status: 'found'; playlist: Playlist }
-  | { status: 'missing' }
-  | { status: 'error'; message: string };
-
 export function PlaylistProfile({
-  playlistId,
   playlist,
-  listStatus,
   videoIndex,
-  onUpdated,
-  onDeleted,
+  onSave,
+  onDelete,
+  onCountChange,
   onNavigate,
 }: PlaylistProfileProps) {
-  const { t } = useI18n();
-  const youtube = useYouTube();
-  // Wynik pobrania playlisty spoza listy, zapamiętany razem z id, którego dotyczy
-  const [lookup, setLookup] = useState<{ id: string; result: Lookup } | null>(
-    null,
-  );
-  // Liczba elementów z wczytanej listy filmów; null, dopóki się nie wczyta
-  const [loadedCount, setLoadedCount] = useState<number | null>(null);
-  const needsLookup = playlist === undefined && listStatus !== 'loading';
-  const describeError = useEffectEvent((error: unknown) =>
-    errorMessage(error, t),
-  );
-
-  // Profil otwarty z adresu, zanim lista go zawierała: pytamy YouTube o tę jedną playlistę
-  useEffect(() => {
-    if (!needsLookup) {
-      return;
+  // Playlista, której już nie ma, zabiera profil ze sobą: komunikat pokaże lista
+  function leaveIfGone(error: unknown): never {
+    if (error instanceof PlaylistGoneError) {
+      onNavigate({ name: 'list' });
     }
-    let cancelled = false;
-    youtube.getPlaylist(playlistId).then(
-      (found) => {
-        if (!cancelled) {
-          setLookup({
-            id: playlistId,
-            result:
-              found === null
-                ? { status: 'missing' }
-                : { status: 'found', playlist: found },
-          });
-        }
-      },
-      (error: unknown) => {
-        if (cancelled) {
-          return;
-        }
-        const missing = error instanceof ApiError && error.kind === 'notFound';
-        setLookup({
-          id: playlistId,
-          result: missing
-            ? { status: 'missing' }
-            : { status: 'error', message: describeError(error) },
-        });
-      },
-    );
-    return () => {
-      cancelled = true;
-    };
-  }, [youtube, playlistId, needsLookup]);
-
-  const result = lookup?.id === playlistId ? lookup.result : null;
-  const shown =
-    playlist ?? (result?.status === 'found' ? result.playlist : undefined);
-
-  if (shown === undefined) {
-    if (result?.status === 'missing' || result?.status === 'error') {
-      return (
-        <div className="profile-page">
-          <p
-            className={
-              result.status === 'error'
-                ? 'playlists__state notice notice--error'
-                : 'playlists__state'
-            }
-            role={result.status === 'error' ? 'alert' : undefined}
-          >
-            {result.status === 'error' ? result.message : t.playlistNotFound}{' '}
-            <a
-              className="profile__back-inline"
-              href={routeToHash({ name: 'list' })}
-            >
-              {t.allPlaylists}
-            </a>
-          </p>
-        </div>
-      );
-    }
-    return (
-      <div className="profile-page">
-        <p className="playlists__state">{t.loading}</p>
-      </div>
-    );
+    throw error;
   }
 
-  function handleUpdated(updated: Playlist) {
-    onUpdated(updated);
-    // Playlista spoza listy nie wróci w propsach, więc trzymamy jej nową wersję tutaj
-    if (playlist === undefined) {
-      setLookup({
-        id: updated.id,
-        result: { status: 'found', playlist: updated },
-      });
-    }
-  }
-
-  async function save(
-    current: Playlist,
-    changes: PlaylistChanges,
-  ): Promise<Playlist> {
+  async function save(changes: PlaylistChanges): Promise<Playlist> {
     try {
-      const updated = await youtube.updatePlaylist(current, changes);
-      handleUpdated(updated);
-      return updated;
+      return await onSave(playlist, changes);
     } catch (error) {
-      throw new Error(errorMessage(error, t), {
-        cause: error,
-      });
+      return leaveIfGone(error);
     }
   }
 
-  async function remove(current: Playlist): Promise<void> {
+  async function remove(): Promise<void> {
     try {
-      await youtube.deletePlaylist(current.id);
+      await onDelete(playlist);
     } catch (error) {
-      throw new Error(errorMessage(error, t), {
-        cause: error,
-      });
+      return leaveIfGone(error);
     }
-    onDeleted(current);
     onNavigate({ name: 'list' });
   }
 
   return (
     <div className="profile-page">
-      <ProfileHeader
-        playlist={shown}
-        videoCount={loadedCount ?? shown.itemCount}
-      />
-      <PlaylistForm
-        key={shown.id}
-        playlist={shown}
-        onSave={(changes) => save(shown, changes)}
-      />
+      <ProfileHeader playlist={playlist} />
+      <PlaylistForm key={playlist.id} playlist={playlist} onSave={save} />
       <PlaylistVideos
-        key={`videos-${shown.id}`}
-        playlist={shown}
+        key={`videos-${playlist.id}`}
+        playlist={playlist}
         videoIndex={videoIndex}
-        onUpdated={handleUpdated}
-        onCountChange={setLoadedCount}
+        onCountChange={(count) => onCountChange(playlist.id, count)}
       />
-      <DangerZone playlist={shown} onDelete={() => remove(shown)} />
+      <DangerZone playlist={playlist} onDelete={remove} />
     </div>
   );
 }

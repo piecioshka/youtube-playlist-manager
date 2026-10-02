@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { Messages } from '../i18n/messages';
+import type { PlaylistChanges } from '../youtube/api';
 import { errorMessage } from '../youtube/errorMessage';
 import { ApiError, type Playlist } from '../youtube/types';
 import { useYouTube } from '../youtube/YouTubeProvider';
@@ -13,18 +14,28 @@ export type LoadState =
 export type Notice =
   { kind: 'deleted'; title: string } | { kind: 'missing' } | null;
 
+// YouTube odpowiedział, że playlisty już nie ma; lista sama ją wtedy usuwa
+export class PlaylistGoneError extends Error {
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, options);
+    this.name = 'PlaylistGoneError';
+  }
+}
+
 export type PlaylistsState = {
   loadState: LoadState;
   playlists: Playlist[];
   notice: Notice;
   retry: () => void;
-  removePlaylist: (id: string) => void;
-  replacePlaylist: (playlist: Playlist) => void;
-  markDeleted: (playlist: Playlist) => void;
   clearNotice: () => void;
-  toRowError: (error: unknown, playlist: Playlist) => Error;
-  handleRename: (playlist: Playlist, newTitle: string) => Promise<void>;
-  handleDelete: (playlist: Playlist) => Promise<void>;
+  // Obie operacje odrzucają Error z gotowym komunikatem; PlaylistGoneError, gdy playlisty już nie ma
+  updatePlaylist: (
+    playlist: Playlist,
+    changes: PlaylistChanges,
+  ) => Promise<Playlist>;
+  deletePlaylist: (playlist: Playlist) => Promise<void>;
+  // Profil poprawia liczbę filmów na faktyczną po ich wczytaniu i po każdej zmianie
+  setItemCount: (playlistId: string, itemCount: number) => void;
 };
 
 type UsePlaylistsOptions = {
@@ -35,7 +46,7 @@ export function isApiError(error: unknown, kind: ApiError['kind']): boolean {
   return error instanceof ApiError && error.kind === kind;
 }
 
-// Lista playlist wspólna dla tabeli i profilu playlisty: wczytana raz, zmiany z obu widoków trafiają tutaj
+// Lista playlist wspólna dla tabeli i profilu: wczytana raz, każda zmiana playlisty przechodzi tędy
 export function usePlaylists({ t }: UsePlaylistsOptions): PlaylistsState {
   const youtube = useYouTube();
   const [loadState, setLoadState] = useState<LoadState>({ status: 'loading' });
@@ -54,10 +65,9 @@ export function usePlaylists({ t }: UsePlaylistsOptions): PlaylistsState {
         setLoadState({ status: 'ready' });
       },
       (error: unknown) => {
-        if (cancelled) {
-          return;
+        if (!cancelled) {
+          setLoadState({ status: 'error', error });
         }
-        setLoadState({ status: 'error', error });
       },
     );
     return () => {
@@ -74,47 +84,53 @@ export function usePlaylists({ t }: UsePlaylistsOptions): PlaylistsState {
     setPlaylists((current) => current.filter((item) => item.id !== id));
   }
 
-  function replacePlaylist(playlist: Playlist) {
-    setPlaylists((current) =>
-      current.map((item) => (item.id === playlist.id ? playlist : item)),
-    );
+  // Błąd do pokazania przy akcji; 404 znaczy, że playlista zniknęła, więc znika też z listy
+  function toActionError(error: unknown, playlist: Playlist): Error {
+    const message = errorMessage(error, t);
+    if (isApiError(error, 'notFound')) {
+      removePlaylist(playlist.id);
+      setNotice({ kind: 'missing' });
+      return new PlaylistGoneError(message, { cause: error });
+    }
+    return new Error(message, { cause: error });
   }
 
-  function markDeleted(playlist: Playlist) {
+  async function updatePlaylist(
+    playlist: Playlist,
+    changes: PlaylistChanges,
+  ): Promise<Playlist> {
+    try {
+      const updated = await youtube.updatePlaylist(playlist, changes);
+      setPlaylists((current) =>
+        current.map((item) => (item.id === updated.id ? updated : item)),
+      );
+      setNotice(null);
+      return updated;
+    } catch (error) {
+      throw toActionError(error, playlist);
+    }
+  }
+
+  async function deletePlaylist(playlist: Playlist): Promise<void> {
+    try {
+      await youtube.deletePlaylist(playlist.id);
+    } catch (error) {
+      throw toActionError(error, playlist);
+    }
     removePlaylist(playlist.id);
     setNotice({ kind: 'deleted', title: playlist.title });
   }
 
-  // Zwraca błąd do pokazania w wierszu, a przypadki dotyczące całej listy obsługuje tutaj
-  function toRowError(error: unknown, playlist: Playlist): Error {
-    if (isApiError(error, 'notFound')) {
-      removePlaylist(playlist.id);
-      setNotice({ kind: 'missing' });
-    }
-    return new Error(errorMessage(error, t));
-  }
-
-  async function handleRename(
-    playlist: Playlist,
-    newTitle: string,
-  ): Promise<void> {
-    try {
-      replacePlaylist(
-        await youtube.updatePlaylist(playlist, { title: newTitle }),
-      );
-      setNotice(null);
-    } catch (error) {
-      throw toRowError(error, playlist);
-    }
-  }
-
-  async function handleDelete(playlist: Playlist): Promise<void> {
-    try {
-      await youtube.deletePlaylist(playlist.id);
-    } catch (error) {
-      throw toRowError(error, playlist);
-    }
-    markDeleted(playlist);
+  function setItemCount(playlistId: string, itemCount: number) {
+    setPlaylists((current) =>
+      current.some(
+        (item) => item.id === playlistId && item.itemCount !== itemCount,
+      )
+        ? current.map((item) =>
+            item.id === playlistId ? { ...item, itemCount } : item,
+          )
+        : current,
+    );
   }
 
   return {
@@ -122,12 +138,9 @@ export function usePlaylists({ t }: UsePlaylistsOptions): PlaylistsState {
     playlists,
     notice,
     retry,
-    removePlaylist,
-    replacePlaylist,
-    markDeleted,
     clearNotice: () => setNotice(null),
-    toRowError,
-    handleRename,
-    handleDelete,
+    updatePlaylist,
+    deletePlaylist,
+    setItemCount,
   };
 }

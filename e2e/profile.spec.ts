@@ -241,6 +241,25 @@ test('saves the description and visibility', async ({ page, youtube }) => {
   await expect(row.getByRole('cell').nth(1)).toHaveText('🔒 Prywatna');
 });
 
+test('goes back to the list when the saved playlist no longer exists', async ({
+  page,
+  youtube,
+}) => {
+  await openAlgorithms(page);
+
+  youtube.failNextRequestWith(404);
+  await page.getByRole('textbox', { name: 'Opis' }).fill('Nowy opis');
+  await page.getByRole('button', { name: 'Zapisz' }).click();
+
+  await expect(page.getByRole('heading', { level: 2 })).toHaveText(
+    /^Twoje playlisty/,
+  );
+  await expect(page.getByText('Tej playlisty już nie ma.')).toBeVisible();
+  await expect(playlistRows(page).filter({ hasText: 'Algorytmy' })).toHaveCount(
+    0,
+  );
+});
+
 test('deletes the playlist from its profile and returns to the table', async ({
   page,
 }) => {

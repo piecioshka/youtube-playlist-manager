@@ -254,22 +254,6 @@ export async function listPlaylistVideos(
   );
 }
 
-export async function getPlaylist(
-  token: string,
-  playlistId: string,
-): Promise<Playlist | null> {
-  const url = new URL(PLAYLISTS_URL);
-  url.searchParams.set('part', 'snippet,contentDetails,status');
-  url.searchParams.set('id', playlistId);
-
-  const response = await request(token, url);
-  const [resource] = parseResponse(
-    playlistListResponseSchema,
-    await readJson(response),
-  ).items;
-  return resource === undefined ? null : toPlaylist(resource);
-}
-
 export type PlaylistChanges = {
   title?: string;
   description?: string;

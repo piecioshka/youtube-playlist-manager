@@ -9,7 +9,6 @@ export type FakeYouTube = {
 export function makeFakeYouTube(): FakeYouTube {
   return {
     listMyPlaylists: vi.fn<YouTubeSession['listMyPlaylists']>(),
-    getPlaylist: vi.fn<YouTubeSession['getPlaylist']>(),
     updatePlaylist: vi.fn<YouTubeSession['updatePlaylist']>(),
     deletePlaylist: vi.fn<YouTubeSession['deletePlaylist']>(),
     listPlaylistVideos: vi.fn<YouTubeSession['listPlaylistVideos']>(),

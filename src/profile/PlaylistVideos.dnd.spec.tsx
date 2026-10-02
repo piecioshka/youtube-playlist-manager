@@ -52,7 +52,6 @@ async function renderVideos(list: PlaylistVideo[] = videos) {
     <PlaylistVideos
       playlist={playlist}
       videoIndex={{ replaceVideos: vi.fn() }}
-      onUpdated={vi.fn()}
       onCountChange={vi.fn()}
     />,
     youtube,

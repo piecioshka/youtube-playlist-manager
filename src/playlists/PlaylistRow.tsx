@@ -10,15 +10,14 @@ import { useI18n } from '../i18n/LocaleProvider';
 import { routeToHash } from '../routing/route';
 import type { Playlist } from '../youtube/types';
 import { formatDate } from './format';
-
-export const MAX_TITLE_LENGTH = 150;
+import { titleError } from './playlistTitle';
 
 type Mode = 'view' | 'edit' | 'confirmDelete';
 type FocusTarget = 'input' | 'rename' | 'delete' | 'cancelDelete';
 
 type PlaylistRowProps = {
   playlist: Playlist;
-  onRename: (playlist: Playlist, newTitle: string) => Promise<void>;
+  onRename: (playlist: Playlist, newTitle: string) => Promise<unknown>;
   onDelete: (playlist: Playlist) => Promise<void>;
 };
 
@@ -74,7 +73,7 @@ export function PlaylistRow({
     }
   }
 
-  async function runPending(action: () => Promise<void>): Promise<boolean> {
+  async function runPending(action: () => Promise<unknown>): Promise<boolean> {
     if (pendingRef.current) {
       return false;
     }
@@ -99,12 +98,9 @@ export function PlaylistRow({
       return;
     }
     const title = draft.trim();
-    if (title === '') {
-      setError(t.titleEmpty);
-      return;
-    }
-    if ([...title].length > MAX_TITLE_LENGTH) {
-      setError(t.titleTooLong(MAX_TITLE_LENGTH));
+    const invalid = titleError(title, t);
+    if (invalid !== null) {
+      setError(invalid);
       return;
     }
     if (title === playlist.title.trim()) {

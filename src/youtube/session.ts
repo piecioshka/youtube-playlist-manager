@@ -2,7 +2,6 @@ import {
   addPlaylistItem,
   deletePlaylist,
   getMyChannel,
-  getPlaylist,
   listMyPlaylists,
   listPlaylistVideos,
   movePlaylistItem,
@@ -21,7 +20,6 @@ import {
 // Zalogowana sesja YouTube: zna token i sama zgłasza jego wygaśnięcie
 export type YouTubeSession = {
   listMyPlaylists: () => Promise<Playlist[]>;
-  getPlaylist: (playlistId: string) => Promise<Playlist | null>;
   updatePlaylist: (
     playlist: Playlist,
     changes: PlaylistChanges,
@@ -69,7 +67,6 @@ export function createYouTubeSession(
 
   return {
     listMyPlaylists: () => guard(listMyPlaylists(token)),
-    getPlaylist: (playlistId) => guard(getPlaylist(token, playlistId)),
     updatePlaylist: (playlist, changes) =>
       guard(updatePlaylist(token, playlist, changes)),
     deletePlaylist: (playlistId) => guard(deletePlaylist(token, playlistId)),

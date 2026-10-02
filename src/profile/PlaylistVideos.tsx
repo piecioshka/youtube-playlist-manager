@@ -35,7 +35,6 @@ type Drag = {
 type PlaylistVideosProps = {
   playlist: Playlist;
   videoIndex: ProfileVideoIndex;
-  onUpdated: (playlist: Playlist) => void;
   // Liczba wszystkich elementów (także niedostępnych) po wczytaniu i po każdej zmianie
   onCountChange: (count: number) => void;
 };
@@ -48,7 +47,6 @@ function availableOnly(videos: PlaylistVideo[]): PlaylistVideo[] {
 export function PlaylistVideos({
   playlist,
   videoIndex,
-  onUpdated,
   onCountChange,
 }: PlaylistVideosProps) {
   const { t } = useI18n();
@@ -213,7 +211,6 @@ export function PlaylistVideos({
       finish();
     }
     commit(removeVideo(videos, video.itemId));
-    onUpdated({ ...playlist, itemCount: Math.max(0, playlist.itemCount - 1) });
     headingRef.current?.focus();
     return true;
   }
@@ -225,7 +222,6 @@ export function PlaylistVideos({
     try {
       const added = await youtube.addPlaylistItem(playlistId, videoId);
       commit([...videos, added]);
-      onUpdated({ ...playlist, itemCount: playlist.itemCount + 1 });
     } catch (error) {
       // 404 przy dodawaniu to zwykle zły ID filmu; komunikat o playliście tylko przy playlistNotFound
       const missingVideo =
@@ -263,10 +259,6 @@ export function PlaylistVideos({
         removed += 1;
         current = removeVideo(current, video.itemId);
         commit(current);
-        onUpdated({
-          ...playlist,
-          itemCount: Math.max(0, playlist.itemCount - removed),
-        });
         setProgress({ done: removed, total: targets.length });
       }
       headingRef.current?.focus();

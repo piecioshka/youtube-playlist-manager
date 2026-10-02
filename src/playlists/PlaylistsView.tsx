@@ -7,13 +7,13 @@ import { normalizeText } from '../search/normalize';
 import { SearchField } from '../search/SearchField';
 import { searchPlaylists, type SearchResult } from '../search/searchPlaylists';
 import type { VideoIndex } from '../search/useVideoIndex';
-import { errorMessage } from '../youtube/errorMessage';
 import {
   countByVisibility,
   filterByVisibility,
   type VisibilityFilter as Filter,
 } from './filterPlaylists';
 import { PlaylistRow } from './PlaylistRow';
+import { PlaylistsLoadError } from './PlaylistsLoadError';
 import { PlaylistVideosRow } from './PlaylistVideosRow';
 import {
   nextSort,
@@ -22,7 +22,7 @@ import {
   type SortState,
 } from './sortPlaylists';
 import { readSort, writeSort } from './sortPreference';
-import { isApiError, type Notice, type PlaylistsState } from './usePlaylists';
+import { type Notice, type PlaylistsState } from './usePlaylists';
 import { VisibilityFilter } from './VisibilityFilter';
 import {
   readVisibilityFilter,
@@ -57,11 +57,6 @@ function indexStatus(index: VideoIndex, t: Messages): string {
     return t.indexFailed(index.failed);
   }
   return '';
-}
-
-function loadErrorMessage(error: unknown, t: Messages): string {
-  // 404 przy wczytywaniu listy znaczy brak kanału, nie brak playlisty
-  return isApiError(error, 'notFound') ? t.noChannel : errorMessage(error, t);
 }
 
 function noticeText(notice: Notice, t: Messages): string {
@@ -172,14 +167,7 @@ export function PlaylistsView({ list, index, channel }: PlaylistsViewProps) {
           <p className="playlists__state">{t.loadingPlaylists}</p>
         )}
         {loadState.status === 'error' && (
-          <div className="playlists__state notice notice--error" role="alert">
-            <p className="playlists__error-text">
-              {loadErrorMessage(loadState.error, t)}
-            </p>
-            <button type="button" className="button" onClick={list.retry}>
-              {t.retry}
-            </button>
-          </div>
+          <PlaylistsLoadError error={loadState.error} onRetry={list.retry} />
         )}
         {loadState.status === 'ready' && playlists.length === 0 && (
           <p className="playlists__state">{t.noPlaylists}</p>
@@ -252,8 +240,10 @@ export function PlaylistsView({ list, index, channel }: PlaylistsViewProps) {
                 <Fragment key={playlist.id}>
                   <PlaylistRow
                     playlist={playlist}
-                    onRename={list.handleRename}
-                    onDelete={list.handleDelete}
+                    onRename={(target, title) =>
+                      list.updatePlaylist(target, { title })
+                    }
+                    onDelete={list.deletePlaylist}
                   />
                   {matchingVideos.length > 0 && (
                     <PlaylistVideosRow

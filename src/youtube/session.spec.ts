@@ -5,7 +5,6 @@ import {
   addPlaylistItem,
   deletePlaylist,
   getMyChannel,
-  getPlaylist,
   listMyPlaylists,
   listPlaylistVideos,
   movePlaylistItem,
@@ -19,7 +18,6 @@ vi.mock('./api', () => ({
   addPlaylistItem: vi.fn(),
   deletePlaylist: vi.fn(),
   getMyChannel: vi.fn(),
-  getPlaylist: vi.fn(),
   listMyPlaylists: vi.fn(),
   listPlaylistVideos: vi.fn(),
   movePlaylistItem: vi.fn(),
@@ -38,7 +36,6 @@ beforeEach(() => {
 describe('createYouTubeSession', () => {
   it('passes the token to every API call', async () => {
     vi.mocked(listMyPlaylists).mockResolvedValue([playlist]);
-    vi.mocked(getPlaylist).mockResolvedValue(playlist);
     vi.mocked(updatePlaylist).mockResolvedValue(playlist);
     vi.mocked(deletePlaylist).mockResolvedValue(undefined);
     vi.mocked(listPlaylistVideos).mockResolvedValue([video]);
@@ -49,7 +46,6 @@ describe('createYouTubeSession', () => {
     const session = createYouTubeSession('tok', vi.fn());
 
     expect(await session.listMyPlaylists()).toEqual([playlist]);
-    await session.getPlaylist('PL1');
     await session.updatePlaylist(playlist, { title: 'Rosół' });
     await session.deletePlaylist('PL1');
     await session.listPlaylistVideos('PL1', { includeUnavailable: true });
@@ -59,7 +55,6 @@ describe('createYouTubeSession', () => {
     await session.getMyChannel();
 
     expect(listMyPlaylists).toHaveBeenCalledWith('tok');
-    expect(getPlaylist).toHaveBeenCalledWith('tok', 'PL1');
     expect(updatePlaylist).toHaveBeenCalledWith('tok', playlist, {
       title: 'Rosół',
     });

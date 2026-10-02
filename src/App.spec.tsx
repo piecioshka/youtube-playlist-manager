@@ -11,6 +11,7 @@ import {
   getMyChannel,
   listMyPlaylists,
   listPlaylistVideos,
+  updatePlaylist,
 } from './youtube/api';
 import { ApiError } from './youtube/types';
 
@@ -23,7 +24,6 @@ vi.mock('./youtube/api', () => ({
   getMyChannel: vi.fn(),
   listMyPlaylists: vi.fn(),
   listPlaylistVideos: vi.fn(),
-  getPlaylist: vi.fn(),
   updatePlaylist: vi.fn(),
   deletePlaylist: vi.fn(),
   removePlaylistItem: vi.fn(),
@@ -208,6 +208,42 @@ describe('App', () => {
       await screen.findByRole('table', { name: 'Twoje playlisty (2)' }),
     ).toBeInTheDocument();
     expect(listMyPlaylists).toHaveBeenCalledTimes(1);
+  });
+
+  it('explains a profile address of a playlist that is not on the list', async () => {
+    vi.mocked(useGoogleAuth).mockReturnValue(
+      auth({ status: 'signedIn', token: 'tok-1' }),
+    );
+    window.location.hash = '#/playlists/unknown';
+    renderWithI18n(<App />);
+
+    expect(
+      await screen.findByText(/^Nie znaleziono playlisty\./),
+    ).toBeInTheDocument();
+  });
+
+  it('returns to the list with a notice when the saved playlist is gone', async () => {
+    vi.mocked(useGoogleAuth).mockReturnValue(
+      auth({ status: 'signedIn', token: 'tok-1' }),
+    );
+    vi.mocked(updatePlaylist).mockRejectedValue(
+      new ApiError('notFound', 'gone', 404),
+    );
+    window.location.hash = '#/playlists/a';
+    const user = userEvent.setup();
+    renderWithI18n(<App />);
+    await screen.findByRole('heading', { level: 2, name: 'Zupa' });
+
+    await user.type(screen.getByRole('textbox', { name: 'Opis' }), '!');
+    await user.click(screen.getByRole('button', { name: 'Zapisz' }));
+
+    expect(
+      await screen.findByRole('table', { name: 'Twoje playlisty (1)' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Tej playlisty już nie ma.')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'Zupa' }),
+    ).not.toBeInTheDocument();
   });
 
   it('drops the list notice once another playlist profile is opened', async () => {

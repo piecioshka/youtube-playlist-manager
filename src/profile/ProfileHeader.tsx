@@ -6,11 +6,9 @@ import type { Playlist } from '../youtube/types';
 
 type ProfileHeaderProps = {
   playlist: Playlist;
-  // Po wczytaniu filmów ich liczba, wcześniej itemCount z listy playlist
-  videoCount: number;
 };
 
-export function ProfileHeader({ playlist, videoCount }: ProfileHeaderProps) {
+export function ProfileHeader({ playlist }: ProfileHeaderProps) {
   const { t } = useI18n();
   const headingRef = useRef<HTMLHeadingElement>(null);
 
@@ -49,7 +47,7 @@ export function ProfileHeader({ playlist, videoCount }: ProfileHeaderProps) {
           {playlist.title}
         </h2>
         <p className="profile__meta">
-          {t.videoCount(videoCount)} ·{' '}
+          {t.videoCount(playlist.itemCount)} ·{' '}
           {playlist.privacyStatus === 'private' && (
             <>
               <span aria-hidden="true">🔒</span>{' '}

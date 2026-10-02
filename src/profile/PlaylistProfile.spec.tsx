@@ -3,7 +3,8 @@ import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Locale } from '../i18n/messages';
-import type { LoadState } from '../playlists/usePlaylists';
+import type { PlaylistChanges } from '../youtube/api';
+import { PlaylistGoneError } from '../playlists/usePlaylists';
 import type { Route } from '../routing/route';
 import { makeFakeYouTube, type FakeYouTube } from '../test/fakeYouTube';
 import { makePlaylist } from '../test/playlistFactory';
@@ -49,35 +50,38 @@ const graphs = makeVideo({
 const videos = [quicksort, bigO, graphs];
 
 type RenderOptions = {
-  playlist?: Playlist | undefined;
-  listStatus?: LoadState['status'];
+  playlist?: Playlist;
   locale?: Locale;
 };
 
 function renderProfile(options: RenderOptions = {}) {
-  // `playlist: undefined` znaczy brak playlisty na liście, więc nie domyślna wartość
-  const playlist = 'playlist' in options ? options.playlist : algo;
-  const { listStatus = 'ready', locale = 'pl' } = options;
+  const { playlist = algo, locale = 'pl' } = options;
   const props = {
-    onUpdated: vi.fn<(playlist: Playlist) => void>(),
-    onDeleted: vi.fn<(playlist: Playlist) => void>(),
+    onSave: vi.fn<
+      (playlist: Playlist, changes: PlaylistChanges) => Promise<Playlist>
+    >(async (target, changes) => ({ ...target, ...changes })),
+    onDelete: vi.fn<(playlist: Playlist) => Promise<void>>(async () => {}),
+    onCountChange: vi.fn<(playlistId: string, count: number) => void>(),
     onNavigate: vi.fn<(route: Route) => void>(),
     replaceVideos: vi.fn<(id: string, videos: PlaylistVideo[]) => void>(),
   };
-  // Jak w AuthenticatedApp: zmieniona playlista wraca do profilu jako nowy prop
+  // Jak w App: zmieniona playlista i poprawiona liczba filmów wracają do profilu jako nowy prop
   function Harness() {
     const [current, setCurrent] = useState(playlist);
     return (
       <PlaylistProfile
-        playlistId="PL-algo"
         playlist={current}
-        listStatus={listStatus}
         videoIndex={{ replaceVideos: props.replaceVideos }}
-        onUpdated={(updated) => {
-          props.onUpdated(updated);
-          setCurrent(updated);
+        onSave={async (target, changes) => {
+          const saved = await props.onSave(target, changes);
+          setCurrent(saved);
+          return saved;
         }}
-        onDeleted={props.onDeleted}
+        onDelete={props.onDelete}
+        onCountChange={(playlistId, count) => {
+          props.onCountChange(playlistId, count);
+          setCurrent((previous) => ({ ...previous, itemCount: count }));
+        }}
         onNavigate={props.onNavigate}
       />
     );
@@ -157,34 +161,6 @@ describe('PlaylistProfile', () => {
       ).toBeInTheDocument();
       await screen.findByRole('list', { name: /^Filmy/ });
     });
-
-    it('waits for the playlist list', () => {
-      renderProfile({ playlist: undefined, listStatus: 'loading' });
-      expect(screen.getByText('Wczytywanie...')).toBeInTheDocument();
-      expect(youtube.getPlaylist).not.toHaveBeenCalled();
-    });
-
-    it('fetches a playlist that is not in the list', async () => {
-      youtube.getPlaylist.mockResolvedValue(algo);
-      renderProfile({ playlist: undefined });
-
-      expect(
-        await screen.findByRole('heading', { level: 2, name: 'Algorytmy' }),
-      ).toBeInTheDocument();
-      expect(youtube.getPlaylist).toHaveBeenCalledWith('PL-algo');
-      await screen.findByRole('list', { name: /^Filmy/ });
-    });
-
-    it('explains a playlist that does not exist', async () => {
-      youtube.getPlaylist.mockResolvedValue(null);
-      renderProfile({ playlist: undefined });
-
-      const state = await screen.findByText(/^Nie znaleziono playlisty\./);
-      expect(
-        within(state).getByRole('link', { name: 'Wszystkie playlisty' }),
-      ).toHaveAttribute('href', '#/');
-      expect(youtube.listPlaylistVideos).not.toHaveBeenCalled();
-    });
   });
 
   describe('edit form', () => {
@@ -205,21 +181,20 @@ describe('PlaylistProfile', () => {
 
     it('saves only the changed title and announces it', async () => {
       const renamed = { ...algo, title: 'Algorytmy i struktury' };
-      youtube.updatePlaylist.mockResolvedValue(renamed);
-      const { user, onUpdated } = await renderLoaded();
+      const { user, onSave } = await renderLoaded();
+      onSave.mockResolvedValue(renamed);
 
       const title = screen.getByRole('textbox', { name: 'Nazwa' });
       await user.clear(title);
       await user.type(title, '  Algorytmy i struktury  ');
       await user.click(screen.getByRole('button', { name: 'Zapisz' }));
 
-      expect(youtube.updatePlaylist).toHaveBeenCalledWith(algo, {
+      expect(onSave).toHaveBeenCalledWith(algo, {
         title: 'Algorytmy i struktury',
       });
       expect(await within(form()).findByRole('status')).toHaveTextContent(
         'Zapisano zmiany.',
       );
-      expect(onUpdated).toHaveBeenCalledWith(renamed);
       expect(title).toHaveValue('Algorytmy i struktury');
     });
 
@@ -229,8 +204,8 @@ describe('PlaylistProfile', () => {
         description: 'Nowy opis',
         privacyStatus: 'private',
       };
-      youtube.updatePlaylist.mockResolvedValue(changed);
-      const { user, onUpdated } = await renderLoaded();
+      const { user, onSave } = await renderLoaded();
+      onSave.mockResolvedValue(changed);
 
       const description = screen.getByRole('textbox', { name: 'Opis' });
       await user.clear(description);
@@ -241,22 +216,24 @@ describe('PlaylistProfile', () => {
       );
       await user.click(screen.getByRole('button', { name: 'Zapisz' }));
 
-      expect(youtube.updatePlaylist).toHaveBeenCalledWith(algo, {
+      expect(onSave).toHaveBeenCalledWith(algo, {
         description: 'Nowy opis',
         privacyStatus: 'private',
       });
-      await waitFor(() => expect(onUpdated).toHaveBeenCalledWith(changed));
+      expect(screen.getByRole('combobox', { name: 'Widoczność' })).toHaveValue(
+        'private',
+      );
     });
 
     it('shows Saving... and blocks the form while the request runs', async () => {
       let finish: (playlist: Playlist) => void = () => {};
-      youtube.updatePlaylist.mockImplementation(
+      const { user, onSave } = await renderLoaded();
+      onSave.mockImplementation(
         () =>
           new Promise((resolve) => {
             finish = resolve;
           }),
       );
-      const { user } = await renderLoaded();
 
       await user.type(screen.getByRole('textbox', { name: 'Opis' }), '!');
       await user.click(screen.getByRole('button', { name: 'Zapisz' }));
@@ -283,7 +260,7 @@ describe('PlaylistProfile', () => {
     });
 
     it('rejects an empty title', async () => {
-      const { user } = await renderLoaded();
+      const { user, onSave } = await renderLoaded();
       const title = screen.getByRole('textbox', { name: 'Nazwa' });
 
       await user.clear(title);
@@ -294,11 +271,11 @@ describe('PlaylistProfile', () => {
         'Nazwa nie może być pusta.',
       );
       expect(title).toHaveAttribute('aria-invalid', 'true');
-      expect(youtube.updatePlaylist).not.toHaveBeenCalled();
+      expect(onSave).not.toHaveBeenCalled();
     });
 
     it('rejects a title longer than 150 characters', async () => {
-      const { user } = await renderLoaded();
+      const { user, onSave } = await renderLoaded();
       const title = screen.getByRole('textbox', { name: 'Nazwa' });
 
       await user.clear(title);
@@ -309,7 +286,7 @@ describe('PlaylistProfile', () => {
       expect(within(form()).getByRole('alert')).toHaveTextContent(
         'Nazwa może mieć najwyżej 150 znaków.',
       );
-      expect(youtube.updatePlaylist).not.toHaveBeenCalled();
+      expect(onSave).not.toHaveBeenCalled();
     });
 
     it('limits the description to 5000 characters', async () => {
@@ -321,10 +298,10 @@ describe('PlaylistProfile', () => {
     });
 
     it('shows an API error under the form', async () => {
-      youtube.updatePlaylist.mockRejectedValue(
-        new ApiError('quotaExceeded', 'quota', 403),
+      const { user, onSave } = await renderLoaded();
+      onSave.mockRejectedValue(
+        new Error('Wyczerpano dzienny limit YouTube API. Spróbuj jutro.'),
       );
-      const { user } = await renderLoaded();
 
       await user.type(screen.getByRole('textbox', { name: 'Opis' }), '!');
       await user.click(screen.getByRole('button', { name: 'Zapisz' }));
@@ -333,12 +310,25 @@ describe('PlaylistProfile', () => {
         'Wyczerpano dzienny limit YouTube API. Spróbuj jutro.',
       );
     });
+
+    it('leaves the profile when the saved playlist is gone', async () => {
+      const { user, onSave, onNavigate } = await renderLoaded();
+      onSave.mockRejectedValue(
+        new PlaylistGoneError('Tej playlisty już nie ma.'),
+      );
+
+      await user.type(screen.getByRole('textbox', { name: 'Opis' }), '!');
+      await user.click(screen.getByRole('button', { name: 'Zapisz' }));
+
+      await waitFor(() =>
+        expect(onNavigate).toHaveBeenCalledWith({ name: 'list' }),
+      );
+    });
   });
 
   describe('delete', () => {
     it('deletes after confirmation and goes back to the list', async () => {
-      youtube.deletePlaylist.mockResolvedValue(undefined);
-      const { user, onDeleted, onNavigate } = await renderLoaded();
+      const { user, onDelete, onNavigate } = await renderLoaded();
 
       await user.click(screen.getByRole('button', { name: 'Usuń playlistę' }));
       const group = screen.getByRole('group', {
@@ -349,13 +339,14 @@ describe('PlaylistProfile', () => {
         within(group).getByRole('button', { name: 'Usuń na stałe' }),
       );
 
-      expect(youtube.deletePlaylist).toHaveBeenCalledWith('PL-algo');
-      await waitFor(() => expect(onDeleted).toHaveBeenCalledWith(algo));
-      expect(onNavigate).toHaveBeenCalledWith({ name: 'list' });
+      expect(onDelete).toHaveBeenCalledWith(algo);
+      await waitFor(() =>
+        expect(onNavigate).toHaveBeenCalledWith({ name: 'list' }),
+      );
     });
 
     it('cancels the confirmation', async () => {
-      const { user } = await renderLoaded();
+      const { user, onDelete } = await renderLoaded();
 
       await user.click(screen.getByRole('button', { name: 'Usuń playlistę' }));
       await user.click(screen.getByRole('button', { name: 'Anuluj' }));
@@ -363,14 +354,14 @@ describe('PlaylistProfile', () => {
       expect(
         screen.getByRole('button', { name: 'Usuń playlistę' }),
       ).toHaveFocus();
-      expect(youtube.deletePlaylist).not.toHaveBeenCalled();
+      expect(onDelete).not.toHaveBeenCalled();
     });
 
     it('shows a delete error and stays on the profile', async () => {
-      youtube.deletePlaylist.mockRejectedValue(
-        new ApiError('forbidden', 'no', 403),
+      const { user, onDelete, onNavigate } = await renderLoaded();
+      onDelete.mockRejectedValue(
+        new Error('YouTube odmówił dostępu do tej operacji.'),
       );
-      const { user, onNavigate } = await renderLoaded();
 
       await user.click(screen.getByRole('button', { name: 'Usuń playlistę' }));
       await user.click(screen.getByRole('button', { name: 'Usuń na stałe' }));
@@ -379,6 +370,21 @@ describe('PlaylistProfile', () => {
         'YouTube odmówił dostępu do tej operacji.',
       );
       expect(onNavigate).not.toHaveBeenCalled();
+    });
+
+    it('leaves the profile when the deleted playlist is already gone', async () => {
+      const { user, onDelete, onNavigate } = await renderLoaded();
+      onDelete.mockRejectedValue(
+        new PlaylistGoneError('Tej playlisty już nie ma.'),
+      );
+
+      await user.click(screen.getByRole('button', { name: 'Usuń playlistę' }));
+      await user.click(screen.getByRole('button', { name: 'Usuń na stałe' }));
+
+      await waitFor(() =>
+        expect(onNavigate).toHaveBeenCalledWith({ name: 'list' }),
+      );
+      expect(onNavigate).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -538,7 +544,7 @@ describe('PlaylistProfile', () => {
 
     it('removes a video after confirmation', async () => {
       youtube.removePlaylistItem.mockResolvedValue(undefined);
-      const { user, onUpdated, replaceVideos } = await renderLoaded();
+      const { user, onCountChange, replaceVideos } = await renderLoaded();
 
       await user.click(
         within(item('Big O')).getByRole('button', {
@@ -556,7 +562,7 @@ describe('PlaylistProfile', () => {
         expect(videoTitles()).toEqual(['Quicksort', 'Grafy']),
       );
       expect(item('Grafy')).toHaveTextContent(/^2/);
-      expect(onUpdated).toHaveBeenCalledWith({ ...algo, itemCount: 2 });
+      expect(onCountChange).toHaveBeenLastCalledWith('PL-algo', 2);
       expect(replaceVideos).toHaveBeenCalledWith('PL-algo', [
         quicksort,
         { ...graphs, position: 1 },
@@ -590,7 +596,7 @@ describe('PlaylistProfile', () => {
       youtube.removePlaylistItem.mockRejectedValue(
         new ApiError('forbidden', 'no', 403),
       );
-      const { user, onUpdated } = await renderLoaded();
+      const { user, onCountChange } = await renderLoaded();
 
       await user.click(
         within(item('Big O')).getByRole('button', {
@@ -605,7 +611,7 @@ describe('PlaylistProfile', () => {
         'YouTube odmówił dostępu do tej operacji.',
       );
       expect(videoTitles()).toEqual(['Quicksort', 'Big O', 'Grafy']);
-      expect(onUpdated).not.toHaveBeenCalled();
+      expect(onCountChange).toHaveBeenLastCalledWith('PL-algo', 3);
     });
   });
 
@@ -734,7 +740,7 @@ describe('PlaylistProfile', () => {
             calls.push({ itemId, resolve: () => resolve(undefined) });
           }),
       );
-      const { user, onUpdated, replaceVideos } = await renderLoaded();
+      const { user, onCountChange, replaceVideos } = await renderLoaded();
 
       await user.click(
         screen.getByRole('button', { name: 'Usuń niedostępne (2)' }),
@@ -762,7 +768,7 @@ describe('PlaylistProfile', () => {
       expect(
         screen.queryByRole('button', { name: /^Usuń niedostępne/ }),
       ).not.toBeInTheDocument();
-      expect(onUpdated).toHaveBeenLastCalledWith({ ...algo, itemCount: 1 });
+      expect(onCountChange).toHaveBeenLastCalledWith('PL-algo', 2);
       expect(replaceVideos).toHaveBeenLastCalledWith('PL-algo', [
         quicksort,
         { ...bigO, position: 1 },
@@ -858,7 +864,7 @@ describe('PlaylistProfile', () => {
       ['a bare id', 'dQw4w9WgXcQ'],
     ])('adds a video by %s', async (_label, input) => {
       youtube.addPlaylistItem.mockResolvedValue(added);
-      const { user, onUpdated, replaceVideos } = await renderLoaded();
+      const { user, onCountChange, replaceVideos } = await renderLoaded();
 
       const field = screen.getByRole('textbox', { name: 'Dodaj film' });
       expect(field).toHaveAttribute(
@@ -882,7 +888,7 @@ describe('PlaylistProfile', () => {
       );
       expect(field).toHaveValue('');
       expect(screen.getByText('Dodano film.')).toBeInTheDocument();
-      expect(onUpdated).toHaveBeenCalledWith({ ...algo, itemCount: 4 });
+      expect(onCountChange).toHaveBeenLastCalledWith('PL-algo', 4);
       expect(replaceVideos).toHaveBeenCalledWith('PL-algo', [...videos, added]);
     });
 
@@ -909,7 +915,7 @@ describe('PlaylistProfile', () => {
       youtube.addPlaylistItem.mockRejectedValue(
         new ApiError('notFound', 'Not found', 404, reason),
       );
-      const { user, onUpdated } = await renderLoaded();
+      const { user, onCountChange } = await renderLoaded();
 
       await user.type(
         screen.getByRole('textbox', { name: 'Dodaj film' }),
@@ -919,7 +925,7 @@ describe('PlaylistProfile', () => {
 
       expect(await screen.findByRole('alert')).toHaveTextContent(message);
       expect(videoTitles()).toEqual(['Quicksort', 'Big O', 'Grafy']);
-      expect(onUpdated).not.toHaveBeenCalled();
+      expect(onCountChange).toHaveBeenLastCalledWith('PL-algo', 3);
     });
 
     it('explains a missing video in English', async () => {

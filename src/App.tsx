@@ -9,6 +9,7 @@ import { useI18n } from './i18n/LocaleProvider';
 import { PlaylistsView } from './playlists/PlaylistsView';
 import { usePlaylists } from './playlists/usePlaylists';
 import { PlaylistProfile } from './profile/PlaylistProfile';
+import { ProfileUnavailable } from './profile/ProfileUnavailable';
 import { useRoute } from './routing/useRoute';
 import { useVideoIndex } from './search/useVideoIndex';
 import { ThemeToggle } from './theme/ThemeToggle';
@@ -102,15 +103,20 @@ function SignedInApp({ channel }: SignedInAppProps) {
   }
 
   if (route.name === 'playlist') {
+    const playlist = list.playlists.find((item) => item.id === route.id);
+    if (playlist === undefined) {
+      return (
+        <ProfileUnavailable loadState={list.loadState} onRetry={list.retry} />
+      );
+    }
     return (
       <PlaylistProfile
         key={route.id}
-        playlistId={route.id}
-        playlist={list.playlists.find((item) => item.id === route.id)}
-        listStatus={list.loadState.status}
+        playlist={playlist}
         videoIndex={index}
-        onUpdated={list.replacePlaylist}
-        onDeleted={list.markDeleted}
+        onSave={list.updatePlaylist}
+        onDelete={list.deletePlaylist}
+        onCountChange={list.setItemCount}
         onNavigate={navigate}
       />
     );

@@ -5,7 +5,6 @@ import {
   addPlaylistItem,
   deletePlaylist,
   getMyChannel,
-  getPlaylist,
   listMyPlaylists,
   listPlaylistVideos,
   movePlaylistItem,
@@ -550,45 +549,6 @@ describe('updatePlaylist', () => {
 
     expect(error).toBeInstanceOf(ApiError);
     expect(error).toMatchObject({ kind: 'notFound', status: 404 });
-  });
-});
-
-describe('getPlaylist', () => {
-  it('fetches one playlist by id', async () => {
-    fetchMock.mockResolvedValueOnce(jsonResponse({ items: [resource('Q')] }));
-
-    const playlist = await getPlaylist('tok-g', 'Q');
-
-    const url = calledUrl(0);
-    expect(`${url.origin}${url.pathname}`).toBe(
-      'https://www.googleapis.com/youtube/v3/playlists',
-    );
-    expect(url.searchParams.get('part')).toBe('snippet,contentDetails,status');
-    expect(url.searchParams.get('id')).toBe('Q');
-    expect(url.searchParams.has('mine')).toBe(false);
-    expect(calledInit(0)?.method).toBe('GET');
-    expect(new Headers(calledInit(0)?.headers).get('Authorization')).toBe(
-      'Bearer tok-g',
-    );
-    expect(playlist).toMatchObject({
-      id: 'Q',
-      title: 'Playlist Q',
-      itemCount: 3,
-      privacyStatus: 'unlisted',
-    });
-  });
-
-  it('returns null when YouTube has no such playlist', async () => {
-    fetchMock.mockResolvedValueOnce(jsonResponse({ items: [] }));
-    expect(await getPlaylist('t', 'missing')).toBeNull();
-  });
-
-  it('rejects with notFound on 404', async () => {
-    fetchMock.mockResolvedValueOnce(notFoundResponse());
-    await expect(getPlaylist('t', 'Q')).rejects.toMatchObject({
-      kind: 'notFound',
-      status: 404,
-    });
   });
 });
 

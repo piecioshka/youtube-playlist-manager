@@ -1,6 +1,6 @@
 import { useId, useRef, useState, type FormEvent } from 'react';
 import { useI18n } from '../i18n/LocaleProvider';
-import { MAX_TITLE_LENGTH } from '../playlists/PlaylistRow';
+import { titleError } from '../playlists/playlistTitle';
 import type { PlaylistChanges } from '../youtube/api';
 import type { Playlist, PrivacyStatus } from '../youtube/types';
 
@@ -85,15 +85,9 @@ export function PlaylistForm({ playlist, onSave }: PlaylistFormProps) {
     if (pendingRef.current) {
       return;
     }
-    const title = draft.title.trim();
-    const titleError =
-      title === ''
-        ? t.titleEmpty
-        : [...title].length > MAX_TITLE_LENGTH
-          ? t.titleTooLong(MAX_TITLE_LENGTH)
-          : null;
-    if (titleError !== null) {
-      setError(titleError);
+    const invalid = titleError(draft.title.trim(), t);
+    if (invalid !== null) {
+      setError(invalid);
       setTitleInvalid(true);
       titleRef.current?.focus();
       return;
