@@ -141,7 +141,7 @@ export function PlaylistVideos({
         {load.status === 'ready' && videos.length > 0 && !playlistOrder && (
           <button
             type="button"
-            className="button button--small"
+            className="button button--small button--warning"
             onClick={clearSorting}
           >
             {t.clearSorting}

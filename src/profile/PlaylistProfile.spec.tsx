@@ -688,6 +688,8 @@ describe('PlaylistProfile', () => {
             .closest('.profile__videos-header'),
         );
         expect(clear.closest('.profile__videos-header')).not.toBeNull();
+        // Żółty: to chwilowy stan widoku, a nie zwykła akcja
+        expect(clear).toHaveClass('button--warning');
         await user.click(clear);
 
         expect(videoTitles()).toEqual(['Quicksort', 'Big O', 'Grafy']);
