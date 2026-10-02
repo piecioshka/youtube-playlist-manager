@@ -1019,8 +1019,9 @@ a.external-link:focus-visible .external-link__text {
   text-align: right;
 }
 
+/* Tylko przycisk „Usuń” (w obu językach) z odstępami komórki; resztę miejsca bierze tytuł */
 .video-table__column--actions {
-  width: 132px;
+  width: 84px;
 }
 
 .video-item:hover {
@@ -1085,6 +1086,11 @@ a.external-link:focus-visible .external-link__text {
 
 .video-item--dragging {
   opacity: 0.5;
+}
+
+/* Film, na którym trwa operacja, jest przygaszony do odpowiedzi API */
+.video-item--pending {
+  opacity: 0.6;
 }
 
 /* Kreska nie przesuwa układu, bo jest cieniem we wnętrzu komórek */

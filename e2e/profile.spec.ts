@@ -661,6 +661,25 @@ test('sorts the videos with a select on a phone', async ({ page }) => {
   expect(await horizontalScroll(page)).toBe(0);
 });
 
+test('keeps the actions column only as wide as its button', async ({
+  page,
+}) => {
+  await openAlgorithms(page);
+  const row = videoList(page).locator('tbody tr').first();
+  const cell = await row.locator('.video-item__cell--actions').boundingBox();
+  const button = await row
+    .getByRole('button', { name: /^Usuń „/ })
+    .boundingBox();
+  if (cell === null || button === null) {
+    throw new Error('The actions cell has no box');
+  }
+
+  // Sam przycisk plus odstępy komórki: bez zapasu, który zabierałby miejsce tytułowi
+  expect(cell.width).toBeLessThanOrEqual(button.width + 40);
+  expect(button.x).toBeGreaterThanOrEqual(cell.x);
+  expect(button.x + button.width).toBeLessThanOrEqual(cell.x + cell.width);
+});
+
 test('gives the title the widest column of the video table', async ({
   page,
 }) => {

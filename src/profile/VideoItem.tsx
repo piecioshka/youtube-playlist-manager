@@ -142,6 +142,7 @@ export function VideoItem({
         !video.available && 'video-item--unavailable',
         dragging && 'video-item--dragging',
         confirming && 'video-item--confirming',
+        pending && 'video-item--pending',
         dropIndicator !== null && `video-item--drop-${dropIndicator}`,
       )}
       role="row"
@@ -283,9 +284,8 @@ export function VideoItem({
             role="cell"
           >
             <div className="video-item__actions">
-              {pending && (
-                <span className="video-item__working">{t.working}</span>
-              )}
+              {/* Wąska kolumna mieści tylko przycisk; trwającą operację widać po przygaszonym wierszu */}
+              {pending && <span className="visually-hidden">{t.working}</span>}
               <button
                 ref={removeRef}
                 type="button"
