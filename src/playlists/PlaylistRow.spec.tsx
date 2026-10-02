@@ -76,6 +76,17 @@ describe('PlaylistRow', () => {
     },
   );
 
+  it('gives Rename its own color, different from the red Delete next to it', () => {
+    renderRow();
+
+    expect(screen.getByRole('button', { name: /^Zmień nazwę/ })).toHaveClass(
+      'button--rename',
+    );
+    expect(screen.getByRole('button', { name: /^Usuń playlistę/ })).toHaveClass(
+      'button--danger',
+    );
+  });
+
   it('leaves the private status in the default color, marked by its lock', () => {
     renderRow({ privacyStatus: 'private' });
 

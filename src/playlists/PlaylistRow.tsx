@@ -271,7 +271,7 @@ export function PlaylistRow({
             <button
               ref={renameButtonRef}
               type="button"
-              className="button button--small"
+              className="button button--small button--rename"
               onClick={startEdit}
               disabled={mode === 'edit'}
             >
