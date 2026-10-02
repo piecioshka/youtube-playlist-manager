@@ -11,10 +11,14 @@ export type Playlist = {
   thumbnailUrl: string | null;
 };
 
+// `itemId` to id elementu playlisty (playlistItem), potrzebny do usuwania i przesuwania
 export type PlaylistVideo = {
+  itemId: string;
   videoId: string;
   title: string;
   channelTitle: string;
+  position: number;
+  thumbnailUrl: string | null;
 };
 
 export type ApiErrorKind =

@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Locale } from '../i18n/messages';
 import { makePlaylist } from '../test/playlistFactory';
+import { makeVideo } from '../test/videoFactory';
 import { renderWithI18n } from '../test/renderWithI18n';
 import {
   deletePlaylist,
@@ -543,7 +544,7 @@ describe('PlaylistsView', () => {
       title: string,
       channelTitle = 'Kanał',
     ): PlaylistVideo {
-      return { videoId, title, channelTitle };
+      return makeVideo({ videoId, title, channelTitle });
     }
 
     const videosByPlaylist: Record<string, PlaylistVideo[]> = {

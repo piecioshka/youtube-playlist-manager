@@ -2,6 +2,16 @@ import { z } from 'zod';
 
 const thumbnailSchema = z.object({ url: z.string() });
 
+const thumbnailsSchema = z
+  .object({
+    default: thumbnailSchema.optional(),
+    medium: thumbnailSchema.optional(),
+    high: thumbnailSchema.optional(),
+  })
+  .optional();
+
+export type Thumbnails = z.infer<typeof thumbnailsSchema>;
+
 export const playlistResourceSchema = z.object({
   id: z.string(),
   snippet: z.object({
@@ -9,13 +19,7 @@ export const playlistResourceSchema = z.object({
     description: z.string().default(''),
     defaultLanguage: z.string().optional(),
     publishedAt: z.string(),
-    thumbnails: z
-      .object({
-        default: thumbnailSchema.optional(),
-        medium: thumbnailSchema.optional(),
-        high: thumbnailSchema.optional(),
-      })
-      .optional(),
+    thumbnails: thumbnailsSchema,
   }),
   contentDetails: z.object({ itemCount: z.number() }).optional(),
   status: z
@@ -31,18 +35,21 @@ export const playlistListResponseSchema = z.object({
 });
 
 // Usunięte i prywatne filmy wracają bez `videoOwnerChannelTitle`, czasem także bez `videoId`
+export const playlistItemResourceSchema = z.object({
+  id: z.string(),
+  snippet: z.object({
+    title: z.string(),
+    position: z.number(),
+    thumbnails: thumbnailsSchema,
+    videoOwnerChannelTitle: z.string().optional(),
+    resourceId: z.object({ videoId: z.string().optional() }),
+  }),
+});
+
+export type PlaylistItemResource = z.infer<typeof playlistItemResourceSchema>;
+
 export const playlistItemListResponseSchema = z.object({
-  items: z
-    .array(
-      z.object({
-        snippet: z.object({
-          title: z.string(),
-          videoOwnerChannelTitle: z.string().optional(),
-          resourceId: z.object({ videoId: z.string().optional() }),
-        }),
-      }),
-    )
-    .default([]),
+  items: z.array(playlistItemResourceSchema).default([]),
   nextPageToken: z.string().optional(),
 });
 

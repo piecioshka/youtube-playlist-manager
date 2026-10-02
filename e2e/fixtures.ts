@@ -131,6 +131,9 @@ const putBodySchema = z.object({
     description: z.string(),
     defaultLanguage: z.string().optional(),
   }),
+  status: z.object({
+    privacyStatus: z.enum(['public', 'unlisted', 'private']),
+  }),
 });
 
 function toResource(playlist: FakePlaylist) {
@@ -148,11 +151,14 @@ function toResource(playlist: FakePlaylist) {
   };
 }
 
-function toPlaylistItem(video: FakeVideo) {
+function toPlaylistItem(video: FakeVideo, position: number) {
   return {
     kind: 'youtube#playlistItem',
+    id: `item-${video.videoId}`,
     snippet: {
       title: video.title,
+      position,
+      thumbnails: {},
       videoOwnerChannelTitle: video.channelTitle,
       resourceId: { kind: 'youtube#video', videoId: video.videoId },
     },
@@ -268,6 +274,7 @@ export class FakeYouTube {
       }
       playlist.title = update.snippet.title;
       playlist.description = update.snippet.description;
+      playlist.privacyStatus = update.status.privacyStatus;
       await route.fulfill({
         headers: CORS_HEADERS,
         json: {
@@ -279,6 +286,7 @@ export class FakeYouTube {
             publishedAt: playlist.publishedAt,
             thumbnails: {},
           },
+          status: { privacyStatus: playlist.privacyStatus },
         },
       });
       return;

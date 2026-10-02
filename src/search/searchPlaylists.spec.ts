@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { makePlaylist } from '../test/playlistFactory';
+import { makeVideo } from '../test/videoFactory';
 import type { PlaylistVideo } from '../youtube/types';
 import { searchPlaylists } from './searchPlaylists';
 
@@ -8,7 +9,7 @@ const algo = makePlaylist({ id: 'a', title: 'Algorytmy' });
 const lodz = makePlaylist({ id: 'l', title: 'Wycieczka do Łodzi' });
 
 function video(videoId: string, title: string, channelTitle: string) {
-  return { videoId, title, channelTitle };
+  return makeVideo({ videoId, title, channelTitle });
 }
 
 const videos = new Map<string, PlaylistVideo[]>([

@@ -102,6 +102,7 @@ test('renames a playlist and keeps its description', async ({
       title: 'Algorytmy i struktury danych',
       description: 'Wykłady z algorytmiki',
     },
+    status: { privacyStatus: 'unlisted' },
   });
 });
 

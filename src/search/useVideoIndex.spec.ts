@@ -1,6 +1,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { makePlaylist } from '../test/playlistFactory';
+import { makeVideo } from '../test/videoFactory';
 import { listPlaylistVideos } from '../youtube/api';
 import { ApiError, type Playlist, type PlaylistVideo } from '../youtube/types';
 import { useVideoIndex } from './useVideoIndex';
@@ -46,11 +47,11 @@ function makePlaylists(count: number): Playlist[] {
   );
 }
 
-const video: PlaylistVideo = {
+const video: PlaylistVideo = makeVideo({
   videoId: 'v1',
   title: 'Lofi beats',
   channelTitle: 'Lofi Girl',
-};
+});
 
 function renderIndex(playlists: Playlist[]) {
   const onUnauthorized = vi.fn();

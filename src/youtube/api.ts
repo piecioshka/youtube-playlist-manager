@@ -2,22 +2,38 @@ import type { z } from 'zod';
 import {
   apiErrorResponseSchema,
   playlistItemListResponseSchema,
+  playlistItemResourceSchema,
   playlistListResponseSchema,
   playlistResourceSchema,
+  type PlaylistItemResource,
   type PlaylistResource,
+  type Thumbnails,
 } from './schemas';
-import { ApiError, type Playlist, type PlaylistVideo } from './types';
+import {
+  ApiError,
+  type Playlist,
+  type PlaylistVideo,
+  type PrivacyStatus,
+} from './types';
 
 const PLAYLISTS_URL = 'https://www.googleapis.com/youtube/v3/playlists';
 const PLAYLIST_ITEMS_URL =
   'https://www.googleapis.com/youtube/v3/playlistItems';
 const QUOTA_REASONS = ['quotaExceeded', 'dailyLimitExceeded'];
 
-type HttpMethod = 'GET' | 'PUT' | 'DELETE';
+type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE';
+
+function pickThumbnail(thumbnails: Thumbnails): string | null {
+  return (
+    thumbnails?.medium?.url ??
+    thumbnails?.high?.url ??
+    thumbnails?.default?.url ??
+    null
+  );
+}
 
 // `fallback` uzupełnia pola, których odpowiedź nie zawiera (PUT z part=snippet zwraca tylko snippet)
 function toPlaylist(resource: PlaylistResource, fallback?: Playlist): Playlist {
-  const thumbnails = resource.snippet.thumbnails;
   return {
     id: resource.id,
     title: resource.snippet.title,
@@ -29,11 +45,24 @@ function toPlaylist(resource: PlaylistResource, fallback?: Playlist): Playlist {
     privacyStatus:
       resource.status?.privacyStatus ?? fallback?.privacyStatus ?? 'private',
     thumbnailUrl:
-      thumbnails?.medium?.url ??
-      thumbnails?.high?.url ??
-      thumbnails?.default?.url ??
+      pickThumbnail(resource.snippet.thumbnails) ??
       fallback?.thumbnailUrl ??
       null,
+  };
+}
+
+function toVideo(
+  resource: PlaylistItemResource,
+  videoId: string,
+  channelTitle: string,
+): PlaylistVideo {
+  return {
+    itemId: resource.id,
+    videoId,
+    title: resource.snippet.title,
+    channelTitle,
+    position: resource.snippet.position,
+    thumbnailUrl: pickThumbnail(resource.snippet.thumbnails),
   };
 }
 
@@ -179,12 +208,12 @@ export async function listPlaylistVideos(
     (data) => {
       const page = parseResponse(playlistItemListResponseSchema, data);
       const videos: PlaylistVideo[] = [];
-      for (const { snippet } of page.items) {
-        const videoId = snippet.resourceId.videoId;
-        const channelTitle = snippet.videoOwnerChannelTitle;
+      for (const item of page.items) {
+        const videoId = item.snippet.resourceId.videoId;
+        const channelTitle = item.snippet.videoOwnerChannelTitle;
         // Bez kanału właściciela to film usunięty albo prywatny
         if (videoId !== undefined && channelTitle !== undefined) {
-          videos.push({ videoId, title: snippet.title, channelTitle });
+          videos.push(toVideo(item, videoId, channelTitle));
         }
       }
       return { items: videos, nextPageToken: page.nextPageToken };
@@ -192,23 +221,48 @@ export async function listPlaylistVideos(
   );
 }
 
-export async function renamePlaylist(
+export async function getPlaylist(
+  token: string,
+  playlistId: string,
+): Promise<Playlist | null> {
+  const url = new URL(PLAYLISTS_URL);
+  url.searchParams.set('part', 'snippet,contentDetails,status');
+  url.searchParams.set('id', playlistId);
+
+  const response = await request(token, url);
+  const [resource] = parseResponse(
+    playlistListResponseSchema,
+    await readJson(response),
+  ).items;
+  return resource === undefined ? null : toPlaylist(resource);
+}
+
+export type PlaylistChanges = {
+  title?: string;
+  description?: string;
+  privacyStatus?: PrivacyStatus;
+};
+
+export async function updatePlaylist(
   token: string,
   playlist: Playlist,
-  newTitle: string,
+  changes: PlaylistChanges,
 ): Promise<Playlist> {
   const url = new URL(PLAYLISTS_URL);
-  url.searchParams.set('part', 'snippet');
+  url.searchParams.set('part', 'snippet,status');
 
-  // PUT nadpisuje cały snippet: pominięte pole (opis, język) YouTube by wyczyścił
+  // PUT nadpisuje cały snippet i status: pominięte pole (opis, język, widoczność) YouTube by wyczyścił
   const response = await request(token, url, 'PUT', {
     id: playlist.id,
     snippet: {
-      title: newTitle,
-      description: playlist.description,
+      title: changes.title ?? playlist.title,
+      description: changes.description ?? playlist.description,
       ...(playlist.defaultLanguage !== null && {
         defaultLanguage: playlist.defaultLanguage,
       }),
+    },
+    status: {
+      privacyStatus: changes.privacyStatus ?? playlist.privacyStatus,
     },
   });
 
@@ -218,6 +272,14 @@ export async function renamePlaylist(
   );
 }
 
+export function renamePlaylist(
+  token: string,
+  playlist: Playlist,
+  newTitle: string,
+): Promise<Playlist> {
+  return updatePlaylist(token, playlist, { title: newTitle });
+}
+
 export async function deletePlaylist(
   token: string,
   playlistId: string,
@@ -225,4 +287,58 @@ export async function deletePlaylist(
   const url = new URL(PLAYLISTS_URL);
   url.searchParams.set('id', playlistId);
   await request(token, url, 'DELETE');
+}
+
+export async function removePlaylistItem(
+  token: string,
+  itemId: string,
+): Promise<void> {
+  const url = new URL(PLAYLIST_ITEMS_URL);
+  url.searchParams.set('id', itemId);
+  await request(token, url, 'DELETE');
+}
+
+// playlistItems.update bez `playlistId` i `resourceId` kończy się błędem 400, sama pozycja nie wystarcza
+export async function movePlaylistItem(
+  token: string,
+  playlistId: string,
+  video: PlaylistVideo,
+  newPosition: number,
+): Promise<void> {
+  const url = new URL(PLAYLIST_ITEMS_URL);
+  url.searchParams.set('part', 'snippet');
+  await request(token, url, 'PUT', {
+    id: video.itemId,
+    snippet: {
+      playlistId,
+      resourceId: { kind: 'youtube#video', videoId: video.videoId },
+      position: newPosition,
+    },
+  });
+}
+
+export async function addPlaylistItem(
+  token: string,
+  playlistId: string,
+  videoId: string,
+): Promise<PlaylistVideo> {
+  const url = new URL(PLAYLIST_ITEMS_URL);
+  url.searchParams.set('part', 'snippet');
+  const response = await request(token, url, 'POST', {
+    snippet: {
+      playlistId,
+      resourceId: { kind: 'youtube#video', videoId },
+    },
+  });
+
+  const resource = parseResponse(
+    playlistItemResourceSchema,
+    await readJson(response),
+  );
+  // Tuż po dodaniu odpowiedź bywa jeszcze bez kanału właściciela
+  return toVideo(
+    resource,
+    resource.snippet.resourceId.videoId ?? videoId,
+    resource.snippet.videoOwnerChannelTitle ?? '',
+  );
 }
