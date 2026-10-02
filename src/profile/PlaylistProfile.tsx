@@ -4,7 +4,8 @@ import type { PlaylistChanges } from '../youtube/api';
 import type { Playlist } from '../youtube/types';
 import { DangerZone } from './DangerZone';
 import { PlaylistForm } from './PlaylistForm';
-import { PlaylistVideos, type ProfileVideoIndex } from './PlaylistVideos';
+import { PlaylistVideos } from './PlaylistVideos';
+import type { ProfileVideoIndex } from './usePlaylistVideos';
 import { ProfileHeader } from './ProfileHeader';
 
 type PlaylistProfileProps = {
