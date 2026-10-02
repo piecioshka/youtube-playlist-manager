@@ -67,6 +67,34 @@ describe('PlaylistRow', () => {
     expect(document.querySelector('.playlist-row__lock')).toBeNull();
   });
 
+  it('shows a tiny thumbnail before the title link', () => {
+    renderRow({ thumbnailUrl: 'https://img.example/pl1.jpg' });
+
+    const rowHeader = screen.getByRole('rowheader');
+    const image = rowHeader.querySelector('img');
+    expect(image).toHaveAttribute('src', 'https://img.example/pl1.jpg');
+    expect(image).toHaveAttribute('alt', '');
+    expect(image).toHaveAttribute('width', '32');
+    expect(image).toHaveAttribute('height', '18');
+    const link = screen.getByRole('link', { name: 'Muzyka' });
+    expect(image?.compareDocumentPosition(link) ?? 0).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    expect(image?.parentElement).toBe(link.parentElement);
+    expect(image?.parentElement).toHaveClass('playlist-row__name');
+  });
+
+  it('shows an empty placeholder when there is no thumbnail', () => {
+    renderRow({ thumbnailUrl: null });
+
+    const rowHeader = screen.getByRole('rowheader');
+    expect(rowHeader.querySelector('img')).toBeNull();
+    const placeholder = rowHeader.querySelector(
+      '.playlist-row__thumbnail--empty',
+    );
+    expect(placeholder).toHaveAttribute('aria-hidden', 'true');
+  });
+
   it('labels every data cell for the stacked phone layout', () => {
     renderRow();
 

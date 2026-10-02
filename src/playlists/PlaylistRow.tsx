@@ -138,54 +138,72 @@ export function PlaylistRow({
         scope="row"
         role="rowheader"
       >
-        {mode === 'edit' ? (
-          <form
-            className="playlist-row__edit"
-            onSubmit={handleSubmit}
-            noValidate
-          >
-            <label className="visually-hidden" htmlFor={inputId}>
-              Nowa nazwa playlisty
-            </label>
-            <input
-              id={inputId}
-              ref={inputRef}
-              className="playlist-row__input"
-              type="text"
-              value={draft}
-              onChange={(event) => setDraft(event.target.value)}
-              onKeyDown={handleInputKeyDown}
-              readOnly={pending}
-              aria-invalid={hasError}
-              aria-describedby={hasError ? errorId : undefined}
+        <div className="playlist-row__name">
+          {playlist.thumbnailUrl ? (
+            <img
+              className="playlist-row__thumbnail"
+              src={playlist.thumbnailUrl}
+              alt=""
+              width={32}
+              height={18}
+              loading="lazy"
+              decoding="async"
             />
-            <button
-              type="submit"
-              className="button button--primary button--small"
-              disabled={pending}
+          ) : (
+            <span
+              className="playlist-row__thumbnail playlist-row__thumbnail--empty"
+              aria-hidden="true"
+            />
+          )}
+          {mode === 'edit' ? (
+            <form
+              className="playlist-row__edit"
+              onSubmit={handleSubmit}
+              noValidate
             >
-              {pending ? 'Zapisywanie...' : 'Zapisz'}
-            </button>
-            <button
-              type="button"
-              className="button button--small"
-              onClick={cancelEdit}
-              disabled={pending}
+              <label className="visually-hidden" htmlFor={inputId}>
+                Nowa nazwa playlisty
+              </label>
+              <input
+                id={inputId}
+                ref={inputRef}
+                className="playlist-row__input"
+                type="text"
+                value={draft}
+                onChange={(event) => setDraft(event.target.value)}
+                onKeyDown={handleInputKeyDown}
+                readOnly={pending}
+                aria-invalid={hasError}
+                aria-describedby={hasError ? errorId : undefined}
+              />
+              <button
+                type="submit"
+                className="button button--primary button--small"
+                disabled={pending}
+              >
+                {pending ? 'Zapisywanie...' : 'Zapisz'}
+              </button>
+              <button
+                type="button"
+                className="button button--small"
+                onClick={cancelEdit}
+                disabled={pending}
+              >
+                Anuluj
+              </button>
+            </form>
+          ) : (
+            <a
+              className="playlist-row__link"
+              href={`https://www.youtube.com/playlist?list=${encodeURIComponent(playlist.id)}`}
+              target="_blank"
+              rel="noreferrer"
+              title={playlist.title}
             >
-              Anuluj
-            </button>
-          </form>
-        ) : (
-          <a
-            className="playlist-row__link"
-            href={`https://www.youtube.com/playlist?list=${encodeURIComponent(playlist.id)}`}
-            target="_blank"
-            rel="noreferrer"
-            title={playlist.title}
-          >
-            {playlist.title}
-          </a>
-        )}
+              {playlist.title}
+            </a>
+          )}
+        </div>
         {hasError && (
           <p id={errorId} className="playlist-row__error" role="alert">
             {error}
