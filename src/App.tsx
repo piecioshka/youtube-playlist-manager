@@ -10,6 +10,7 @@ import { PlaylistsView } from './playlists/PlaylistsView';
 import { usePlaylists } from './playlists/usePlaylists';
 import { PlaylistProfile } from './profile/PlaylistProfile';
 import { ProfileUnavailable } from './profile/ProfileUnavailable';
+import { routeToHash } from './routing/route';
 import { useRoute } from './routing/useRoute';
 import { useVideoIndex } from './search/useVideoIndex';
 import { ThemeToggle } from './theme/ThemeToggle';
@@ -31,14 +32,17 @@ function Layout({ actions, children }: LayoutProps) {
     <div className="app">
       <header className="app__header">
         <h1 className="app__title">
-          <img
-            className="app__logo"
-            src={`${import.meta.env.BASE_URL}favicon.svg`}
-            alt=""
-            width={28}
-            height={28}
-          />
-          {t.appTitle}
+          {/* Logo i nazwa prowadzą na stronę główną, czyli do tabeli playlist */}
+          <a className="app__home" href={routeToHash({ name: 'list' })}>
+            <img
+              className="app__logo"
+              src={`${import.meta.env.BASE_URL}favicon.svg`}
+              alt=""
+              width={28}
+              height={28}
+            />
+            {t.appTitle}
+          </a>
         </h1>
         <div className="app__actions">
           <LanguageSelect />

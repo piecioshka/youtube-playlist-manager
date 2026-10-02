@@ -275,6 +275,27 @@ describe('App', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('goes back to the playlist table when the app title is clicked', async () => {
+    vi.mocked(useGoogleAuth).mockReturnValue(
+      auth({ status: 'signedIn', token: 'tok-1' }),
+    );
+    window.location.hash = '#/playlists/a';
+    renderWithI18n(<App />);
+    await screen.findByRole('heading', { level: 2, name: 'Zupa' });
+    const home = screen.getByRole('link', { name: 'YouTube Playlist Manager' });
+
+    expect(home).toHaveAttribute('href', '#/');
+    expect(screen.getByRole('heading', { level: 1 }).contains(home)).toBe(true);
+
+    await userEvent.click(home);
+    // jsdom nie zmienia adresu po kliknięciu w link, więc robi to test
+    setHash('#/');
+
+    expect(
+      await screen.findByRole('table', { name: 'Twoje playlisty (2)' }),
+    ).toBeInTheDocument();
+  });
+
   it('links each playlist title in the table to its profile', async () => {
     vi.mocked(useGoogleAuth).mockReturnValue(
       auth({ status: 'signedIn', token: 'tok-1' }),

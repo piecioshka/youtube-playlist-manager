@@ -157,11 +157,17 @@ a.external-link:focus-visible .external-link__text {
 }
 
 .app__title {
-  display: flex;
-  align-items: center;
-  gap: 10px;
   margin: 0;
   font-size: 1.5rem;
+}
+
+.app__home {
+  display: inline-flex;
+  gap: 10px;
+  align-items: center;
+  border-radius: 6px;
+  color: inherit;
+  text-decoration: none;
 }
 
 /* stretch: lista języków, ikona motywu i Wyloguj mają tę samą wysokość */
@@ -241,6 +247,7 @@ a.external-link:focus-visible .external-link__text {
 .button:focus-visible,
 .select:focus-visible,
 .visibility-filter__option:focus-visible,
+.app__home:focus-visible,
 .app__footer-link:focus-visible,
 .playlist-row__input:focus-visible,
 .playlist-row__link:focus-visible,

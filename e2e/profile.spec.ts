@@ -376,6 +376,19 @@ test('deletes the playlist from its profile and returns to the table', async ({
   );
 });
 
+test('goes to the playlist table when the app title is clicked', async ({
+  page,
+}) => {
+  await openAlgorithms(page);
+
+  await page.getByRole('link', { name: 'YouTube Playlist Manager' }).click();
+
+  expect(new URL(page.url()).hash).toBe('#/');
+  await expect(page.getByRole('heading', { level: 2 })).toHaveText(
+    /^Twoje playlisty/,
+  );
+});
+
 test('opens a profile from its address and goes back with the browser', async ({
   page,
 }) => {
