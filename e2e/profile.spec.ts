@@ -225,6 +225,41 @@ test('removes a video after confirmation and shows the new count in the table', 
   await expect(row.getByRole('cell').first()).toHaveText('2');
 });
 
+test('asks about removing a video in one line without growing the row', async ({
+  page,
+}) => {
+  await openAlgorithms(page);
+  const row = videoList(page).locator('tbody tr').first();
+  const before = await row.boundingBox();
+
+  await row.getByRole('button', { name: /^Usuń „/ }).click();
+
+  const group = row.getByRole('group');
+  const question = await group.getByText('Usunąć z playlisty?').boundingBox();
+  const remove = await group
+    .getByRole('button', { name: 'Usuń', exact: true })
+    .boundingBox();
+  const cancel = await group
+    .getByRole('button', { name: 'Anuluj' })
+    .boundingBox();
+  const after = await row.boundingBox();
+  if (
+    before === null ||
+    after === null ||
+    question === null ||
+    remove === null ||
+    cancel === null
+  ) {
+    throw new Error('The confirmation has no boxes');
+  }
+  const middle = (box: { y: number; height: number }) => box.y + box.height / 2;
+  expect(Math.abs(middle(question) - middle(remove))).toBeLessThan(3);
+  expect(Math.abs(middle(cancel) - middle(remove))).toBeLessThan(3);
+  expect(question.x + question.width).toBeLessThanOrEqual(remove.x);
+  expect(remove.x + remove.width).toBeLessThanOrEqual(cancel.x);
+  expect(after.height).toBeLessThanOrEqual(before.height + 1);
+});
+
 test('stays at the removed video instead of jumping up to the heading', async ({
   page,
 }) => {

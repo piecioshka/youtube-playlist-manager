@@ -217,28 +217,19 @@ export function VideoItem({
           </p>
         )}
       </th>
-      <td className="video-item__cell video-item__cell--channel" role="cell">
-        {video.available ? video.channelTitle : ''}
-      </td>
-      <td className="video-item__cell video-item__cell--published" role="cell">
-        {published !== null && (
-          <time dateTime={published} title={t.videoPublishedTitle}>
-            {published}
-          </time>
-        )}
-      </td>
-      <td className="video-item__cell video-item__cell--duration" role="cell">
-        {video.durationSeconds !== null &&
-          formatDuration(video.durationSeconds)}
-      </td>
-      <td className="video-item__cell video-item__cell--actions" role="cell">
-        {confirming ? (
+      {confirming ? (
+        // Pytanie zajmuje miejsce kanału, daty, długości i akcji: w samej kolumnie akcji łamałoby się na kilka linii
+        <td
+          className="video-item__cell video-item__cell--confirm"
+          role="cell"
+          colSpan={4}
+        >
           <div
             className="video-item__actions"
             role="group"
             aria-label={t.removeVideoQuestion(name)}
           >
-            {/* Pełne pytanie z tytułem jest nazwą grupy; w wąskiej kolumnie widać krótkie */}
+            {/* Pełne pytanie z tytułem jest nazwą grupy; tytuł widać obok, więc na ekranie wystarcza krótkie */}
             <span className="video-item__question">{t.removeVideoShort}</span>
             <button
               type="button"
@@ -261,40 +252,70 @@ export function VideoItem({
               <span className="video-item__working">{t.working}</span>
             )}
           </div>
-        ) : (
-          <div className="video-item__actions">
-            {pending && (
-              <span className="video-item__working">{t.working}</span>
+        </td>
+      ) : (
+        <>
+          <td
+            className="video-item__cell video-item__cell--channel"
+            role="cell"
+          >
+            {video.available ? video.channelTitle : ''}
+          </td>
+          <td
+            className="video-item__cell video-item__cell--published"
+            role="cell"
+          >
+            {published !== null && (
+              <time dateTime={published} title={t.videoPublishedTitle}>
+                {published}
+              </time>
             )}
-            <button
-              ref={removeRef}
-              type="button"
-              className="button button--danger button--small video-item__button"
-              onClick={startConfirm}
-              disabled={disabled}
-            >
-              <svg
-                className="video-item__icon"
-                width="16"
-                height="16"
-                viewBox="0 0 16 16"
-                aria-hidden="true"
+          </td>
+          <td
+            className="video-item__cell video-item__cell--duration"
+            role="cell"
+          >
+            {video.durationSeconds !== null &&
+              formatDuration(video.durationSeconds)}
+          </td>
+          <td
+            className="video-item__cell video-item__cell--actions"
+            role="cell"
+          >
+            <div className="video-item__actions">
+              {pending && (
+                <span className="video-item__working">{t.working}</span>
+              )}
+              <button
+                ref={removeRef}
+                type="button"
+                className="button button--danger button--small video-item__button"
+                onClick={startConfirm}
+                disabled={disabled}
               >
-                <path
-                  d="M4 4l8 8M12 4l-8 8"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-              </svg>
-              {/* Krótko: wiersz i ukryty tytuł filmu mówią, co i skąd znika */}
-              <span className="video-item__button-label">{t.remove}</span>{' '}
-              {target}
-            </button>
-          </div>
-        )}
-      </td>
+                <svg
+                  className="video-item__icon"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 16 16"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M4 4l8 8M12 4l-8 8"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
+                </svg>
+                {/* Krótko: wiersz i ukryty tytuł filmu mówią, co i skąd znika */}
+                <span className="video-item__button-label">{t.remove}</span>{' '}
+                {target}
+              </button>
+            </div>
+          </td>
+        </>
+      )}
     </tr>
   );
 }

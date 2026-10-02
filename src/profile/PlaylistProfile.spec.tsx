@@ -1007,6 +1007,30 @@ describe('PlaylistProfile', () => {
       );
     });
 
+    it('gives the removal question the room of the data cells instead of the narrow actions column', async () => {
+      const { user } = await renderLoaded();
+      const row = item('Big O');
+      expect(within(row).getAllByRole('cell')).toHaveLength(7);
+
+      await user.click(
+        within(row).getByRole('button', { name: 'Usuń „Big O”' }),
+      );
+
+      const group = within(row).getByRole('group', {
+        name: 'Usunąć film „Big O” z playlisty?',
+      });
+      // Pytanie i przyciski zajmują miejsce kanału, daty, długości i akcji, więc mieszczą się w jednej linii
+      expect(group.closest('td')).toHaveAttribute('colspan', '4');
+      expect(row).toHaveClass('video-item--confirming');
+      expect(within(row).getAllByRole('cell')).toHaveLength(4);
+      expect(group).toHaveTextContent('Usunąć z playlisty?');
+
+      await user.click(within(group).getByRole('button', { name: 'Anuluj' }));
+
+      expect(row).not.toHaveClass('video-item--confirming');
+      expect(within(row).getAllByRole('cell')).toHaveLength(7);
+    });
+
     it('cancels removing a video', async () => {
       const { user } = await renderLoaded();
 

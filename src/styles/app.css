@@ -1149,13 +1149,19 @@ a.external-link:focus-visible .external-link__text {
   font-style: italic;
 }
 
-/* Przyciski trzymają się prawej krawędzi; potwierdzenie zawija się w wąskiej kolumnie */
+/* Przyciski trzymają się prawej krawędzi wiersza */
 .video-item__actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 6px 8px;
   align-items: center;
   justify-content: flex-end;
+}
+
+/* Wiersz z otwartym pytaniem o usunięcie jest lekko podbarwiony, żeby było widać, którego filmu dotyczy */
+.video-item--confirming,
+.video-item--confirming:hover {
+  background: color-mix(in srgb, var(--color-danger) 12%, transparent);
 }
 
 /* Na szerokim ekranie przycisk usuwania ma tekst; ikonę włącza telefon */
@@ -1164,9 +1170,11 @@ a.external-link:focus-visible .external-link__text {
 }
 
 .video-item__question {
+  margin-right: 4px;
   color: var(--color-danger);
   font-size: 0.8125rem;
-  overflow-wrap: anywhere;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .video-item__working {
@@ -1506,7 +1514,8 @@ a.external-link:focus-visible .external-link__text {
     font-size: 0.8125rem;
   }
 
-  .video-item__cell--actions {
+  .video-item__cell--actions,
+  .video-item__cell--confirm {
     grid-area: actions;
   }
 
