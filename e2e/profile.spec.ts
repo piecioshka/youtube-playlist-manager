@@ -231,6 +231,54 @@ test('opens a profile from its address and goes back with the browser', async ({
   );
 });
 
+test('lists an unavailable video and removes it in bulk', async ({
+  page,
+  youtube,
+}) => {
+  await signIn(page);
+  await page.getByRole('link', { name: 'Muzyka do pracy' }).click();
+  const list = videoList(page);
+  await expect(list).toBeVisible();
+
+  await expect(page.getByRole('heading', { level: 3 })).toHaveText('Filmy (4)');
+  await expect(page.getByText(/^4 filmy · Publiczna/)).toBeVisible();
+  const unavailable = list.locator('.video-item--unavailable');
+  await expect(unavailable).toHaveCount(1);
+  await expect(unavailable).toHaveText(
+    /Film niedostępny \(usunięty albo prywatny\)/,
+  );
+  expect(await videoTitles(page)).toEqual([
+    'Lofi beats to study',
+    'Jazz for focus and study',
+    'Rain sounds',
+  ]);
+
+  const results = await new AxeBuilder({ page }).analyze();
+  expect(results.violations).toEqual([]);
+
+  await page.getByRole('button', { name: 'Usuń niedostępne (1)' }).click();
+  await page
+    .getByRole('group', { name: 'Usunąć 1 niedostępny film z playlisty?' })
+    .getByRole('button', { name: 'Usuń', exact: true })
+    .click();
+
+  await expect(unavailable).toHaveCount(0);
+  await expect(page.getByRole('heading', { level: 3 })).toHaveText('Filmy (3)');
+  await expect(
+    page.getByRole('button', { name: /^Usuń niedostępne/ }),
+  ).toHaveCount(0);
+  const deletes = youtube.requests.filter(
+    (request) => request.method === 'DELETE',
+  );
+  expect(deletes).toHaveLength(1);
+  expect(deletes[0]?.url.searchParams.get('id')).toBe('item-deleted');
+  expect(youtube.videos['PL-music']?.map((video) => video.itemId)).toEqual([
+    'item-lofi',
+    'item-jazz',
+    'item-rain',
+  ]);
+});
+
 test('fits a phone screen without horizontal scrolling', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 800 });
   await openAlgorithms(page);

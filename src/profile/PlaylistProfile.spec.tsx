@@ -67,14 +67,13 @@ const videos = [quicksort, bigO, graphs];
 type RenderOptions = {
   playlist?: Playlist | undefined;
   listStatus?: LoadState['status'];
-  indexed?: PlaylistVideo[];
   locale?: Locale;
 };
 
 function renderProfile(options: RenderOptions = {}) {
   // `playlist: undefined` znaczy brak playlisty na liście, więc nie domyślna wartość
   const playlist = 'playlist' in options ? options.playlist : algo;
-  const { listStatus = 'ready', indexed, locale = 'pl' } = options;
+  const { listStatus = 'ready', locale = 'pl' } = options;
   const props = {
     onUnauthorized: vi.fn(),
     onUpdated: vi.fn<(playlist: Playlist) => void>(),
@@ -82,10 +81,6 @@ function renderProfile(options: RenderOptions = {}) {
     onNavigate: vi.fn<(route: Route) => void>(),
     replaceVideos: vi.fn<(id: string, videos: PlaylistVideo[]) => void>(),
   };
-  const videosByPlaylist = new Map<string, PlaylistVideo[]>();
-  if (indexed !== undefined) {
-    videosByPlaylist.set('PL-algo', indexed);
-  }
   // Jak w AuthenticatedApp: zmieniona playlista wraca do profilu jako nowy prop
   function Harness() {
     const [current, setCurrent] = useState(playlist);
@@ -95,7 +90,7 @@ function renderProfile(options: RenderOptions = {}) {
         playlistId="PL-algo"
         playlist={current}
         listStatus={listStatus}
-        videoIndex={{ videosByPlaylist, replaceVideos: props.replaceVideos }}
+        videoIndex={{ replaceVideos: props.replaceVideos }}
         onUnauthorized={props.onUnauthorized}
         onUpdated={(updated) => {
           props.onUpdated(updated);
@@ -425,7 +420,9 @@ describe('PlaylistProfile', () => {
       expect(
         screen.getByRole('heading', { level: 3, name: 'Filmy (3)' }),
       ).toBeInTheDocument();
-      expect(listPlaylistVideos).toHaveBeenCalledWith('tok', 'PL-algo');
+      expect(listPlaylistVideos).toHaveBeenCalledWith('tok', 'PL-algo', {
+        includeUnavailable: true,
+      });
       // Pobrane filmy trafiają do indeksu wyszukiwania i przy powrocie na profil
       expect(replaceVideos).toHaveBeenCalledWith('PL-algo', videos);
       expect(videoTitles()).toEqual(['Quicksort', 'Big O', 'Grafy']);
@@ -448,14 +445,6 @@ describe('PlaylistProfile', () => {
       expect(
         within(item('Grafy')).getByRole('button', { name: 'W dół „Grafy”' }),
       ).toBeDisabled();
-    });
-
-    it('reuses videos already fetched for search', async () => {
-      const { replaceVideos } = await renderLoaded({ indexed: [bigO] });
-
-      expect(videoTitles()).toEqual(['Big O']);
-      expect(listPlaylistVideos).not.toHaveBeenCalled();
-      expect(replaceVideos).not.toHaveBeenCalled();
     });
 
     it('shows a loading state, then an empty playlist', async () => {
@@ -650,6 +639,240 @@ describe('PlaylistProfile', () => {
       );
       expect(videoTitles()).toEqual(['Quicksort', 'Big O', 'Grafy']);
       expect(onUpdated).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('unavailable videos', () => {
+    const deleted = makeVideo({
+      itemId: 'item-deleted',
+      videoId: 'v-deleted',
+      title: 'Deleted video',
+      channelTitle: '',
+      position: 1,
+      available: false,
+    });
+    const hidden = makeVideo({
+      itemId: 'item-private',
+      videoId: 'v-private',
+      title: 'Private video',
+      channelTitle: '',
+      position: 3,
+      available: false,
+    });
+    const withUnavailable = [
+      quicksort,
+      deleted,
+      { ...bigO, position: 2 },
+      hidden,
+    ];
+
+    function unavailableItems(): HTMLElement[] {
+      return screen
+        .getAllByRole('listitem')
+        .filter((element) =>
+          element.classList.contains('video-item--unavailable'),
+        );
+    }
+
+    it('lists them without a link and counts every item', async () => {
+      vi.mocked(listPlaylistVideos).mockResolvedValue(withUnavailable);
+      const { replaceVideos } = await renderLoaded({
+        playlist: { ...algo, itemCount: 12 },
+      });
+
+      const items = unavailableItems();
+      expect(items).toHaveLength(2);
+      expect(items[0]).toHaveTextContent(
+        'Film niedostępny (usunięty albo prywatny)',
+      );
+      expect(items[0]?.querySelector('a')).toBeNull();
+      expect(items[0]).not.toHaveTextContent('Deleted video');
+      expect(videoTitles()).toEqual(['Quicksort', 'Big O']);
+      expect(
+        screen.getByRole('heading', { level: 3, name: 'Filmy (4)' }),
+      ).toBeInTheDocument();
+      // Po wczytaniu nagłówek liczy załadowane elementy, a nie itemCount z listy
+      expect(meta()).toHaveTextContent('4 filmy · Niepubliczna');
+      // Indeks wyszukiwania dostaje tylko dostępne filmy
+      expect(replaceVideos).toHaveBeenCalledWith('PL-algo', [
+        quicksort,
+        { ...bigO, position: 2 },
+      ]);
+    });
+
+    it('uses the playlist count in the header while the list loads', () => {
+      vi.mocked(listPlaylistVideos).mockReturnValue(new Promise(() => {}));
+      renderProfile({ playlist: { ...algo, itemCount: 12 } });
+      expect(meta()).toHaveTextContent('12 filmów · Niepubliczna');
+    });
+
+    it('removes one unavailable video', async () => {
+      vi.mocked(listPlaylistVideos).mockResolvedValue(withUnavailable);
+      vi.mocked(removePlaylistItem).mockResolvedValue(undefined);
+      const { user } = await renderLoaded();
+
+      await user.click(
+        screen.getByRole('button', {
+          name: 'Usuń z playlisty „niedostępny nr 2”',
+        }),
+      );
+      await user.click(
+        within(
+          screen.getByRole('group', {
+            name: 'Usunąć film „niedostępny nr 2” z playlisty?',
+          }),
+        ).getByRole('button', { name: 'Usuń' }),
+      );
+
+      expect(removePlaylistItem).toHaveBeenCalledWith('tok', 'item-deleted');
+      await waitFor(() => expect(unavailableItems()).toHaveLength(1));
+      expect(
+        screen.getByRole('heading', { level: 3, name: 'Filmy (3)' }),
+      ).toBeInTheDocument();
+    });
+
+    it('moves an unavailable video', async () => {
+      vi.mocked(listPlaylistVideos).mockResolvedValue(withUnavailable);
+      vi.mocked(movePlaylistItem).mockResolvedValue(undefined);
+      const { user } = await renderLoaded();
+
+      await user.click(
+        screen.getByRole('button', { name: 'W dół „niedostępny nr 2”' }),
+      );
+
+      expect(movePlaylistItem).toHaveBeenCalledWith(
+        'tok',
+        'PL-algo',
+        deleted,
+        2,
+      );
+      expect(videoTitles()).toEqual(['Quicksort', 'Big O']);
+      expect(screen.getAllByRole('listitem')[2]).toHaveClass(
+        'video-item--unavailable',
+      );
+    });
+
+    it('hides the bulk button when every video is available', async () => {
+      await renderLoaded();
+      expect(
+        screen.queryByRole('button', { name: /^Usuń niedostępne/ }),
+      ).not.toBeInTheDocument();
+    });
+
+    it('removes all unavailable videos one by one after confirmation', async () => {
+      vi.mocked(listPlaylistVideos).mockResolvedValue(withUnavailable);
+      const calls: { itemId: string; resolve: () => void }[] = [];
+      vi.mocked(removePlaylistItem).mockImplementation(
+        (_token, itemId) =>
+          new Promise((resolve) => {
+            calls.push({ itemId, resolve: () => resolve(undefined) });
+          }),
+      );
+      const { user, onUpdated, replaceVideos } = await renderLoaded();
+
+      await user.click(
+        screen.getByRole('button', { name: 'Usuń niedostępne (2)' }),
+      );
+      const group = screen.getByRole('group', {
+        name: 'Usunąć 2 niedostępne filmy z playlisty?',
+      });
+      await user.click(within(group).getByRole('button', { name: 'Usuń' }));
+
+      // Kolejno: drugie żądanie dopiero po odpowiedzi na pierwsze
+      expect(calls.map((call) => call.itemId)).toEqual(['item-deleted']);
+      expect(
+        screen.getByText('Usuwanie niedostępnych filmów: 0/2'),
+      ).toBeInTheDocument();
+      calls[0]?.resolve();
+      await waitFor(() => expect(calls).toHaveLength(2));
+      expect(calls[1]?.itemId).toBe('item-private');
+      expect(
+        await screen.findByText('Usuwanie niedostępnych filmów: 1/2'),
+      ).toBeInTheDocument();
+      calls[1]?.resolve();
+
+      await waitFor(() => expect(unavailableItems()).toHaveLength(0));
+      expect(videoTitles()).toEqual(['Quicksort', 'Big O']);
+      expect(
+        screen.queryByRole('button', { name: /^Usuń niedostępne/ }),
+      ).not.toBeInTheDocument();
+      expect(onUpdated).toHaveBeenLastCalledWith({ ...algo, itemCount: 1 });
+      expect(replaceVideos).toHaveBeenLastCalledWith('PL-algo', [
+        quicksort,
+        { ...bigO, position: 1 },
+      ]);
+      expect(
+        screen.getByRole('heading', { level: 3, name: 'Filmy (2)' }),
+      ).toHaveFocus();
+    });
+
+    it('stops the bulk removal at the first error', async () => {
+      vi.mocked(listPlaylistVideos).mockResolvedValue(withUnavailable);
+      vi.mocked(removePlaylistItem)
+        .mockResolvedValueOnce(undefined)
+        .mockRejectedValueOnce(new ApiError('forbidden', 'no', 403));
+      const { user } = await renderLoaded();
+
+      await user.click(
+        screen.getByRole('button', { name: 'Usuń niedostępne (2)' }),
+      );
+      await user.click(screen.getByRole('button', { name: 'Usuń' }));
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'YouTube odmówił dostępu do tej operacji.',
+      );
+      expect(removePlaylistItem).toHaveBeenCalledTimes(2);
+      expect(unavailableItems()).toHaveLength(1);
+      expect(
+        screen.getByRole('button', { name: 'Usuń niedostępne (1)' }),
+      ).toBeEnabled();
+    });
+
+    it('cancels the bulk removal', async () => {
+      vi.mocked(listPlaylistVideos).mockResolvedValue(withUnavailable);
+      const { user } = await renderLoaded();
+
+      await user.click(
+        screen.getByRole('button', { name: 'Usuń niedostępne (2)' }),
+      );
+      await user.click(screen.getByRole('button', { name: 'Anuluj' }));
+
+      expect(
+        screen.getByRole('button', { name: 'Usuń niedostępne (2)' }),
+      ).toHaveFocus();
+      expect(removePlaylistItem).not.toHaveBeenCalled();
+    });
+
+    it('reports 401 during the bulk removal', async () => {
+      vi.mocked(listPlaylistVideos).mockResolvedValue(withUnavailable);
+      vi.mocked(removePlaylistItem).mockRejectedValue(unauthorized());
+      const { user, onUnauthorized } = await renderLoaded();
+
+      await user.click(
+        screen.getByRole('button', { name: 'Usuń niedostępne (2)' }),
+      );
+      await user.click(screen.getByRole('button', { name: 'Usuń' }));
+
+      await waitFor(() => expect(onUnauthorized).toHaveBeenCalledTimes(1));
+      expect(removePlaylistItem).toHaveBeenCalledTimes(1);
+    });
+
+    it('labels unavailable videos in English', async () => {
+      vi.mocked(listPlaylistVideos).mockResolvedValue(withUnavailable);
+      renderProfile({ locale: 'en' });
+      await screen.findByRole('list', { name: 'Videos (4)' });
+
+      expect(
+        screen.getAllByText('Unavailable video (deleted or private)'),
+      ).toHaveLength(2);
+      expect(
+        screen.getByRole('button', { name: 'Remove unavailable (2)' }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {
+          name: 'Remove from playlist "unavailable #2"',
+        }),
+      ).toBeInTheDocument();
     });
   });
 

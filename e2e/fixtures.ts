@@ -60,7 +60,7 @@ const SEED_PLAYLISTS: FakePlaylist[] = [
     title: 'Muzyka do pracy',
     description: 'Spokojne kawałki',
     publishedAt: '2024-01-10T09:00:00Z',
-    itemCount: 12,
+    itemCount: 4,
     privacyStatus: 'public',
   },
   {
@@ -89,6 +89,7 @@ const SEED_PLAYLISTS: FakePlaylist[] = [
   },
 ];
 
+// Pusty `channelTitle` oznacza film usunięty albo prywatny
 export type FakeVideo = {
   itemId: string;
   videoId: string;
@@ -109,6 +110,13 @@ const SEED_VIDEOS: Record<string, FakeVideo[]> = {
       videoId: 'vid-jazz',
       title: 'Jazz for focus and study',
       channelTitle: 'Cafe Music BGM',
+    },
+    // Usunięty film: YouTube zostawia element bez kanału właściciela
+    {
+      itemId: 'item-deleted',
+      videoId: 'vid-deleted',
+      title: 'Deleted video',
+      channelTitle: '',
     },
     {
       itemId: 'item-rain',
@@ -190,7 +198,9 @@ function toPlaylistItem(video: FakeVideo, position: number) {
       title: video.title,
       position,
       thumbnails: {},
-      videoOwnerChannelTitle: video.channelTitle,
+      ...(video.channelTitle !== '' && {
+        videoOwnerChannelTitle: video.channelTitle,
+      }),
       resourceId: { kind: 'youtube#video', videoId: video.videoId },
     },
   };

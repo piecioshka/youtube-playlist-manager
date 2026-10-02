@@ -49,6 +49,8 @@ export function PlaylistProfile({
   const [lookup, setLookup] = useState<{ id: string; result: Lookup } | null>(
     null,
   );
+  // Liczba elementów z wczytanej listy filmów; null, dopóki się nie wczyta
+  const [loadedCount, setLoadedCount] = useState<number | null>(null);
   const needsLookup = playlist === undefined && listStatus !== 'loading';
   const describeError = useEffectEvent((error: unknown) =>
     reportError(error, t, onUnauthorized),
@@ -164,7 +166,10 @@ export function PlaylistProfile({
 
   return (
     <div className="profile-page">
-      <ProfileHeader playlist={shown} />
+      <ProfileHeader
+        playlist={shown}
+        videoCount={loadedCount ?? shown.itemCount}
+      />
       <PlaylistForm
         key={shown.id}
         playlist={shown}
@@ -177,6 +182,7 @@ export function PlaylistProfile({
         videoIndex={videoIndex}
         onUnauthorized={onUnauthorized}
         onUpdated={handleUpdated}
+        onCountChange={setLoadedCount}
       />
       <DangerZone playlist={shown} onDelete={() => remove(shown)} />
     </div>

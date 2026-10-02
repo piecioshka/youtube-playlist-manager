@@ -86,14 +86,18 @@ export function VideoItem({
     }
   }
 
-  const target = (
-    <span className="visually-hidden">{t.videoTarget(video.title)}</span>
-  );
+  // Niedostępny film ma od YouTube tylko „Deleted video” albo „Private video”, więc nazywamy go numerem
+  const name = video.available ? video.title : t.unavailableVideoName(number);
+  const target = <span className="visually-hidden">{t.videoTarget(name)}</span>;
 
   return (
-    <li className="video-item">
+    <li
+      className={
+        video.available ? 'video-item' : 'video-item video-item--unavailable'
+      }
+    >
       <span className="video-item__position">{number}</span>
-      {video.thumbnailUrl ? (
+      {video.available && video.thumbnailUrl ? (
         <img
           className="video-item__thumbnail"
           src={video.thumbnailUrl}
@@ -110,27 +114,33 @@ export function VideoItem({
         />
       )}
       <div className="video-item__text">
-        <a
-          className="video-item__link"
-          href={`https://www.youtube.com/watch?v=${encodeURIComponent(video.videoId)}&list=${encodeURIComponent(playlistId)}`}
-          target="_blank"
-          rel="noreferrer"
-          title={video.title}
-        >
-          {video.title}
-        </a>
-        {video.channelTitle !== '' && (
-          <span className="video-item__channel">{video.channelTitle}</span>
+        {video.available ? (
+          <>
+            <a
+              className="video-item__link"
+              href={`https://www.youtube.com/watch?v=${encodeURIComponent(video.videoId)}&list=${encodeURIComponent(playlistId)}`}
+              target="_blank"
+              rel="noreferrer"
+              title={video.title}
+            >
+              {video.title}
+            </a>
+            {video.channelTitle !== '' && (
+              <span className="video-item__channel">{video.channelTitle}</span>
+            )}
+          </>
+        ) : (
+          <span className="video-item__unavailable">{t.videoUnavailable}</span>
         )}
       </div>
       {confirming ? (
         <div
           className="video-item__actions"
           role="group"
-          aria-label={t.removeVideoQuestion(video.title)}
+          aria-label={t.removeVideoQuestion(name)}
         >
           <span className="video-item__question">
-            {t.removeVideoQuestion(video.title)}
+            {t.removeVideoQuestion(name)}
           </span>
           <button
             type="button"

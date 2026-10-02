@@ -55,6 +55,7 @@ function toVideo(
   resource: PlaylistItemResource,
   videoId: string,
   channelTitle: string,
+  available = true,
 ): PlaylistVideo {
   return {
     itemId: resource.id,
@@ -63,8 +64,24 @@ function toVideo(
     channelTitle,
     position: resource.snippet.position,
     thumbnailUrl: pickThumbnail(resource.snippet.thumbnails),
+    available,
   };
 }
+
+// Tytuły, które YouTube nadaje usuniętym i prywatnym filmom na playliście
+const UNAVAILABLE_TITLES = ['Deleted video', 'Private video'];
+
+function isUnavailable(resource: PlaylistItemResource): boolean {
+  return (
+    resource.snippet.videoOwnerChannelTitle === undefined ||
+    UNAVAILABLE_TITLES.includes(resource.snippet.title)
+  );
+}
+
+export type ListVideosOptions = {
+  // Profil playlisty chce też usunięte i prywatne filmy, żeby dało się je usunąć
+  includeUnavailable?: boolean;
+};
 
 function parseResponse<Schema extends z.ZodType>(
   schema: Schema,
@@ -202,6 +219,7 @@ export async function listMyPlaylists(token: string): Promise<Playlist[]> {
 export async function listPlaylistVideos(
   token: string,
   playlistId: string,
+  options: ListVideosOptions = {},
 ): Promise<PlaylistVideo[]> {
   return fetchAllPages(
     token,
@@ -218,6 +236,10 @@ export async function listPlaylistVideos(
       for (const item of page.items) {
         const videoId = item.snippet.resourceId.videoId;
         const channelTitle = item.snippet.videoOwnerChannelTitle;
+        if (options.includeUnavailable && isUnavailable(item)) {
+          videos.push(toVideo(item, videoId ?? '', '', false));
+          continue;
+        }
         // Bez kanału właściciela to film usunięty albo prywatny
         if (videoId !== undefined && channelTitle !== undefined) {
           videos.push(toVideo(item, videoId, channelTitle));

@@ -149,6 +149,23 @@ describe('messages', () => {
     );
   });
 
+  it.each([
+    [1, 'Usunąć 1 niedostępny film z playlisty?'],
+    [2, 'Usunąć 2 niedostępne filmy z playlisty?'],
+    [5, 'Usunąć 5 niedostępnych filmów z playlisty?'],
+  ])('Polish: asks before removing %i unavailable videos', (count, text) => {
+    expect(messages.pl.removeUnavailableQuestion(count)).toBe(text);
+  });
+
+  it('asks before removing unavailable videos in English', () => {
+    expect(messages.en.removeUnavailableQuestion(1)).toBe(
+      'Remove 1 unavailable video from the playlist?',
+    );
+    expect(messages.en.removeUnavailableQuestion(3)).toBe(
+      'Remove 3 unavailable videos from the playlist?',
+    );
+  });
+
   it('pluralizes the failed playlists count in English', () => {
     expect(messages.en.indexFailed(1)).toBe(
       'Could not fetch videos from 1 playlist.',

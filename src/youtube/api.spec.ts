@@ -304,6 +304,7 @@ describe('listPlaylistVideos', () => {
     channelTitle: 'Kanał',
     position: 0,
     thumbnailUrl: 'https://i.ytimg.com/vi/v1/mqdefault.jpg',
+    available: true,
   };
 
   it('requests the items of one playlist', async () => {
@@ -372,6 +373,64 @@ describe('listPlaylistVideos', () => {
     const videos = await listPlaylistVideos('t', 'PL-x');
 
     expect(videos).toEqual([v1]);
+  });
+
+  it('lists unavailable videos too when asked (the playlist page)', async () => {
+    const deleted = item('v-del', undefined, 1);
+    const privateOne = item('v-priv', 'Kanał', 2);
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        items: [
+          item('v1', 'Kanał'),
+          // Usunięty film: bez kanału właściciela i z tytułem nadanym przez YouTube
+          {
+            ...deleted,
+            snippet: { ...deleted.snippet, title: 'Deleted video' },
+          },
+          // Prywatny film rozpoznany po samym tytule
+          {
+            ...privateOne,
+            snippet: { ...privateOne.snippet, title: 'Private video' },
+          },
+          item(undefined, undefined, 3),
+        ],
+      }),
+    );
+
+    const videos = await listPlaylistVideos('t', 'PL-x', {
+      includeUnavailable: true,
+    });
+
+    expect(videos).toEqual([
+      v1,
+      {
+        itemId: 'item-v-del',
+        videoId: 'v-del',
+        title: 'Deleted video',
+        channelTitle: '',
+        position: 1,
+        thumbnailUrl: 'https://i.ytimg.com/vi/v-del/mqdefault.jpg',
+        available: false,
+      },
+      {
+        itemId: 'item-v-priv',
+        videoId: 'v-priv',
+        title: 'Private video',
+        channelTitle: '',
+        position: 2,
+        thumbnailUrl: 'https://i.ytimg.com/vi/v-priv/mqdefault.jpg',
+        available: false,
+      },
+      {
+        itemId: 'item-none',
+        videoId: '',
+        title: 'Film bez id',
+        channelTitle: '',
+        position: 3,
+        thumbnailUrl: 'https://i.ytimg.com/vi/undefined/mqdefault.jpg',
+        available: false,
+      },
+    ]);
   });
 
   it('keeps the position from the API and tolerates missing thumbnails', async () => {
@@ -672,6 +731,7 @@ describe('addPlaylistItem', () => {
       channelTitle: '',
       position: 3,
       thumbnailUrl: 'https://i.ytimg.com/vi/x/default.jpg',
+      available: true,
     });
   });
 

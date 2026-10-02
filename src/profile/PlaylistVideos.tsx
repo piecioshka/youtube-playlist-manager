@@ -10,13 +10,11 @@ import {
 import { ApiError, type Playlist, type PlaylistVideo } from '../youtube/types';
 import { AddVideoForm } from './AddVideoForm';
 import { reportError } from './errors';
+import { UnavailableBar } from './UnavailableBar';
 import { VideoItem } from './VideoItem';
 import { removeVideo, swapVideos } from './videoOrder';
 
-export type ProfileVideoIndex = Pick<
-  VideoIndex,
-  'videosByPlaylist' | 'replaceVideos'
->;
+export type ProfileVideoIndex = Pick<VideoIndex, 'replaceVideos'>;
 
 type LoadState =
   | { status: 'loading' }
@@ -24,7 +22,10 @@ type LoadState =
   | { status: 'ready' };
 
 // Naraz trwa jedna operacja na filmach, żeby pozycje i cofnięcie przesunięcia się nie rozjechały
-type Pending = { kind: 'item'; itemId: string } | { kind: 'add' } | null;
+type Pending =
+  { kind: 'item'; itemId: string } | { kind: 'add' } | { kind: 'bulk' } | null;
+
+type Progress = { done: number; total: number } | null;
 
 type ItemError = { itemId: string; message: string } | null;
 
@@ -34,7 +35,14 @@ type PlaylistVideosProps = {
   videoIndex: ProfileVideoIndex;
   onUnauthorized: () => void;
   onUpdated: (playlist: Playlist) => void;
+  // Liczba wszystkich elementów (także niedostępnych) po wczytaniu i po każdej zmianie
+  onCountChange: (count: number) => void;
 };
+
+// Indeks wyszukiwania zna tylko filmy, które da się obejrzeć
+function availableOnly(videos: PlaylistVideo[]): PlaylistVideo[] {
+  return videos.filter((video) => video.available);
+}
 
 export function PlaylistVideos({
   token,
@@ -42,41 +50,39 @@ export function PlaylistVideos({
   videoIndex,
   onUnauthorized,
   onUpdated,
+  onCountChange,
 }: PlaylistVideosProps) {
   const { t } = useI18n();
   const playlistId = playlist.id;
-  // Filmy pobrane już dla wyszukiwania nie wymagają kolejnego zapytania
-  const [cached] = useState(() => videoIndex.videosByPlaylist.get(playlistId));
-  const [load, setLoad] = useState<LoadState>(
-    cached === undefined ? { status: 'loading' } : { status: 'ready' },
-  );
-  const [videos, setVideos] = useState<PlaylistVideo[]>(cached ?? []);
+  // Indeks wyszukiwania pomija niedostępne filmy, więc profil zawsze pobiera własną, pełną listę
+  const [load, setLoad] = useState<LoadState>({ status: 'loading' });
+  const [videos, setVideos] = useState<PlaylistVideo[]>([]);
   const [reloadKey, setReloadKey] = useState(0);
   const [pending, setPending] = useState<Pending>(null);
   const [itemError, setItemError] = useState<ItemError>(null);
+  const [progress, setProgress] = useState<Progress>(null);
+  const [bulkError, setBulkError] = useState<string | null>(null);
   const pendingRef = useRef(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
 
-  const storeVideos = useEffectEvent((list: PlaylistVideo[]) =>
-    videoIndex.replaceVideos(playlistId, list),
-  );
+  const loaded = useEffectEvent((list: PlaylistVideo[]) => {
+    videoIndex.replaceVideos(playlistId, availableOnly(list));
+    onCountChange(list.length);
+  });
   const describeLoadError = useEffectEvent((error: unknown) =>
     reportError(error, t, onUnauthorized),
   );
 
   useEffect(() => {
-    if (cached !== undefined && reloadKey === 0) {
-      return;
-    }
     let cancelled = false;
-    listPlaylistVideos(token, playlistId).then(
+    listPlaylistVideos(token, playlistId, { includeUnavailable: true }).then(
       (list) => {
         if (cancelled) {
           return;
         }
         setVideos(list);
         setLoad({ status: 'ready' });
-        storeVideos(list);
+        loaded(list);
       },
       (error: unknown) => {
         if (!cancelled) {
@@ -87,7 +93,7 @@ export function PlaylistVideos({
     return () => {
       cancelled = true;
     };
-  }, [token, playlistId, cached, reloadKey]);
+  }, [token, playlistId, reloadKey]);
 
   function retry() {
     setLoad({ status: 'loading' });
@@ -101,6 +107,7 @@ export function PlaylistVideos({
     pendingRef.current = true;
     setPending(next);
     setItemError(null);
+    setBulkError(null);
     return true;
   }
 
@@ -111,7 +118,8 @@ export function PlaylistVideos({
 
   function commit(list: PlaylistVideo[]) {
     setVideos(list);
-    videoIndex.replaceVideos(playlistId, list);
+    videoIndex.replaceVideos(playlistId, availableOnly(list));
+    onCountChange(list.length);
   }
 
   // Optymistycznie: kolejność zmienia się od razu, a przy błędzie wraca
@@ -130,7 +138,7 @@ export function PlaylistVideos({
     setVideos(next);
     try {
       await movePlaylistItem(token, playlistId, video, neighbor.position);
-      videoIndex.replaceVideos(playlistId, next);
+      videoIndex.replaceVideos(playlistId, availableOnly(next));
     } catch (error) {
       setVideos(previous);
       setItemError({
@@ -187,7 +195,44 @@ export function PlaylistVideos({
     }
   }
 
+  /*
+   * Usuwa niedostępne filmy po kolei (każde usunięcie to 50 jednostek limitu)
+   * i zatrzymuje się na pierwszym błędzie; usunięte do tego miejsca zostają usunięte.
+   */
+  async function removeUnavailable(): Promise<void> {
+    const targets = videos.filter((video) => !video.available);
+    if (targets.length === 0 || !begin({ kind: 'bulk' })) {
+      return;
+    }
+    let current = videos;
+    let removed = 0;
+    setProgress({ done: 0, total: targets.length });
+    try {
+      for (const video of targets) {
+        try {
+          await removePlaylistItem(token, video.itemId);
+        } catch (error) {
+          setBulkError(reportError(error, t, onUnauthorized));
+          return;
+        }
+        removed += 1;
+        current = removeVideo(current, video.itemId);
+        commit(current);
+        onUpdated({
+          ...playlist,
+          itemCount: Math.max(0, playlist.itemCount - removed),
+        });
+        setProgress({ done: removed, total: targets.length });
+      }
+      headingRef.current?.focus();
+    } finally {
+      setProgress(null);
+      finish();
+    }
+  }
+
   const count = load.status === 'ready' ? videos.length : playlist.itemCount;
+  const unavailableCount = videos.filter((video) => !video.available).length;
 
   return (
     <section className="profile__videos" aria-labelledby="profile-videos">
@@ -213,6 +258,16 @@ export function PlaylistVideos({
       {load.status === 'ready' && videos.length === 0 && (
         <p className="playlists__state">{t.playlistEmpty}</p>
       )}
+      {load.status === 'ready' &&
+        (unavailableCount > 0 || progress !== null) && (
+          <UnavailableBar
+            count={unavailableCount}
+            progress={progress}
+            error={bulkError}
+            locked={pending !== null}
+            onConfirm={removeUnavailable}
+          />
+        )}
       {load.status === 'ready' && videos.length > 0 && (
         <ol className="video-list" aria-labelledby="profile-videos">
           {videos.map((video, index) => (
@@ -238,7 +293,7 @@ export function PlaylistVideos({
       )}
       {load.status === 'ready' && (
         <AddVideoForm
-          locked={pending?.kind === 'item'}
+          locked={pending !== null && pending.kind !== 'add'}
           adding={pending?.kind === 'add'}
           onAdd={add}
         />

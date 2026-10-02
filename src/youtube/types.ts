@@ -19,6 +19,8 @@ export type PlaylistVideo = {
   channelTitle: string;
   position: number;
   thumbnailUrl: string | null;
+  // false dla usuniętego albo prywatnego filmu: zostaje na playliście, ale nie da się go obejrzeć
+  available: boolean;
 };
 
 export type ApiErrorKind =

@@ -167,6 +167,13 @@ const pl = {
   invalidVideo: 'To nie wygląda na link do filmu z YouTube.',
   videoAdded: 'Dodano film.',
   videoNotFound: 'Nie znaleziono takiego filmu na YouTube.',
+  videoUnavailable: 'Film niedostępny (usunięty albo prywatny)',
+  unavailableVideoName: (number: number) => `niedostępny nr ${number}`,
+  removeUnavailable: (count: number) => `Usuń niedostępne (${count})`,
+  removeUnavailableQuestion: (count: number) =>
+    `Usunąć ${count} ${polishPlural(count, 'niedostępny film', 'niedostępne filmy', 'niedostępnych filmów')} z playlisty?`,
+  removingUnavailable: (done: number, total: number) =>
+    `Usuwanie niedostępnych filmów: ${done}/${total}`,
 };
 
 export type Messages = typeof pl;
@@ -294,6 +301,13 @@ const en: Messages = {
   invalidVideo: 'This does not look like a YouTube video link.',
   videoAdded: 'Video added.',
   videoNotFound: 'No such video on YouTube.',
+  videoUnavailable: 'Unavailable video (deleted or private)',
+  unavailableVideoName: (number) => `unavailable #${number}`,
+  removeUnavailable: (count) => `Remove unavailable (${count})`,
+  removeUnavailableQuestion: (count) =>
+    `Remove ${count} unavailable ${englishPlural(count, 'video', 'videos')} from the playlist?`,
+  removingUnavailable: (done, total) =>
+    `Removing unavailable videos: ${done}/${total}`,
 };
 
 export const messages: Record<Locale, Messages> = { pl, en };

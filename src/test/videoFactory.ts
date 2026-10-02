@@ -11,6 +11,7 @@ export function makeVideo(
     channelTitle: 'Kanał',
     position: 0,
     thumbnailUrl: null,
+    available: true,
     ...overrides,
   };
 }

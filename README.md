@@ -20,7 +20,7 @@ The hosted app only works for Google accounts added as test users of its OAuth c
 - 🔎 Search playlists and the videos inside them _(Cmd+K / Ctrl+K)_
 - ✏️ Rename a playlist inline _(the description stays untouched)_
 - 🗑️ Delete a playlist after an inline confirmation
-- 🗂️ Playlist page _(edit description and visibility, reorder, remove and add videos)_
+- 🗂️ Playlist page _(edit description and visibility, reorder, remove and add videos, clean out deleted and private ones)_
 - 🌗 Dark and light theme _(dark by default)_
 - 🌍 Polish and English interface _(Polish by default)_
 - 🔒 No backend _(the access token stays in the current browser tab only)_

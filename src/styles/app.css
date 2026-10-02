@@ -726,6 +726,14 @@ body {
   gap: 12px;
 }
 
+/* Pasek „Usuń niedostępne”: przycisk albo potwierdzenie, obok postęp i błąd */
+.profile__bulk {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
 .profile__videos-heading {
   margin: 0;
   font-size: 1.125rem;
@@ -800,6 +808,12 @@ body {
 .video-item__channel {
   color: var(--color-muted);
   font-size: 0.8125rem;
+}
+
+/* Krótki stały tekst, więc zawija się zamiast ucinać wielokropkiem na telefonie */
+.video-item__unavailable {
+  color: var(--color-muted);
+  font-style: italic;
 }
 
 .video-item__actions {
