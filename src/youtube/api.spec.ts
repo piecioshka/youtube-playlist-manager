@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { makePlaylist } from '../test/playlistFactory';
-import { deletePlaylist, listMyPlaylists, renamePlaylist } from './api';
+import {
+  deletePlaylist,
+  listMyPlaylists,
+  listPlaylistVideos,
+  renamePlaylist,
+} from './api';
 import { ApiError } from './types';
 
 const fetchMock = vi.fn<typeof fetch>();
@@ -260,6 +265,121 @@ describe('deletePlaylist', () => {
 
     expect(calledInit(0)?.method).toBe('DELETE');
     expect(calledUrl(0).searchParams.get('id')).toBe('PL-9');
+  });
+});
+
+describe('listPlaylistVideos', () => {
+  function item(videoId: string | undefined, channel?: string) {
+    return {
+      kind: 'youtube#playlistItem',
+      snippet: {
+        title: `Film ${videoId ?? 'bez id'}`,
+        ...(channel !== undefined && { videoOwnerChannelTitle: channel }),
+        resourceId: {
+          kind: 'youtube#video',
+          ...(videoId !== undefined && { videoId }),
+        },
+      },
+    };
+  }
+
+  it('requests the items of one playlist', async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({ items: [item('v1', 'Kanał')] }),
+    );
+
+    const videos = await listPlaylistVideos('token-9', 'PL-x');
+
+    expect(videos).toEqual([
+      { videoId: 'v1', title: 'Film v1', channelTitle: 'Kanał' },
+    ]);
+    const url = calledUrl(0);
+    expect(`${url.origin}${url.pathname}`).toBe(
+      'https://www.googleapis.com/youtube/v3/playlistItems',
+    );
+    expect(url.searchParams.get('part')).toBe('snippet');
+    expect(url.searchParams.get('playlistId')).toBe('PL-x');
+    expect(url.searchParams.get('maxResults')).toBe('50');
+    expect(url.searchParams.has('pageToken')).toBe(false);
+    expect(new Headers(calledInit(0)?.headers).get('Authorization')).toBe(
+      'Bearer token-9',
+    );
+  });
+
+  it('fetches every page', async () => {
+    fetchMock
+      .mockResolvedValueOnce(
+        jsonResponse({ items: [item('v1', 'A')], nextPageToken: 'p2' }),
+      )
+      .mockResolvedValueOnce(jsonResponse({ items: [item('v2', 'B')] }));
+
+    const videos = await listPlaylistVideos('t', 'PL-x');
+
+    expect(videos.map((video) => video.videoId)).toEqual(['v1', 'v2']);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(calledUrl(1).searchParams.get('pageToken')).toBe('p2');
+    expect(calledUrl(1).searchParams.get('playlistId')).toBe('PL-x');
+  });
+
+  it('stops when the API repeats a nextPageToken', async () => {
+    fetchMock
+      .mockResolvedValueOnce(
+        jsonResponse({ items: [item('v1', 'A')], nextPageToken: 'same' }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({ items: [item('v2', 'A')], nextPageToken: 'same' }),
+      );
+
+    const videos = await listPlaylistVideos('t', 'PL-x');
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(videos).toHaveLength(2);
+  });
+
+  it('skips deleted and private videos', async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        items: [
+          item('v1', 'Kanał'),
+          // Usunięty albo prywatny film: brak właściciela kanału
+          item('v2'),
+          item(undefined, 'Kanał'),
+        ],
+      }),
+    );
+
+    const videos = await listPlaylistVideos('t', 'PL-x');
+
+    expect(videos).toEqual([
+      { videoId: 'v1', title: 'Film v1', channelTitle: 'Kanał' },
+    ]);
+  });
+
+  it('returns an empty list for an empty playlist', async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse({ pageInfo: {} }));
+    expect(await listPlaylistVideos('t', 'PL-x')).toEqual([]);
+  });
+
+  it('maps API errors to ApiError', async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse(
+        {
+          error: {
+            code: 404,
+            message: 'Not found',
+            errors: [{ reason: 'playlistNotFound' }],
+          },
+        },
+        404,
+      ),
+    );
+
+    const error = await listPlaylistVideos('t', 'PL-x').catch(
+      (caught: unknown) => caught,
+    );
+
+    expect(error).toBeInstanceOf(ApiError);
+    expect(error).toMatchObject({ kind: 'notFound', status: 404 });
   });
 });
 

@@ -1,13 +1,16 @@
 import type { z } from 'zod';
 import {
   apiErrorResponseSchema,
+  playlistItemListResponseSchema,
   playlistListResponseSchema,
   playlistResourceSchema,
   type PlaylistResource,
 } from './schemas';
-import { ApiError, type Playlist } from './types';
+import { ApiError, type Playlist, type PlaylistVideo } from './types';
 
 const PLAYLISTS_URL = 'https://www.googleapis.com/youtube/v3/playlists';
+const PLAYLIST_ITEMS_URL =
+  'https://www.googleapis.com/youtube/v3/playlistItems';
 const QUOTA_REASONS = ['quotaExceeded', 'dailyLimitExceeded'];
 
 type HttpMethod = 'GET' | 'PUT' | 'DELETE';
@@ -108,26 +111,27 @@ async function request(
   return response;
 }
 
-export async function listMyPlaylists(token: string): Promise<Playlist[]> {
-  const playlists: Playlist[] = [];
+type Page<Item> = { items: Item[]; nextPageToken?: string };
+
+// Pobiera wszystkie strony listy; `buildUrl` daje adres pierwszej strony, token kolejnych dopisujemy tutaj
+async function fetchAllPages<Item>(
+  token: string,
+  buildUrl: () => URL,
+  readPage: (data: unknown) => Page<Item>,
+): Promise<Item[]> {
+  const items: Item[] = [];
   const seenTokens = new Set<string>();
   let pageToken: string | undefined;
 
   do {
-    const url = new URL(PLAYLISTS_URL);
-    url.searchParams.set('part', 'snippet,contentDetails,status');
-    url.searchParams.set('mine', 'true');
-    url.searchParams.set('maxResults', '50');
+    const url = buildUrl();
     if (pageToken) {
       url.searchParams.set('pageToken', pageToken);
     }
 
     const response = await request(token, url);
-    const page = parseResponse(
-      playlistListResponseSchema,
-      await readJson(response),
-    );
-    playlists.push(...page.items.map((item) => toPlaylist(item)));
+    const page = readPage(await readJson(response));
+    items.push(...page.items);
     // Powtórzony token oznaczałby pętlę bez końca
     const next = page.nextPageToken;
     pageToken = next !== undefined && !seenTokens.has(next) ? next : undefined;
@@ -136,7 +140,56 @@ export async function listMyPlaylists(token: string): Promise<Playlist[]> {
     }
   } while (pageToken);
 
-  return playlists;
+  return items;
+}
+
+export async function listMyPlaylists(token: string): Promise<Playlist[]> {
+  return fetchAllPages(
+    token,
+    () => {
+      const url = new URL(PLAYLISTS_URL);
+      url.searchParams.set('part', 'snippet,contentDetails,status');
+      url.searchParams.set('mine', 'true');
+      url.searchParams.set('maxResults', '50');
+      return url;
+    },
+    (data) => {
+      const page = parseResponse(playlistListResponseSchema, data);
+      return {
+        items: page.items.map((item) => toPlaylist(item)),
+        nextPageToken: page.nextPageToken,
+      };
+    },
+  );
+}
+
+export async function listPlaylistVideos(
+  token: string,
+  playlistId: string,
+): Promise<PlaylistVideo[]> {
+  return fetchAllPages(
+    token,
+    () => {
+      const url = new URL(PLAYLIST_ITEMS_URL);
+      url.searchParams.set('part', 'snippet');
+      url.searchParams.set('playlistId', playlistId);
+      url.searchParams.set('maxResults', '50');
+      return url;
+    },
+    (data) => {
+      const page = parseResponse(playlistItemListResponseSchema, data);
+      const videos: PlaylistVideo[] = [];
+      for (const { snippet } of page.items) {
+        const videoId = snippet.resourceId.videoId;
+        const channelTitle = snippet.videoOwnerChannelTitle;
+        // Bez kanału właściciela to film usunięty albo prywatny
+        if (videoId !== undefined && channelTitle !== undefined) {
+          videos.push({ videoId, title: snippet.title, channelTitle });
+        }
+      }
+      return { items: videos, nextPageToken: page.nextPageToken };
+    },
+  );
 }
 
 export async function renamePlaylist(

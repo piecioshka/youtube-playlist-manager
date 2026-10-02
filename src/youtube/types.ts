@@ -11,6 +11,12 @@ export type Playlist = {
   thumbnailUrl: string | null;
 };
 
+export type PlaylistVideo = {
+  videoId: string;
+  title: string;
+  channelTitle: string;
+};
+
 export type ApiErrorKind =
   | 'unauthorized'
   | 'quotaExceeded'

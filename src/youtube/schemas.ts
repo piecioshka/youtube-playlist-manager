@@ -30,6 +30,22 @@ export const playlistListResponseSchema = z.object({
   nextPageToken: z.string().optional(),
 });
 
+// Usunięte i prywatne filmy wracają bez `videoOwnerChannelTitle`, czasem także bez `videoId`
+export const playlistItemListResponseSchema = z.object({
+  items: z
+    .array(
+      z.object({
+        snippet: z.object({
+          title: z.string(),
+          videoOwnerChannelTitle: z.string().optional(),
+          resourceId: z.object({ videoId: z.string().optional() }),
+        }),
+      }),
+    )
+    .default([]),
+  nextPageToken: z.string().optional(),
+});
+
 export const apiErrorResponseSchema = z.object({
   error: z.object({
     message: z.string().default(''),
