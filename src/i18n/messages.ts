@@ -129,6 +129,8 @@ const pl = {
   deleting: 'Usuwanie...',
   titleEmpty: 'Nazwa nie może być pusta.',
   titleTooLong: (max: number) => `Nazwa może mieć najwyżej ${max} znaków.`,
+
+  allPlaylists: 'Wszystkie playlisty',
 };
 
 export type Messages = typeof pl;
@@ -228,6 +230,8 @@ const en: Messages = {
   deleting: 'Deleting...',
   titleEmpty: 'The name cannot be empty.',
   titleTooLong: (max) => `The name can have at most ${max} characters.`,
+
+  allPlaylists: 'All playlists',
 };
 
 export const messages: Record<Locale, Messages> = { pl, en };

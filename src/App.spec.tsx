@@ -1,32 +1,45 @@
-import { screen, within } from '@testing-library/react';
+import { act, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App';
 import { useGoogleAuth, type GoogleAuth } from './auth/useGoogleAuth';
 import { getGoogleClientId } from './config';
+import { makePlaylist } from './test/playlistFactory';
 import { renderWithI18n } from './test/renderWithI18n';
+import {
+  deletePlaylist,
+  listMyPlaylists,
+  listPlaylistVideos,
+} from './youtube/api';
+import { ApiError } from './youtube/types';
 
 vi.mock('./config', () => ({
   getGoogleClientId: vi.fn(),
   YOUTUBE_SCOPE: 'scope',
 }));
 vi.mock('./auth/useGoogleAuth', () => ({ useGoogleAuth: vi.fn() }));
-vi.mock('./playlists/PlaylistsView', () => ({
-  PlaylistsView: ({
-    token,
-    onUnauthorized,
-  }: {
-    token: string;
-    onUnauthorized: () => void;
-  }) => (
-    <div>
-      <p>Lista dla {token}</p>
-      <button type="button" onClick={onUnauthorized}>
-        Symuluj 401
-      </button>
-    </div>
-  ),
+vi.mock('./youtube/api', () => ({
+  listMyPlaylists: vi.fn(),
+  listPlaylistVideos: vi.fn(),
+  getPlaylist: vi.fn(),
+  renamePlaylist: vi.fn(),
+  updatePlaylist: vi.fn(),
+  deletePlaylist: vi.fn(),
+  removePlaylistItem: vi.fn(),
+  movePlaylistItem: vi.fn(),
+  addPlaylistItem: vi.fn(),
 }));
+
+const zupa = makePlaylist({
+  id: 'a',
+  title: 'Zupa',
+  publishedAt: '2026-01-01T00:00:00Z',
+});
+const joga = makePlaylist({
+  id: 'b',
+  title: 'Joga',
+  publishedAt: '2026-02-01T00:00:00Z',
+});
 
 function auth(overrides: Partial<GoogleAuth> = {}): GoogleAuth {
   return {
@@ -40,10 +53,24 @@ function auth(overrides: Partial<GoogleAuth> = {}): GoogleAuth {
   };
 }
 
+function setHash(hash: string) {
+  act(() => {
+    window.location.hash = hash;
+    window.dispatchEvent(new HashChangeEvent('hashchange'));
+  });
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
+  window.location.hash = '';
   vi.mocked(getGoogleClientId).mockReturnValue('client-1');
   vi.mocked(useGoogleAuth).mockReturnValue(auth());
+  vi.mocked(listMyPlaylists).mockResolvedValue([zupa, joga]);
+  vi.mocked(listPlaylistVideos).mockResolvedValue([]);
+});
+
+afterEach(() => {
+  window.location.hash = '';
 });
 
 describe('App', () => {
@@ -148,9 +175,80 @@ describe('App', () => {
     vi.mocked(useGoogleAuth).mockReturnValue(state);
     renderWithI18n(<App />);
 
-    expect(screen.getByText('Lista dla tok-1')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('table', { name: 'Twoje playlisty (2)' }),
+    ).toBeInTheDocument();
+    expect(listMyPlaylists).toHaveBeenCalledWith('tok-1');
     await userEvent.click(screen.getByRole('button', { name: 'Wyloguj' }));
     expect(state.signOut).toHaveBeenCalledWith();
+  });
+
+  it('opens a playlist profile from its hash and goes back to the table', async () => {
+    vi.mocked(useGoogleAuth).mockReturnValue(
+      auth({ status: 'signedIn', token: 'tok-1' }),
+    );
+    window.location.hash = '#/playlists/a';
+    renderWithI18n(<App />);
+
+    expect(
+      await screen.findByRole('heading', { level: 2, name: 'Zupa' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: '← Wszystkie playlisty' }),
+    ).toHaveAttribute('href', '#/');
+    // Lista playlist jest wspólna dla obu widoków i nie wczytuje się drugi raz
+    expect(listMyPlaylists).toHaveBeenCalledTimes(1);
+
+    setHash('#/');
+
+    expect(
+      await screen.findByRole('table', { name: 'Twoje playlisty (2)' }),
+    ).toBeInTheDocument();
+    expect(listMyPlaylists).toHaveBeenCalledTimes(1);
+  });
+
+  it('drops the list notice once another playlist profile is opened', async () => {
+    vi.mocked(useGoogleAuth).mockReturnValue(
+      auth({ status: 'signedIn', token: 'tok-1' }),
+    );
+    vi.mocked(deletePlaylist).mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    renderWithI18n(<App />);
+    await screen.findByRole('table');
+
+    await user.click(
+      screen.getByRole('button', { name: /^Usuń playlistę Zupa/ }),
+    );
+    await user.click(screen.getByRole('button', { name: 'Usuń na stałe' }));
+    expect(
+      await screen.findByText('Usunięto playlistę „Zupa”.'),
+    ).toBeInTheDocument();
+
+    setHash('#/playlists/b');
+    await screen.findByRole('heading', { level: 2, name: 'Joga' });
+    setHash('#/');
+
+    await screen.findByRole('table');
+    expect(
+      screen.queryByText('Usunięto playlistę „Zupa”.'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('links each playlist title in the table to its profile', async () => {
+    vi.mocked(useGoogleAuth).mockReturnValue(
+      auth({ status: 'signedIn', token: 'tok-1' }),
+    );
+    renderWithI18n(<App />);
+
+    const link = await screen.findByRole('link', { name: 'Joga' });
+    expect(link).toHaveAttribute('href', '#/playlists/b');
+
+    setHash('#/playlists/b');
+
+    expect(
+      await screen.findByRole('heading', { level: 2, name: 'Joga' }),
+    ).toBeInTheDocument();
   });
 
   it('switches between the dark and the light theme', async () => {
@@ -183,10 +281,14 @@ describe('App', () => {
   it('signs out with a message when the session expires', async () => {
     const state = auth({ status: 'signedIn', token: 'tok-1' });
     vi.mocked(useGoogleAuth).mockReturnValue(state);
+    vi.mocked(listMyPlaylists).mockRejectedValue(
+      new ApiError('unauthorized', 'expired', 401),
+    );
     renderWithI18n(<App />);
 
-    await userEvent.click(screen.getByRole('button', { name: 'Symuluj 401' }));
-    expect(state.signOut).toHaveBeenCalledWith('sessionExpired');
+    await vi.waitFor(() =>
+      expect(state.signOut).toHaveBeenCalledWith('sessionExpired'),
+    );
   });
 
   it('starts in Polish', () => {

@@ -1,7 +1,9 @@
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { useI18n } from '../i18n/LocaleProvider';
 import type { Locale } from '../i18n/messages';
+import { useVideoIndex } from '../search/useVideoIndex';
 import { makePlaylist } from '../test/playlistFactory';
 import { makeVideo } from '../test/videoFactory';
 import { renderWithI18n } from '../test/renderWithI18n';
@@ -13,6 +15,7 @@ import {
 } from '../youtube/api';
 import { ApiError, type PlaylistVideo } from '../youtube/types';
 import { PlaylistsView } from './PlaylistsView';
+import { usePlaylists } from './usePlaylists';
 
 vi.mock('../youtube/api', () => ({
   listMyPlaylists: vi.fn(),
@@ -85,12 +88,21 @@ function rowOf(title: string): HTMLElement {
   return row;
 }
 
+// Lista i indeks filmów żyją w AuthenticatedApp; tutaj ten sam układ w miniaturze
+function Harness({ onUnauthorized }: { onUnauthorized: () => void }) {
+  const { t } = useI18n();
+  const list = usePlaylists({ token: 'tok', onUnauthorized, t });
+  const index = useVideoIndex({
+    token: 'tok',
+    playlists: list.playlists,
+    onUnauthorized,
+  });
+  return <PlaylistsView list={list} index={index} />;
+}
+
 function renderView(locale: Locale = 'pl') {
   const onUnauthorized = vi.fn();
-  renderWithI18n(
-    <PlaylistsView token="tok" onUnauthorized={onUnauthorized} />,
-    locale,
-  );
+  renderWithI18n(<Harness onUnauthorized={onUnauthorized} />, locale);
   return { onUnauthorized, user: userEvent.setup() };
 }
 

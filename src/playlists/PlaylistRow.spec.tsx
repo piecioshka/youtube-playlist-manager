@@ -44,11 +44,9 @@ describe('PlaylistRow', () => {
     const rowHeader = screen.getByRole('rowheader');
     const link = screen.getByRole('link', { name: 'Muzyka' });
     expect(rowHeader).toContainElement(link);
-    expect(link).toHaveAttribute(
-      'href',
-      'https://www.youtube.com/playlist?list=PL1',
-    );
-    expect(link).toHaveAttribute('target', '_blank');
+    // Tytuł prowadzi do profilu playlisty w aplikacji, link do YouTube jest na profilu
+    expect(link).toHaveAttribute('href', '#/playlists/PL1');
+    expect(link).not.toHaveAttribute('target');
     expect(link).toHaveAttribute('title', 'Muzyka');
     const cells = screen.getAllByRole('cell').map((cell) => cell.textContent);
     expect(cells.slice(0, 3)).toEqual(['3', 'Niepubliczna', '2026-03-01']);

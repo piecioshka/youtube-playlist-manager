@@ -1,24 +1,11 @@
-import {
-  Fragment,
-  useEffect,
-  useEffectEvent,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { useI18n } from '../i18n/LocaleProvider';
 import type { Messages } from '../i18n/messages';
 import { normalizeText } from '../search/normalize';
 import { SearchField } from '../search/SearchField';
 import { searchPlaylists, type SearchResult } from '../search/searchPlaylists';
-import { useVideoIndex, type VideoIndex } from '../search/useVideoIndex';
-import {
-  deletePlaylist,
-  listMyPlaylists,
-  renamePlaylist,
-} from '../youtube/api';
+import type { VideoIndex } from '../search/useVideoIndex';
 import { errorMessage } from '../youtube/errorMessage';
-import { ApiError, type Playlist } from '../youtube/types';
 import {
   countByVisibility,
   filterByVisibility,
@@ -33,19 +20,12 @@ import {
   type SortState,
 } from './sortPlaylists';
 import { readSort, writeSort } from './sortPreference';
+import { isApiError, type Notice, type PlaylistsState } from './usePlaylists';
 import { VisibilityFilter } from './VisibilityFilter';
 import {
   readVisibilityFilter,
   writeVisibilityFilter,
 } from './visibilityPreference';
-
-type LoadState =
-  | { status: 'loading' }
-  | { status: 'error'; error: unknown }
-  | { status: 'ready' };
-
-// Komunikat trzyma dane, a nie tekst, żeby zmiana języka tłumaczyła go od nowa
-type Notice = { kind: 'deleted'; title: string } | { kind: 'missing' } | null;
 
 type ColumnLabel =
   'columnTitle' | 'columnVideos' | 'columnPrivacy' | 'columnCreated';
@@ -60,15 +40,11 @@ const SORTABLE_COLUMNS: readonly SortableColumn[] = [
 ];
 
 type PlaylistsViewProps = {
-  token: string;
-  onUnauthorized: () => void;
+  list: PlaylistsState;
+  index: VideoIndex;
 };
 
 const MIN_QUERY_LENGTH = 2;
-
-function isApiError(error: unknown, kind: ApiError['kind']): boolean {
-  return error instanceof ApiError && error.kind === kind;
-}
 
 function indexStatus(index: VideoIndex, t: Messages): string {
   if (index.status === 'loading') {
@@ -94,44 +70,20 @@ function noticeText(notice: Notice, t: Messages): string {
     : t.apiError.notFound;
 }
 
-export function PlaylistsView({ token, onUnauthorized }: PlaylistsViewProps) {
+export function PlaylistsView({ list, index }: PlaylistsViewProps) {
   const { t } = useI18n();
-  const [loadState, setLoadState] = useState<LoadState>({ status: 'loading' });
-  const [playlists, setPlaylists] = useState<Playlist[]>([]);
+  const { loadState, playlists, notice } = list;
   const [sort, setSort] = useState<SortState>(readSort);
   const [visibility, setVisibility] = useState<Filter>(readVisibilityFilter);
   const [query, setQuery] = useState('');
-  const [notice, setNotice] = useState<Notice>(null);
-  const [reloadKey, setReloadKey] = useState(0);
   const headingRef = useRef<HTMLHeadingElement>(null);
-  const notifyUnauthorized = useEffectEvent(() => onUnauthorized());
-  const index = useVideoIndex({ token, playlists, onUnauthorized });
 
+  // Po usunięciu playlisty (także z jej profilu) fokus wraca na nagłówek listy, a nie ginie na body
   useEffect(() => {
-    let cancelled = false;
-    listMyPlaylists(token).then(
-      (items) => {
-        if (cancelled) {
-          return;
-        }
-        setPlaylists(items);
-        setLoadState({ status: 'ready' });
-      },
-      (error: unknown) => {
-        if (cancelled) {
-          return;
-        }
-        if (isApiError(error, 'unauthorized')) {
-          notifyUnauthorized();
-          return;
-        }
-        setLoadState({ status: 'error', error });
-      },
-    );
-    return () => {
-      cancelled = true;
-    };
-  }, [token, reloadKey]);
+    if (notice !== null) {
+      headingRef.current?.focus();
+    }
+  }, [notice]);
 
   const visibleCounts = useMemo(
     () => countByVisibility(playlists),
@@ -169,54 +121,6 @@ export function PlaylistsView({ token, onUnauthorized }: PlaylistsViewProps) {
   function handleVisibility(next: Filter) {
     setVisibility(next);
     writeVisibilityFilter(next);
-  }
-
-  function handleRetry() {
-    setLoadState({ status: 'loading' });
-    setReloadKey((key) => key + 1);
-  }
-
-  function removePlaylist(id: string) {
-    setPlaylists((current) => current.filter((item) => item.id !== id));
-  }
-
-  // Zwraca błąd do pokazania w wierszu, a przypadki dotyczące całego widoku obsługuje tutaj
-  function toRowError(error: unknown, playlist: Playlist): Error {
-    if (isApiError(error, 'unauthorized')) {
-      onUnauthorized();
-    }
-    if (isApiError(error, 'notFound')) {
-      removePlaylist(playlist.id);
-      setNotice({ kind: 'missing' });
-      headingRef.current?.focus();
-    }
-    return new Error(errorMessage(error, t));
-  }
-
-  async function handleRename(
-    playlist: Playlist,
-    newTitle: string,
-  ): Promise<void> {
-    try {
-      const updated = await renamePlaylist(token, playlist, newTitle);
-      setPlaylists((current) =>
-        current.map((item) => (item.id === updated.id ? updated : item)),
-      );
-      setNotice(null);
-    } catch (error) {
-      throw toRowError(error, playlist);
-    }
-  }
-
-  async function handleDelete(playlist: Playlist): Promise<void> {
-    try {
-      await deletePlaylist(token, playlist.id);
-    } catch (error) {
-      throw toRowError(error, playlist);
-    }
-    removePlaylist(playlist.id);
-    setNotice({ kind: 'deleted', title: playlist.title });
-    headingRef.current?.focus();
   }
 
   const heading =
@@ -264,7 +168,7 @@ export function PlaylistsView({ token, onUnauthorized }: PlaylistsViewProps) {
           <p className="playlists__error-text">
             {loadErrorMessage(loadState.error, t)}
           </p>
-          <button type="button" className="button" onClick={handleRetry}>
+          <button type="button" className="button" onClick={list.retry}>
             {t.retry}
           </button>
         </div>
@@ -336,8 +240,8 @@ export function PlaylistsView({ token, onUnauthorized }: PlaylistsViewProps) {
               <Fragment key={playlist.id}>
                 <PlaylistRow
                   playlist={playlist}
-                  onRename={handleRename}
-                  onDelete={handleDelete}
+                  onRename={list.handleRename}
+                  onDelete={list.handleDelete}
                 />
                 {matchingVideos.length > 0 && (
                   <PlaylistVideosRow

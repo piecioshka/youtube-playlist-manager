@@ -201,6 +201,7 @@ body {
 .playlist-row__input:focus-visible,
 .playlist-row__link:focus-visible,
 .playlist-videos__link:focus-visible,
+.profile__back:focus-visible,
 .search__input:focus-visible,
 .playlists__sort-button:focus-visible,
 .playlists__heading:focus-visible {
@@ -544,6 +545,20 @@ body {
   padding: 2px 10px;
   border-radius: 6px;
   font-size: 0.8125rem;
+}
+
+/* Profil playlisty */
+.profile__back {
+  display: inline-block;
+  margin-bottom: 12px;
+  color: var(--color-muted);
+  font-size: 0.875rem;
+  text-decoration: none;
+}
+
+.profile__back:hover {
+  color: var(--color-text);
+  text-decoration: underline;
 }
 
 /* Na telefonie wiersz staje się kartą: tytuł i akcje na całą szerokość, dane w trzech kolumnach z etykietami */

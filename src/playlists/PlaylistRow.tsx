@@ -7,6 +7,7 @@ import {
   type KeyboardEvent,
 } from 'react';
 import { useI18n } from '../i18n/LocaleProvider';
+import { routeToHash } from '../routing/route';
 import type { Playlist } from '../youtube/types';
 import { formatDate } from './format';
 
@@ -193,9 +194,7 @@ export function PlaylistRow({
           ) : (
             <a
               className="playlist-row__link"
-              href={`https://www.youtube.com/playlist?list=${encodeURIComponent(playlist.id)}`}
-              target="_blank"
-              rel="noreferrer"
+              href={routeToHash({ name: 'playlist', id: playlist.id })}
               title={playlist.title}
             >
               {playlist.title}

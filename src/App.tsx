@@ -1,10 +1,14 @@
-import { useCallback, type ReactNode } from 'react';
+import { useCallback, useState, type ReactNode } from 'react';
 import { LoginScreen } from './auth/LoginScreen';
 import { useGoogleAuth } from './auth/useGoogleAuth';
 import { getGoogleClientId } from './config';
 import { LanguageSelect } from './i18n/LanguageSelect';
 import { useI18n } from './i18n/LocaleProvider';
 import { PlaylistsView } from './playlists/PlaylistsView';
+import { usePlaylists } from './playlists/usePlaylists';
+import { PlaylistProfile } from './profile/PlaylistProfile';
+import { useRoute } from './routing/useRoute';
+import { useVideoIndex } from './search/useVideoIndex';
 import { ThemeToggle } from './theme/ThemeToggle';
 import { useTheme } from './theme/useTheme';
 
@@ -73,6 +77,42 @@ function Layout({ actions, children }: LayoutProps) {
   );
 }
 
+type SignedInAppProps = {
+  token: string;
+  onUnauthorized: () => void;
+};
+
+// Lista playlist i indeks filmów są wspólne dla tabeli i profilu, więc przejście między nimi nic nie wczytuje od nowa
+function SignedInApp({ token, onUnauthorized }: SignedInAppProps) {
+  const { t } = useI18n();
+  const { route } = useRoute();
+  const list = usePlaylists({ token, onUnauthorized, t });
+  const index = useVideoIndex({
+    token,
+    playlists: list.playlists,
+    onUnauthorized,
+  });
+  const [shownRoute, setShownRoute] = useState(route);
+
+  // Komunikat z listy nie czeka na powrót z profilu innej playlisty
+  if (shownRoute !== route) {
+    setShownRoute(route);
+    if (route.name === 'playlist') {
+      list.clearNotice();
+    }
+  }
+
+  if (route.name === 'playlist') {
+    return (
+      <PlaylistProfile
+        playlist={list.playlists.find((item) => item.id === route.id)}
+        listStatus={list.loadState.status}
+      />
+    );
+  }
+  return <PlaylistsView list={list} index={index} />;
+}
+
 function AuthenticatedApp({ clientId }: { clientId: string }) {
   const { t } = useI18n();
   const { status, token, message, signIn, signOut, retry } =
@@ -91,7 +131,7 @@ function AuthenticatedApp({ clientId }: { clientId: string }) {
           </button>
         }
       >
-        <PlaylistsView token={token} onUnauthorized={handleUnauthorized} />
+        <SignedInApp token={token} onUnauthorized={handleUnauthorized} />
       </Layout>
     );
   }
