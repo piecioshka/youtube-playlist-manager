@@ -9,6 +9,22 @@
     />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>YouTube Playlist Manager</title>
+    <script>
+      // Motyw przed pierwszym malowaniem, żeby jasny nie mignął przed startem Reacta
+      (function () {
+        var theme = 'dark';
+        try {
+          if (
+            localStorage.getItem('youtube-playlist-manager.theme') === 'light'
+          ) {
+            theme = 'light';
+          }
+        } catch (error) {
+          // Zablokowany storage: zostaje domyślny ciemny
+        }
+        document.documentElement.dataset.theme = theme;
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

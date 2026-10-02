@@ -174,3 +174,30 @@ test('has no accessibility violations on the playlist screen', async ({
   const results = await new AxeBuilder({ page }).analyze();
   expect(results.violations).toEqual([]);
 });
+
+test('starts dark and remembers the light theme after reload', async ({
+  page,
+}) => {
+  await signIn(page);
+  const html = page.locator('html');
+  await expect(html).toHaveAttribute('data-theme', 'dark');
+
+  const toggle = page.getByRole('button', { name: 'Ciemny motyw' });
+  await expect(toggle).toHaveAttribute('aria-pressed', 'true');
+  await toggle.click();
+  await expect(html).toHaveAttribute('data-theme', 'light');
+  await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+
+  await page.reload();
+  await expect(html).toHaveAttribute('data-theme', 'light');
+  await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+});
+
+test('has no accessibility violations in the light theme', async ({ page }) => {
+  await signIn(page);
+  await page.getByRole('button', { name: 'Ciemny motyw' }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+
+  const results = await new AxeBuilder({ page }).analyze();
+  expect(results.violations).toEqual([]);
+});

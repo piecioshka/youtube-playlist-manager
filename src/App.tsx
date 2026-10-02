@@ -3,6 +3,8 @@ import { LoginScreen } from './auth/LoginScreen';
 import { useGoogleAuth } from './auth/useGoogleAuth';
 import { getGoogleClientId } from './config';
 import { PlaylistsView } from './playlists/PlaylistsView';
+import { ThemeToggle } from './theme/ThemeToggle';
+import { useTheme } from './theme/useTheme';
 
 const SESSION_EXPIRED_MESSAGE = 'Sesja wygasła, zaloguj się ponownie.';
 
@@ -12,6 +14,8 @@ type LayoutProps = {
 };
 
 function Layout({ actions, children }: LayoutProps) {
+  const { theme, toggle } = useTheme();
+
   return (
     <div className="app">
       <header className="app__header">
@@ -25,7 +29,10 @@ function Layout({ actions, children }: LayoutProps) {
           />
           YouTube Playlist Manager
         </h1>
-        {actions}
+        <div className="app__actions">
+          <ThemeToggle theme={theme} label="Ciemny motyw" onToggle={toggle} />
+          {actions}
+        </div>
       </header>
       <main className="app__main">{children}</main>
       <footer className="app__footer">

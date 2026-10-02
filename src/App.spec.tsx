@@ -152,6 +152,33 @@ describe('App', () => {
     expect(state.signOut).toHaveBeenCalledWith();
   });
 
+  it('switches between the dark and the light theme', async () => {
+    localStorage.clear();
+    render(<App />);
+    const toggle = screen.getByRole('button', { name: 'Ciemny motyw' });
+
+    expect(toggle).toHaveAttribute('aria-pressed', 'true');
+    expect(document.documentElement.dataset.theme).toBe('dark');
+
+    await userEvent.click(toggle);
+    expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    expect(document.documentElement.dataset.theme).toBe('light');
+
+    await userEvent.click(toggle);
+    expect(document.documentElement.dataset.theme).toBe('dark');
+  });
+
+  it('offers the theme switch next to the sign-out button', () => {
+    vi.mocked(useGoogleAuth).mockReturnValue(
+      auth({ status: 'signedIn', token: 'tok-1' }),
+    );
+    render(<App />);
+    expect(
+      screen.getByRole('button', { name: 'Ciemny motyw' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Wyloguj' })).toBeInTheDocument();
+  });
+
   it('signs out with a message when the session expires', async () => {
     const state = auth({ status: 'signedIn', token: 'tok-1' });
     vi.mocked(useGoogleAuth).mockReturnValue(state);
