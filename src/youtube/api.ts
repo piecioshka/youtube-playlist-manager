@@ -43,6 +43,18 @@ function parseResponse<Schema extends z.ZodType>(
   return result.data;
 }
 
+async function readJson(response: Response): Promise<unknown> {
+  try {
+    return await response.json();
+  } catch {
+    throw new ApiError(
+      'unknown',
+      'Unexpected YouTube API response',
+      response.status,
+    );
+  }
+}
+
 async function toApiError(response: Response): Promise<ApiError> {
   const body: unknown = await response.json().catch(() => null);
   const parsed = apiErrorResponseSchema.safeParse(body);
@@ -110,7 +122,7 @@ export async function listMyPlaylists(token: string): Promise<Playlist[]> {
     const response = await request(token, url);
     const page = parseResponse(
       playlistListResponseSchema,
-      await response.json(),
+      await readJson(response),
     );
     playlists.push(...page.items.map((item) => toPlaylist(item)));
     pageToken = page.nextPageToken;
@@ -134,7 +146,7 @@ export async function renamePlaylist(
   });
 
   return toPlaylist(
-    parseResponse(playlistResourceSchema, await response.json()),
+    parseResponse(playlistResourceSchema, await readJson(response)),
     playlist,
   );
 }

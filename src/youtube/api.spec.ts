@@ -129,6 +129,13 @@ describe('listMyPlaylists', () => {
     expect(await listMyPlaylists('t')).toEqual([]);
   });
 
+  it('rejects a non-JSON success body with an ApiError', async () => {
+    fetchMock.mockResolvedValueOnce(new Response('<html>', { status: 200 }));
+    const error = await listMyPlaylists('t').catch((caught: unknown) => caught);
+    expect(error).toBeInstanceOf(ApiError);
+    expect(error).toMatchObject({ kind: 'unknown', status: 200 });
+  });
+
   it('rejects an unexpected response shape', async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse({ items: [{ id: 1 }] }));
     await expect(listMyPlaylists('t')).rejects.toMatchObject({
