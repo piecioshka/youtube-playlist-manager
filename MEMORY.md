@@ -1,0 +1,16 @@
+# Memory
+
+Facts about THIS repository: architecture, traps, decisions that the code and git history do not already state.
+
+## Rules
+
+- One fact per bullet, format: `- [YYYY-MM-DD] [category] fact`
+- Categories: `project`, `reference`, `preference`
+- Check for an existing entry before adding one, update instead of duplicating
+- Delete a fact once it stops being true
+- Newest entries first
+
+## Facts
+
+- [2026-10-02] [project] `PUT playlists?part=snippet` replaces the whole snippet: the current `description` must be sent with the new title, otherwise YouTube clears it.
+- [2026-10-02] [project] OAuth Authorized JavaScript origins must match exactly. `npm run dev` takes the first free port from 3000, so CONTRIBUTING lists 3000-3002.

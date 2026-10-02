@@ -1,0 +1,7 @@
+coverage/
+dist/
+package-lock.json
+playwright-report/
+test-results/
+tmp/
+.superpowers/
