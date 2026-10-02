@@ -86,6 +86,44 @@ const SEED_PLAYLISTS: FakePlaylist[] = [
   },
 ];
 
+export type FakeVideo = {
+  videoId: string;
+  title: string;
+  channelTitle: string;
+};
+
+const SEED_VIDEOS: Record<string, FakeVideo[]> = {
+  'PL-music': [
+    {
+      videoId: 'vid-lofi',
+      title: 'Lofi beats to study',
+      channelTitle: 'Lofi Girl',
+    },
+    {
+      videoId: 'vid-jazz',
+      title: 'Jazz for focus and study',
+      channelTitle: 'Cafe Music BGM',
+    },
+    {
+      videoId: 'vid-rain',
+      title: 'Rain sounds',
+      channelTitle: 'Relaxing White Noise',
+    },
+  ],
+  'PL-algo': [
+    {
+      videoId: 'vid-quicksort',
+      title: 'Quicksort in 4 minutes',
+      channelTitle: 'Michael Sambol',
+    },
+    {
+      videoId: 'vid-bigo',
+      title: 'Big O notation for beginners',
+      channelTitle: 'CS Dojo',
+    },
+  ],
+};
+
 const putBodySchema = z.object({
   id: z.string(),
   snippet: z.object({
@@ -110,6 +148,17 @@ function toResource(playlist: FakePlaylist) {
   };
 }
 
+function toPlaylistItem(video: FakeVideo) {
+  return {
+    kind: 'youtube#playlistItem',
+    snippet: {
+      title: video.title,
+      videoOwnerChannelTitle: video.channelTitle,
+      resourceId: { kind: 'youtube#video', videoId: video.videoId },
+    },
+  };
+}
+
 function errorJson(status: number, reason: string) {
   return {
     error: {
@@ -122,6 +171,7 @@ function errorJson(status: number, reason: string) {
 
 export class FakeYouTube {
   playlists: FakePlaylist[] = structuredClone(SEED_PLAYLISTS);
+  videos: Record<string, FakeVideo[]> = structuredClone(SEED_VIDEOS);
   requests: RecordedRequest[] = [];
   private nextFailureStatus: number | null = null;
 
@@ -137,6 +187,28 @@ export class FakeYouTube {
       'https://www.googleapis.com/youtube/v3/playlists**',
       (route) => this.handle(route),
     );
+    await page.route(
+      'https://www.googleapis.com/youtube/v3/playlistItems**',
+      (route) => this.handleItems(route),
+    );
+  }
+
+  private async handleItems(route: Route): Promise<void> {
+    const request = route.request();
+    if (request.method() === 'OPTIONS') {
+      await route.fulfill({ status: 204, headers: CORS_HEADERS });
+      return;
+    }
+    const url = new URL(request.url());
+    this.requests.push({ method: request.method(), url, body: null });
+    const playlistId = url.searchParams.get('playlistId') ?? '';
+    await route.fulfill({
+      headers: CORS_HEADERS,
+      json: {
+        kind: 'youtube#playlistItemListResponse',
+        items: (this.videos[playlistId] ?? []).map(toPlaylistItem),
+      },
+    });
   }
 
   private async handle(route: Route): Promise<void> {

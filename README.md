@@ -17,6 +17,7 @@ The hosted app only works for Google accounts added as test users of its OAuth c
 
 - 📋 Every playlist on your account in one list _(also beyond the first 50)_
 - 🔤 Sort alphabetically or newest first _(your choice is remembered)_
+- 🔎 Search playlists and the videos inside them _(Cmd+K / Ctrl+K)_
 - ✏️ Rename a playlist inline _(the description stays untouched)_
 - 🗑️ Delete a playlist after an inline confirmation
 - 🔒 No backend _(the access token stays in the current browser tab only)_

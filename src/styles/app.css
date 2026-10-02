@@ -149,6 +149,8 @@ body {
 .app__footer-link:focus-visible,
 .playlist-row__input:focus-visible,
 .playlist-row__link:focus-visible,
+.playlist-videos__link:focus-visible,
+.search__input:focus-visible,
 .playlists__sort-button:focus-visible,
 .playlists__heading:focus-visible {
   outline: 3px solid var(--color-focus);
@@ -191,6 +193,61 @@ body {
 .playlists__heading {
   margin: 0;
   font-size: 1.25rem;
+}
+
+.search {
+  position: relative;
+  margin: 12px 0 0;
+}
+
+.search__input {
+  width: 100%;
+  padding: 6px 64px 6px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.9375rem;
+}
+
+.search__input::placeholder {
+  color: var(--color-muted);
+}
+
+.search__hint {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  padding: 1px 6px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  color: var(--color-muted);
+  font-family: inherit;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+/* Z wpisanym tekstem miejsce po prawej zajmuje przycisk czyszczenia pola */
+.search__input:not(:placeholder-shown) {
+  padding-right: 10px;
+}
+
+.search__input:not(:placeholder-shown) + .search__hint {
+  display: none;
+}
+
+/* Live region zostaje w DOM, ale pusty nie dokłada wysokości */
+.search__status {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.8125rem;
+}
+
+.search__status:not(:empty) {
+  margin-top: 4px;
 }
 
 .visibility-filter {
@@ -347,6 +404,50 @@ body {
   text-decoration: underline;
 }
 
+/* Wiersz z filmami należy do playlisty nad nim: wspólna ramka dopiero pod filmami */
+.playlist-row:has(+ .playlist-videos) .playlist-row__cell {
+  border-bottom: 0;
+}
+
+/* 52px: odstęp komórki (12px) + miniatura (32px) + przerwa (8px), czyli początek tytułu */
+.playlist-videos__cell {
+  padding: 2px 12px 8px 52px;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 0.8125rem;
+}
+
+.playlist-videos:last-child .playlist-videos__cell {
+  border-bottom: 0;
+}
+
+/* contain: inline-size nie pozwala długim tytułom poszerzyć tabeli, wielokropek zostaje w komórce */
+.playlist-videos__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  contain: inline-size;
+}
+
+.playlist-videos__item {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.playlist-videos__link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.playlist-videos__link:hover,
+.playlist-videos__link:focus-visible {
+  text-decoration: underline;
+}
+
+.playlist-videos__channel {
+  color: var(--color-muted);
+}
+
 .playlist-row__buttons,
 .playlist-row__edit {
   display: flex;
@@ -450,5 +551,28 @@ body {
 
   .playlist-row__buttons {
     justify-content: flex-start;
+  }
+
+  .playlist-videos,
+  .playlist-videos__cell {
+    display: block;
+  }
+
+  .playlist-videos {
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .playlist-videos:last-child {
+    border-bottom: 0;
+  }
+
+  .playlist-videos__cell {
+    padding: 0 12px 10px;
+    border-bottom: 0;
+  }
+
+  .playlist-row:has(+ .playlist-videos) {
+    padding-bottom: 6px;
+    border-bottom: 0;
   }
 }

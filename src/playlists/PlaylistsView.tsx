@@ -1,4 +1,15 @@
-import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
+import {
+  Fragment,
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import { normalizeText } from '../search/normalize';
+import { SearchField } from '../search/SearchField';
+import { searchPlaylists, type SearchResult } from '../search/searchPlaylists';
+import { useVideoIndex, type VideoIndex } from '../search/useVideoIndex';
 import {
   deletePlaylist,
   listMyPlaylists,
@@ -12,6 +23,7 @@ import {
   type VisibilityFilter as Filter,
 } from './filterPlaylists';
 import { PlaylistRow } from './PlaylistRow';
+import { PlaylistVideosRow } from './PlaylistVideosRow';
 import {
   nextSort,
   sortPlaylists,
@@ -46,8 +58,20 @@ type PlaylistsViewProps = {
 
 const NO_CHANNEL_MESSAGE = 'Nie znaleziono kanału YouTube na tym koncie.';
 
+const MIN_QUERY_LENGTH = 2;
+
 function isApiError(error: unknown, kind: ApiError['kind']): boolean {
   return error instanceof ApiError && error.kind === kind;
+}
+
+function indexStatus(index: VideoIndex): string {
+  if (index.status === 'loading') {
+    return `Indeksowanie filmów: ${index.done}/${index.total} playlist`;
+  }
+  if (index.status === 'ready' && index.failed > 0) {
+    return `Nie udało się pobrać filmów z ${index.failed} playlist.`;
+  }
+  return '';
 }
 
 export function PlaylistsView({ token, onUnauthorized }: PlaylistsViewProps) {
@@ -55,10 +79,12 @@ export function PlaylistsView({ token, onUnauthorized }: PlaylistsViewProps) {
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [sort, setSort] = useState<SortState>(readSort);
   const [visibility, setVisibility] = useState<Filter>(readVisibilityFilter);
+  const [query, setQuery] = useState('');
   const [notice, setNotice] = useState('');
   const [reloadKey, setReloadKey] = useState(0);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const notifyUnauthorized = useEffectEvent(() => onUnauthorized());
+  const index = useVideoIndex({ token, playlists, onUnauthorized });
 
   useEffect(() => {
     let cancelled = false;
@@ -96,10 +122,28 @@ export function PlaylistsView({ token, onUnauthorized }: PlaylistsViewProps) {
     () => countByVisibility(playlists),
     [playlists],
   );
-  const sortedPlaylists = useMemo(
-    () => sortPlaylists(filterByVisibility(playlists, visibility), sort),
-    [playlists, visibility, sort],
-  );
+  const normalizedQuery = normalizeText(query);
+  const searching = normalizedQuery.length >= MIN_QUERY_LENGTH;
+  const videosByPlaylist = index.videosByPlaylist;
+  // Kolejność: widoczność, wyszukiwanie, sortowanie
+  const results = useMemo((): SearchResult[] => {
+    const visible = filterByVisibility(playlists, visibility);
+    const found = searching
+      ? searchPlaylists(visible, normalizedQuery, videosByPlaylist)
+      : visible.map((playlist) => ({ playlist, matchingVideos: [] }));
+    const byId = new Map(found.map((result) => [result.playlist.id, result]));
+    return sortPlaylists(
+      found.map((result) => result.playlist),
+      sort,
+    ).flatMap((playlist) => byId.get(playlist.id) ?? []);
+  }, [
+    playlists,
+    visibility,
+    searching,
+    normalizedQuery,
+    videosByPlaylist,
+    sort,
+  ]);
 
   function handleSort(key: SortKey) {
     const next = nextSort(sort, key);
@@ -163,9 +207,9 @@ export function PlaylistsView({ token, onUnauthorized }: PlaylistsViewProps) {
   const count =
     loadState.status !== 'ready'
       ? ''
-      : visibility === 'all'
+      : visibility === 'all' && !searching
         ? ` (${playlists.length})`
-        : ` (${sortedPlaylists.length} z ${playlists.length})`;
+        : ` (${results.length} z ${playlists.length})`;
 
   return (
     <section className="playlists" aria-labelledby="playlists-heading">
@@ -179,6 +223,14 @@ export function PlaylistsView({ token, onUnauthorized }: PlaylistsViewProps) {
           Twoje playlisty{count}
         </h2>
       </div>
+      {loadState.status === 'ready' && playlists.length > 0 && (
+        <SearchField
+          value={query}
+          status={indexStatus(index)}
+          onChange={setQuery}
+          onFocus={index.start}
+        />
+      )}
       {loadState.status === 'ready' && playlists.length > 0 && (
         <VisibilityFilter
           value={visibility}
@@ -205,10 +257,14 @@ export function PlaylistsView({ token, onUnauthorized }: PlaylistsViewProps) {
       )}
       {loadState.status === 'ready' &&
         playlists.length > 0 &&
-        sortedPlaylists.length === 0 && (
-          <p className="playlists__state">Brak playlist o tej widoczności.</p>
+        results.length === 0 && (
+          <p className="playlists__state">
+            {searching
+              ? `Brak wyników dla „${query.trim()}”.`
+              : 'Brak playlist o tej widoczności.'}
+          </p>
         )}
-      {loadState.status === 'ready' && sortedPlaylists.length > 0 && (
+      {loadState.status === 'ready' && results.length > 0 && (
         // Jawne role: na telefonie wiersze dostają display: grid, co w części przeglądarek gubi semantykę tabeli
         <table
           className="playlists__table"
@@ -259,13 +315,20 @@ export function PlaylistsView({ token, onUnauthorized }: PlaylistsViewProps) {
             </tr>
           </thead>
           <tbody role="rowgroup">
-            {sortedPlaylists.map((playlist) => (
-              <PlaylistRow
-                key={playlist.id}
-                playlist={playlist}
-                onRename={handleRename}
-                onDelete={handleDelete}
-              />
+            {results.map(({ playlist, matchingVideos }) => (
+              <Fragment key={playlist.id}>
+                <PlaylistRow
+                  playlist={playlist}
+                  onRename={handleRename}
+                  onDelete={handleDelete}
+                />
+                {matchingVideos.length > 0 && (
+                  <PlaylistVideosRow
+                    playlist={playlist}
+                    videos={matchingVideos}
+                  />
+                )}
+              </Fragment>
             ))}
           </tbody>
         </table>

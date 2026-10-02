@@ -5,15 +5,17 @@ import { makePlaylist } from '../test/playlistFactory';
 import {
   deletePlaylist,
   listMyPlaylists,
+  listPlaylistVideos,
   renamePlaylist,
 } from '../youtube/api';
-import { ApiError } from '../youtube/types';
+import { ApiError, type PlaylistVideo } from '../youtube/types';
 import { PlaylistsView } from './PlaylistsView';
 
 vi.mock('../youtube/api', () => ({
   listMyPlaylists: vi.fn(),
   renamePlaylist: vi.fn(),
   deletePlaylist: vi.fn(),
+  listPlaylistVideos: vi.fn(),
 }));
 
 const zupa = makePlaylist({
@@ -91,6 +93,8 @@ beforeEach(() => {
   vi.mocked(listMyPlaylists).mockReset();
   vi.mocked(renamePlaylist).mockReset();
   vi.mocked(deletePlaylist).mockReset();
+  vi.mocked(listPlaylistVideos).mockReset();
+  vi.mocked(listPlaylistVideos).mockResolvedValue([]);
 });
 
 describe('PlaylistsView', () => {
@@ -276,9 +280,9 @@ describe('PlaylistsView', () => {
     );
 
     expect(deletePlaylist).toHaveBeenCalledWith('tok', 'a');
-    expect(await screen.findByRole('status')).toHaveTextContent(
-      'Usunięto playlistę „Zupa”.',
-    );
+    expect(
+      await screen.findByText('Usunięto playlistę „Zupa”.'),
+    ).toHaveAttribute('role', 'status');
     expect(rowTitles()).toEqual(['Ćwiczenia', 'Algorytmy']);
     const heading = screen.getByRole('heading', {
       level: 2,
@@ -327,9 +331,9 @@ describe('PlaylistsView', () => {
       within(row).getByRole('button', { name: 'Usuń na stałe' }),
     );
 
-    expect(await screen.findByRole('status')).toHaveTextContent(
-      'Tej playlisty już nie ma.',
-    );
+    expect(
+      await screen.findByText('Tej playlisty już nie ma.'),
+    ).toHaveAttribute('role', 'status');
     expect(rowTitles()).toEqual(['Ćwiczenia', 'Algorytmy']);
     expect(
       screen.getByRole('heading', { level: 2, name: 'Twoje playlisty (2)' }),
@@ -457,6 +461,274 @@ describe('PlaylistsView', () => {
       expect(
         screen.queryByRole('group', { name: 'Filtruj po widoczności' }),
       ).not.toBeInTheDocument();
+    });
+  });
+
+  describe('search', () => {
+    function video(
+      videoId: string,
+      title: string,
+      channelTitle = 'Kanał',
+    ): PlaylistVideo {
+      return { videoId, title, channelTitle };
+    }
+
+    const videosByPlaylist: Record<string, PlaylistVideo[]> = {
+      a: [video('v-zupa', 'Pomidorowa w 10 minut', 'Kuchnia Lidla')],
+      b: [video('v-joga', 'Joga na dzień dobry')],
+      c: [
+        video('v-qs', 'Quicksort in 4 minutes', 'Michael Sambol'),
+        video('v-ms', 'Merge sort', 'Michael Sambol'),
+      ],
+    };
+
+    function mockVideos(byPlaylist: Record<string, PlaylistVideo[]>) {
+      vi.mocked(listPlaylistVideos).mockImplementation(
+        async (_token, playlistId) => byPlaylist[playlistId] ?? [],
+      );
+    }
+
+    function searchBox(): HTMLElement {
+      return screen.getByRole('searchbox', {
+        name: 'Szukaj playlist i filmów',
+      });
+    }
+
+    async function renderLoaded() {
+      vi.mocked(listMyPlaylists).mockResolvedValue(playlists);
+      mockVideos(videosByPlaylist);
+      const rendered = renderView();
+      await screen.findByRole('table');
+      return rendered;
+    }
+
+    it('focuses the field with Cmd+K and with Ctrl+K', async () => {
+      const { user } = await renderLoaded();
+
+      await user.keyboard('{Meta>}k{/Meta}');
+      expect(searchBox()).toHaveFocus();
+
+      searchBox().blur();
+      await user.keyboard('{Control>}k{/Control}');
+      expect(searchBox()).toHaveFocus();
+    });
+
+    it('announces the shortcut and shows the hint', async () => {
+      await renderLoaded();
+
+      expect(searchBox()).toHaveAttribute(
+        'aria-keyshortcuts',
+        'Meta+K Control+K',
+      );
+      expect(screen.getByText('Ctrl+K')).toHaveAttribute('aria-hidden', 'true');
+    });
+
+    it('does not fetch videos before the field is used', async () => {
+      const { user } = await renderLoaded();
+      expect(listPlaylistVideos).not.toHaveBeenCalled();
+
+      await user.click(searchBox());
+
+      await vi.waitFor(() =>
+        expect(listPlaylistVideos).toHaveBeenCalledTimes(3),
+      );
+      expect(listPlaylistVideos).toHaveBeenCalledWith('tok', 'a');
+    });
+
+    it('filters rows by the playlist title', async () => {
+      const { user } = await renderLoaded();
+
+      await user.type(searchBox(), 'zup');
+
+      expect(rowTitles()).toEqual(['Zupa']);
+    });
+
+    it('shows a playlist with its matching video', async () => {
+      const { user } = await renderLoaded();
+
+      await user.type(searchBox(), 'quicksort');
+
+      const link = await screen.findByRole('link', {
+        name: 'Quicksort in 4 minutes',
+      });
+      expect(link).toHaveAttribute(
+        'href',
+        'https://www.youtube.com/watch?v=v-qs&list=c',
+      );
+      expect(link).toHaveAttribute('target', '_blank');
+      expect(rowTitles()).toEqual(['Algorytmy']);
+      const list = screen.getByRole('list', {
+        name: 'Pasujące filmy z playlisty Algorytmy',
+      });
+      expect(within(list).getAllByRole('listitem')).toHaveLength(1);
+      expect(within(list).getByText('Michael Sambol')).toBeInTheDocument();
+    });
+
+    it('matches the channel title', async () => {
+      const { user } = await renderLoaded();
+
+      await user.type(searchBox(), 'sambol');
+
+      await screen.findByRole('link', { name: 'Merge sort' });
+      expect(rowTitles()).toEqual(['Algorytmy']);
+    });
+
+    it('ignores diacritics and letter case', async () => {
+      const { user } = await renderLoaded();
+
+      await user.type(searchBox(), 'CWICZ');
+      expect(rowTitles()).toEqual(['Ćwiczenia']);
+
+      await user.clear(searchBox());
+      await user.type(searchBox(), 'dzien dobry');
+      expect(
+        await screen.findByRole('link', { name: 'Joga na dzień dobry' }),
+      ).toBeInTheDocument();
+    });
+
+    it('waits for two characters before searching', async () => {
+      const { user } = await renderLoaded();
+
+      await user.type(searchBox(), 'z');
+
+      expect(rowTitles()).toHaveLength(3);
+    });
+
+    it('clears the query with Escape and keeps focus', async () => {
+      const { user } = await renderLoaded();
+
+      await user.type(searchBox(), 'zupa');
+      await user.keyboard('{Escape}');
+
+      expect(searchBox()).toHaveValue('');
+      expect(searchBox()).toHaveFocus();
+      expect(rowTitles()).toHaveLength(3);
+    });
+
+    it('explains an empty result and keeps the field and filter', async () => {
+      const { user } = await renderLoaded();
+
+      await user.type(searchBox(), 'brak takiej');
+
+      expect(
+        await screen.findByText('Brak wyników dla „brak takiej”.'),
+      ).toBeInTheDocument();
+      expect(screen.queryByRole('table')).not.toBeInTheDocument();
+      expect(searchBox()).toBeInTheDocument();
+      expect(filterButton(/^Wszystkie/)).toBeInTheDocument();
+    });
+
+    it('counts the found playlists in the heading', async () => {
+      const { user } = await renderLoaded();
+
+      await user.type(searchBox(), 'zupa');
+
+      expect(
+        screen.getByRole('heading', {
+          level: 2,
+          name: 'Twoje playlisty (1 z 3)',
+        }),
+      ).toBeInTheDocument();
+    });
+
+    it('searches inside the visibility filter', async () => {
+      vi.mocked(listMyPlaylists).mockResolvedValue(mixed);
+      mockVideos({});
+      const { user } = renderView();
+      await screen.findByRole('table');
+
+      await user.click(filterButton(/^Publiczne/));
+      await user.type(searchBox(), 'zu');
+
+      expect(rowTitles()).toEqual(['Zupa']);
+      expect(
+        screen.getByRole('heading', {
+          level: 2,
+          name: 'Twoje playlisty (1 z 4)',
+        }),
+      ).toBeInTheDocument();
+    });
+
+    it('shows indexing progress and failures', async () => {
+      vi.mocked(listMyPlaylists).mockResolvedValue(playlists);
+      let resolveLast: (videos: PlaylistVideo[]) => void = () => {};
+      vi.mocked(listPlaylistVideos).mockImplementation(
+        async (_token, playlistId) => {
+          if (playlistId === 'a') {
+            throw new ApiError('unknown', 'x', 500);
+          }
+          if (playlistId === 'c') {
+            return new Promise((resolve) => {
+              resolveLast = resolve;
+            });
+          }
+          return [];
+        },
+      );
+      const { user } = renderView();
+      await screen.findByRole('table');
+
+      await user.click(searchBox());
+
+      expect(
+        await screen.findByText('Indeksowanie filmów: 2/3 playlist'),
+      ).toHaveAttribute('role', 'status');
+
+      resolveLast([]);
+
+      expect(
+        await screen.findByText('Nie udało się pobrać filmów z 1 playlist.'),
+      ).toBeInTheDocument();
+    });
+
+    it('links to the playlist when more than 5 videos match', async () => {
+      vi.mocked(listMyPlaylists).mockResolvedValue(playlists);
+      mockVideos({
+        c: Array.from({ length: 8 }, (_, index) =>
+          video(`v${index}`, `Sortowanie ${index}`),
+        ),
+      });
+      const { user } = renderView();
+      await screen.findByRole('table');
+
+      await user.type(searchBox(), 'sortowanie');
+
+      const list = await screen.findByRole('list', {
+        name: 'Pasujące filmy z playlisty Algorytmy',
+      });
+      const items = within(list).getAllByRole('listitem');
+      expect(items).toHaveLength(6);
+      const more = within(list).getByRole('link', {
+        name: 'i jeszcze 3 pasujące filmy',
+      });
+      expect(more).toHaveAttribute(
+        'href',
+        'https://www.youtube.com/playlist?list=c',
+      );
+    });
+
+    it('keeps rename working while searching', async () => {
+      vi.mocked(renamePlaylist).mockResolvedValue({
+        ...zupa,
+        title: 'Zupa krem',
+      });
+      const { user } = await renderLoaded();
+      await user.type(searchBox(), 'zupa');
+
+      const row = rowOf('Zupa');
+      await user.click(
+        within(row).getByRole('button', { name: /^Zmień nazwę/ }),
+      );
+      const input = within(row).getByRole('textbox', {
+        name: 'Nowa nazwa playlisty',
+      });
+      await user.clear(input);
+      await user.type(input, 'Zupa krem{Enter}');
+
+      expect(
+        await screen.findByRole('link', { name: 'Zupa krem' }),
+      ).toBeInTheDocument();
+      expect(rowTitles()).toEqual(['Zupa krem']);
     });
   });
 });

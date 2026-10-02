@@ -56,6 +56,29 @@ test('filters playlists by visibility', async ({ page }) => {
   );
 });
 
+test('finds a video inside a playlist with the keyboard shortcut', async ({
+  page,
+}) => {
+  await signIn(page);
+  const searchBox = page.getByRole('searchbox', {
+    name: 'Szukaj playlist i filmów',
+  });
+
+  await page.keyboard.press('ControlOrMeta+K');
+  await expect(searchBox).toBeFocused();
+  await searchBox.fill('quicksort');
+
+  const link = page.getByRole('link', { name: 'Quicksort in 4 minutes' });
+  await expect(link).toBeVisible();
+  await expect(link).toHaveAttribute('href', /list=PL-algo/);
+  expect(await playlistTitles(page)).toEqual(['Algorytmy']);
+  await expect(page.getByRole('heading', { level: 2 })).toHaveText(
+    'Twoje playlisty (1 z 4)',
+  );
+  const results = await new AxeBuilder({ page }).analyze();
+  expect(results.violations).toEqual([]);
+});
+
 test('renames a playlist and keeps its description', async ({
   page,
   youtube,
@@ -94,9 +117,9 @@ test('deletes a playlist after confirmation', async ({ page, youtube }) => {
   ).toBeVisible();
   await row.getByRole('button', { name: 'Usuń na stałe' }).click();
 
-  await expect(page.getByRole('status')).toHaveText(
-    'Usunięto playlistę „Muzyka do pracy”.',
-  );
+  await expect(
+    page.getByRole('status').filter({ hasText: 'Usunięto' }),
+  ).toHaveText('Usunięto playlistę „Muzyka do pracy”.');
   expect(await playlistTitles(page)).toEqual([
     'Ćwiczenia',
     'Algorytmy',

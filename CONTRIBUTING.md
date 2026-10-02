@@ -49,12 +49,13 @@ npm run format        # Prettier over the whole repository
 - API: `src/youtube/api.ts` calls YouTube Data API v3 with `fetch` and validates responses with zod (`src/youtube/schemas.ts`). Errors are `ApiError` with a `kind`; `src/youtube/errorMessage.ts` turns them into Polish UI copy.
 - Rename uses `PUT playlists?part=snippet`. The request carries the current description and default language, because the API replaces the whole snippet.
 - UI: `src/playlists/PlaylistsView.tsx` (loading, sorting, list state) and `src/playlists/PlaylistRow.tsx` (inline rename and delete confirmation).
-- Quota: YouTube Data API allows 10 000 units a day. A list page costs 1 unit, a rename or a delete 50.
+- Search: `src/search/` filters by playlist titles and by the titles and channels of the videos inside. Video titles come from `playlistItems`, fetched lazily the first time the search field gets focus (at most 4 playlists at once), and stay in memory only. Indexing costs 1 quota unit per 50 videos of every playlist.
+- Quota: YouTube Data API allows 10 000 units a day. A list page costs 1 unit (playlists and `playlistItems` alike), a rename or a delete 50.
 
 ## Tests
 
 - Unit and component tests sit next to the code (`src/**/*.spec.ts(x)`).
-- E2E tests (`e2e/`) never reach Google: Playwright serves a stub instead of `https://accounts.google.com/gsi/client` and answers `https://www.googleapis.com/youtube/v3/playlists` from in-memory data (`e2e/fixtures.ts`).
+- E2E tests (`e2e/`) never reach Google: Playwright serves a stub instead of `https://accounts.google.com/gsi/client` and answers `https://www.googleapis.com/youtube/v3/playlists` and `playlistItems` from in-memory data (`e2e/fixtures.ts`).
 
 ## Deployment
 
