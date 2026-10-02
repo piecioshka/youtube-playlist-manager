@@ -190,6 +190,21 @@ test('sorts with a select on a phone, where the table has no headers', async ({
   expect(results.violations).toEqual([]);
 });
 
+test('keeps the footer on one line on a wide screen', async ({ page }) => {
+  await page.goto('/');
+  const footer = page.getByRole('contentinfo');
+  await expect(footer).toContainText('Licencja MIT');
+
+  // Druga linia tekstu zaczynałaby się o całą wysokość wiersza niżej niż pierwsza
+  const spread = await footer.evaluate((element) => {
+    const range = document.createRange();
+    range.selectNodeContents(element);
+    const tops = [...range.getClientRects()].map((rect) => rect.top);
+    return Math.max(...tops) - Math.min(...tops);
+  });
+  expect(spread).toBeLessThan(8);
+});
+
 test('has no accessibility violations on the playlist screen', async ({
   page,
 }) => {

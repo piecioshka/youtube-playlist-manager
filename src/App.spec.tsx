@@ -95,15 +95,13 @@ describe('App', () => {
     expect(logo?.getAttribute('src')).toMatch(/favicon\.svg$/);
   });
 
-  it('renders a centered footer with attribution links on the login screen', () => {
+  it('renders a one-paragraph footer with attribution links on the login screen', () => {
     renderWithI18n(<App />);
     const footer = screen.getByRole('contentinfo');
     expect(footer).toHaveTextContent(
-      'Aplikacja nie ma serwera: Twoje playlisty i sesja zostają w tej karcie przeglądarki.',
+      'Bez serwera: dane zostają w tej karcie · Działa z YouTube · Autor: Piotr Kowalski · Licencja MIT',
     );
-    expect(footer).toHaveTextContent(
-      'Działa z YouTube · Autor: Piotr Kowalski · Licencja MIT',
-    );
+    expect(footer.querySelectorAll('p')).toHaveLength(1);
     const links = [
       ['YouTube', 'https://www.youtube.com'],
       ['Piotr Kowalski', 'https://piecioshka.pl/'],
@@ -387,7 +385,7 @@ describe('App', () => {
     );
     expect(screen.getByRole('button', { name: 'Try again' })).toBeVisible();
     expect(screen.getByRole('contentinfo')).toHaveTextContent(
-      'Works with YouTube · Author: Piotr Kowalski · MIT License',
+      'No server: your data stays in this tab · Works with YouTube · Author: Piotr Kowalski · MIT License',
     );
   });
 

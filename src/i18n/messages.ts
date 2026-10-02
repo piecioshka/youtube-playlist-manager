@@ -64,8 +64,7 @@ const pl = {
   missingClientIdAfter:
     '. Instrukcja konfiguracji jest w pliku CONTRIBUTING.md.',
 
-  footerNoServer:
-    'Aplikacja nie ma serwera: Twoje playlisty i sesja zostają w tej karcie przeglądarki.',
+  footerNoServer: 'Bez serwera: dane zostają w tej karcie',
   footerWorksWith: 'Działa z',
   footerAuthor: 'Autor:',
   footerLicense: 'Licencja MIT',
@@ -222,8 +221,7 @@ const en: Messages = {
   missingClientIdBefore: 'Missing the ',
   missingClientIdAfter: ' variable. Setup instructions are in CONTRIBUTING.md.',
 
-  footerNoServer:
-    'This app has no server: your playlists and session stay in this browser tab.',
+  footerNoServer: 'No server: your data stays in this tab',
   footerWorksWith: 'Works with',
   footerAuthor: 'Author:',
   footerLicense: 'MIT License',

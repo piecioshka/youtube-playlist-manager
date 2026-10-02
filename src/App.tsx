@@ -47,29 +47,35 @@ function Layout({ actions, children }: LayoutProps) {
       </header>
       <main className="app__main">{children}</main>
       <footer className="app__footer">
-        <p className="app__footer-line">{t.footerNoServer}</p>
+        {/* Jedna linia na szerokim ekranie; na wąskim łamie się między członami, nie w ich środku */}
         <p className="app__footer-line">
-          {t.footerWorksWith}{' '}
-          <a
-            className="app__footer-link"
-            href="https://www.youtube.com"
-            target="_blank"
-            rel="noreferrer"
-          >
-            YouTube
-          </a>{' '}
-          · {t.footerAuthor}{' '}
-          <a
-            className="app__footer-link"
-            href="https://piecioshka.pl/"
-            target="_blank"
-            rel="noreferrer"
-          >
-            Piotr Kowalski
-          </a>{' '}
+          <span className="app__footer-item">{t.footerNoServer}</span> ·{' '}
+          <span className="app__footer-item">
+            {t.footerWorksWith}{' '}
+            <a
+              className="app__footer-link"
+              href="https://www.youtube.com"
+              target="_blank"
+              rel="noreferrer"
+            >
+              YouTube
+            </a>
+          </span>{' '}
+          ·{' '}
+          <span className="app__footer-item">
+            {t.footerAuthor}{' '}
+            <a
+              className="app__footer-link"
+              href="https://piecioshka.pl/"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Piotr Kowalski
+            </a>
+          </span>{' '}
           ·{' '}
           <a
-            className="app__footer-link"
+            className="app__footer-link app__footer-item"
             href="https://piecioshka.mit-license.org"
             target="_blank"
             rel="noreferrer"
