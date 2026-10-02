@@ -619,6 +619,27 @@ test('sorts the videos with a select on a phone', async ({ page }) => {
   expect(await horizontalScroll(page)).toBe(0);
 });
 
+test('gives the title the widest column of the video table', async ({
+  page,
+}) => {
+  await openAlgorithms(page);
+  const widths = await videoList(page)
+    .getByRole('columnheader')
+    .evaluateAll((headers) =>
+      Object.fromEntries(
+        headers.map((header) => [
+          header.textContent ?? '',
+          header.getBoundingClientRect().width,
+        ]),
+      ),
+    );
+
+  const title = widths['Tytuł'] ?? 0;
+  expect(title).toBe(Math.max(...Object.values(widths)));
+  // Tytuł jest najdłuższym tekstem w wierszu, więc dostaje co najmniej dwa razy tyle co kanał
+  expect(title).toBeGreaterThanOrEqual(2 * (widths['Kanał'] ?? 0));
+});
+
 test('marks every link to YouTube on the profile', async ({ page }) => {
   await openAlgorithms(page);
 

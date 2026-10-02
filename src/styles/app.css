@@ -903,8 +903,9 @@ a.external-link:focus-visible .external-link__text {
   font-size: 0.9375rem;
 }
 
+/* Wąskie odstępy i kolumny na miarę treści: resztę szerokości bierze tytuł */
 .video-table__column {
-  padding: 8px 12px;
+  padding: 8px;
   border-bottom: 1px solid var(--color-border);
   color: var(--color-muted);
   font-size: 0.8125rem;
@@ -914,21 +915,21 @@ a.external-link:focus-visible .external-link__text {
 }
 
 .video-table__column--handle {
-  width: 32px;
+  width: 28px;
   padding-right: 0;
 }
 
 .video-table__column--number {
-  width: 44px;
+  width: 40px;
   text-align: right;
 }
 
 .video-table__column--thumbnail {
-  width: 88px;
+  width: 80px;
 }
 
 .video-table__column--channel {
-  width: 22%;
+  width: 15%;
 }
 
 .video-table__column--published {
@@ -936,7 +937,7 @@ a.external-link:focus-visible .external-link__text {
 }
 
 .video-table__column--actions {
-  width: 150px;
+  width: 132px;
 }
 
 .video-item:hover {
@@ -944,7 +945,7 @@ a.external-link:focus-visible .external-link__text {
 }
 
 .video-item__cell {
-  padding: 6px 12px;
+  padding: 6px 8px;
   border-bottom: 1px solid var(--color-border);
   font-weight: normal;
   text-align: left;
