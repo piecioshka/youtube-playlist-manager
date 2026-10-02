@@ -1,5 +1,6 @@
 import { useI18n } from '../i18n/LocaleProvider';
 import type { Playlist, PlaylistVideo } from '../youtube/types';
+import { YouTubeLink } from '../youtube/YouTubeLink';
 
 const MAX_SHOWN = 5;
 
@@ -30,15 +31,13 @@ export function PlaylistVideosRow({
               key={`${position}-${video.videoId}`}
               className="playlist-videos__item"
             >
-              <a
+              <YouTubeLink
                 className="playlist-videos__link"
                 href={`https://www.youtube.com/watch?v=${encodeURIComponent(video.videoId)}&list=${playlistParam}`}
-                target="_blank"
-                rel="noreferrer"
                 title={video.title}
               >
                 {video.title}
-              </a>{' '}
+              </YouTubeLink>{' '}
               <span className="playlist-videos__channel">
                 {video.channelTitle}
               </span>
@@ -46,14 +45,12 @@ export function PlaylistVideosRow({
           ))}
           {hidden > 0 && (
             <li className="playlist-videos__item">
-              <a
+              <YouTubeLink
                 className="playlist-videos__link"
                 href={`https://www.youtube.com/playlist?list=${playlistParam}`}
-                target="_blank"
-                rel="noreferrer"
               >
                 {t.moreMatchingVideos(hidden)}
-              </a>
+              </YouTubeLink>
             </li>
           )}
         </ul>

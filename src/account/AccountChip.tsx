@@ -1,5 +1,6 @@
 import { useI18n } from '../i18n/LocaleProvider';
 import type { Channel } from '../youtube/types';
+import { ExternalIcon } from '../youtube/YouTubeLink';
 
 type AccountChipProps = {
   channel: Channel;
@@ -10,7 +11,7 @@ export function AccountChip({ channel }: AccountChipProps) {
 
   return (
     <a
-      className="account-chip"
+      className="account-chip external-link"
       href={`https://www.youtube.com/channel/${channel.id}`}
       target="_blank"
       rel="noreferrer"
@@ -28,7 +29,10 @@ export function AccountChip({ channel }: AccountChipProps) {
           referrerPolicy="no-referrer"
         />
       )}
-      <span className="account-chip__name">{channel.title}</span>
+      <span className="account-chip__name external-link__text">
+        {channel.title}
+      </span>
+      <ExternalIcon />
     </a>
   );
 }

@@ -549,3 +549,20 @@ export function playlistRows(page: Page): Locator {
 export function playlistTitles(page: Page): Promise<string[]> {
   return page.getByRole('rowheader').allTextContents();
 }
+
+// Adresy linków do YouTube, którym brakuje piktogramu na końcu albo kropkowanego podkreślenia
+export function unmarkedYouTubeLinks(page: Page): Promise<string[]> {
+  return page.locator('a[href*="youtube.com"]').evaluateAll((links) =>
+    links
+      .filter((link) => {
+        const text = link.querySelector('.external-link__text');
+        return (
+          text === null ||
+          link.lastElementChild?.classList.contains('external-link__icon') !==
+            true ||
+          getComputedStyle(text).textDecorationStyle !== 'dotted'
+        );
+      })
+      .map((link) => link.getAttribute('href') ?? ''),
+  );
+}

@@ -27,6 +27,7 @@ Static React SPA that signs in to a YouTube account with Google Identity Service
 - Identifiers in English
 - UI copy lives in `src/i18n/messages.ts` (pl + en), never inline in components
 - No `as` type assertions, no inline styles, CSS targets classes only
+- A link that leaves the app for YouTube is a `YouTubeLink` (`src/youtube/YouTubeLink.tsx`): new tab, dotted underline, icon at the end
 - Dates in the UI as `YYYY-MM-DD`
 - Commit messages in English, Conventional Commits, no `Co-Authored-By`
 

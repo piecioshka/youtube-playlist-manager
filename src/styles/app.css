@@ -115,6 +115,31 @@ body {
   text-decoration: underline;
 }
 
+/* Link na YouTube: kropkowane podkreślenie tekstu i piktogram wyjścia z aplikacji na końcu */
+a.external-link {
+  display: inline-flex;
+  gap: 0.3em;
+  align-items: center;
+  max-width: 100%;
+  text-decoration: none;
+}
+
+.external-link__text {
+  min-width: 0;
+  text-decoration: underline dotted;
+  text-underline-offset: 0.2em;
+}
+
+a.external-link:hover .external-link__text,
+a.external-link:focus-visible .external-link__text {
+  text-decoration-style: solid;
+}
+
+.external-link__icon {
+  flex: none;
+  opacity: 0.7;
+}
+
 .app__header {
   display: flex;
   flex-wrap: wrap;
@@ -891,7 +916,8 @@ body {
   min-width: 0;
 }
 
-.video-item__link,
+/* Ucina się tekst linku, a nie cały link, żeby piktogram na końcu został widoczny */
+.video-item__link .external-link__text,
 .video-item__channel {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1105,6 +1131,10 @@ body {
     padding-right: 3px;
   }
 
+  .account-chip .external-link__icon {
+    display: none;
+  }
+
   /* Kafle schodzą pod nazwę kanału i układają się dwa na dwa */
   .account__stats {
     grid-auto-flow: row;
@@ -1177,7 +1207,7 @@ body {
     height: 32px;
   }
 
-  .video-item__link {
+  .video-item__link .external-link__text {
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;

@@ -5,6 +5,7 @@ import {
   LONG_TITLE,
   playlistRows,
   playlistTitles,
+  unmarkedYouTubeLinks,
   SEED_CHANNEL,
   signIn,
   test,
@@ -249,6 +250,28 @@ test('lays the list out for a phone', async ({ page }) => {
   expect(new Set(filterTops).size).toBe(1);
 
   expect(await horizontalScroll(page)).toBe(0);
+});
+
+test('marks every link to YouTube with an icon and a dotted underline', async ({
+  page,
+}) => {
+  await signIn(page);
+  // Wyszukiwanie dokłada linki do pasujących filmów
+  await page
+    .getByRole('searchbox', { name: 'Szukaj playlist i filmów' })
+    .fill('quicksort');
+  await expect(page.locator('.playlist-videos__link').first()).toBeVisible();
+
+  expect(await unmarkedYouTubeLinks(page)).toEqual([]);
+  expect(await page.locator('a[href*="youtube.com"]').count()).toBeGreaterThan(
+    2,
+  );
+  // Link poza YouTube zostaje zwykłym linkiem
+  await expect(
+    page
+      .getByRole('link', { name: 'Piotr Kowalski' })
+      .locator('.external-link__icon'),
+  ).toHaveCount(0);
 });
 
 test('has no accessibility violations on the playlist screen', async ({

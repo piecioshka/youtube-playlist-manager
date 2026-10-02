@@ -3,6 +3,7 @@ import { useI18n } from '../i18n/LocaleProvider';
 import { formatDate } from '../playlists/format';
 import { routeToHash } from '../routing/route';
 import type { Playlist } from '../youtube/types';
+import { YouTubeLink } from '../youtube/YouTubeLink';
 
 type ProfileHeaderProps = {
   playlist: Playlist;
@@ -58,14 +59,12 @@ export function ProfileHeader({ playlist }: ProfileHeaderProps) {
             {formatDate(playlist.publishedAt)}
           </time>
         </p>
-        <a
+        <YouTubeLink
           className="profile__youtube"
           href={`https://www.youtube.com/playlist?list=${encodeURIComponent(playlist.id)}`}
-          target="_blank"
-          rel="noreferrer"
         >
           {t.openOnYouTube}
-        </a>
+        </YouTubeLink>
       </div>
     </section>
   );

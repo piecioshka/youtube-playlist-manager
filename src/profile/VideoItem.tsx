@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { useI18n } from '../i18n/LocaleProvider';
 import type { PlaylistVideo } from '../youtube/types';
+import { YouTubeLink } from '../youtube/YouTubeLink';
 import type { DropPlacement } from './reorder';
 import type { DragHandlers } from './useVideoDrag';
 
@@ -176,15 +177,13 @@ export function VideoItem({
       <div className="video-item__text">
         {video.available ? (
           <>
-            <a
+            <YouTubeLink
               className="video-item__link"
               href={`https://www.youtube.com/watch?v=${encodeURIComponent(video.videoId)}&list=${encodeURIComponent(playlistId)}`}
-              target="_blank"
-              rel="noreferrer"
               title={video.title}
             >
               {video.title}
-            </a>
+            </YouTubeLink>
             {video.channelTitle !== '' && (
               <span className="video-item__channel">{video.channelTitle}</span>
             )}

@@ -13,6 +13,7 @@ import { ProfileUnavailable } from './profile/ProfileUnavailable';
 import { useRoute } from './routing/useRoute';
 import { useVideoIndex } from './search/useVideoIndex';
 import { ThemeToggle } from './theme/ThemeToggle';
+import { YouTubeLink } from './youtube/YouTubeLink';
 import { useTheme } from './theme/useTheme';
 import { createYouTubeSession } from './youtube/session';
 import { YouTubeProvider } from './youtube/YouTubeProvider';
@@ -52,14 +53,12 @@ function Layout({ actions, children }: LayoutProps) {
           <span className="app__footer-item">{t.footerNoServer}</span> ·{' '}
           <span className="app__footer-item">
             {t.footerWorksWith}{' '}
-            <a
+            <YouTubeLink
               className="app__footer-link"
               href="https://www.youtube.com"
-              target="_blank"
-              rel="noreferrer"
             >
               YouTube
-            </a>
+            </YouTubeLink>
           </span>{' '}
           ·{' '}
           <span className="app__footer-item">

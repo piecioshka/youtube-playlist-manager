@@ -7,6 +7,7 @@ import {
   playlistRows,
   signIn,
   test,
+  unmarkedYouTubeLinks,
 } from './fixtures';
 
 function videoList(page: Page) {
@@ -472,6 +473,14 @@ test('lays the profile out for a phone', async ({ page }) => {
   expect(await horizontalScroll(page)).toBe(0);
   const results = await new AxeBuilder({ page }).analyze();
   expect(results.violations).toEqual([]);
+});
+
+test('marks every link to YouTube on the profile', async ({ page }) => {
+  await openAlgorithms(page);
+
+  expect(await unmarkedYouTubeLinks(page)).toEqual([]);
+  // Link do playlisty, trzy filmy, kanał w nagłówku i stopka
+  expect(await page.locator('a[href*="youtube.com"]').count()).toBe(6);
 });
 
 test('has no accessibility violations on the profile', async ({ page }) => {
