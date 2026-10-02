@@ -34,13 +34,14 @@ test('sorts alphabetically and remembers the choice after reload', async ({
   ];
   await signIn(page);
 
-  await page.getByRole('radio', { name: 'Alfabetycznie' }).check();
+  const titleHeader = page.getByRole('columnheader', { name: /^Tytuł/ });
+  await titleHeader.getByRole('button').click();
+  await expect(titleHeader).toHaveAttribute('aria-sort', 'ascending');
   expect(await playlistTitles(page)).toEqual(alphabetical);
 
-  await signIn(page);
-  await expect(
-    page.getByRole('radio', { name: 'Alfabetycznie' }),
-  ).toBeChecked();
+  // Sesja przeżywa odświeżenie, więc wystarczy przeładować stronę
+  await page.reload();
+  await expect(titleHeader).toHaveAttribute('aria-sort', 'ascending');
   expect(await playlistTitles(page)).toEqual(alphabetical);
 });
 

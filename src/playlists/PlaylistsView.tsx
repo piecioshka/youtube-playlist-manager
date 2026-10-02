@@ -7,14 +7,27 @@ import {
 import { errorMessage } from '../youtube/errorMessage';
 import { ApiError, type Playlist } from '../youtube/types';
 import { PlaylistRow } from './PlaylistRow';
-import { SortControl } from './SortControl';
-import { sortPlaylists, type SortMode } from './sortPlaylists';
-import { readSortMode, writeSortMode } from './sortPreference';
+import {
+  nextSort,
+  sortPlaylists,
+  type SortKey,
+  type SortState,
+} from './sortPlaylists';
+import { readSort, writeSort } from './sortPreference';
 
 type LoadState =
   | { status: 'loading' }
   | { status: 'error'; message: string }
   | { status: 'ready' };
+
+type SortableColumn = { key: SortKey; label: string; numeric?: boolean };
+
+const SORTABLE_COLUMNS: readonly SortableColumn[] = [
+  { key: 'title', label: 'Tytuł' },
+  { key: 'itemCount', label: 'Filmy', numeric: true },
+  { key: 'privacy', label: 'Widoczność' },
+  { key: 'publishedAt', label: 'Utworzona' },
+];
 
 type PlaylistsViewProps = {
   token: string;
@@ -30,7 +43,7 @@ function isApiError(error: unknown, kind: ApiError['kind']): boolean {
 export function PlaylistsView({ token, onUnauthorized }: PlaylistsViewProps) {
   const [loadState, setLoadState] = useState<LoadState>({ status: 'loading' });
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
-  const [sortMode, setSortMode] = useState<SortMode>(readSortMode);
+  const [sort, setSort] = useState<SortState>(readSort);
   const [notice, setNotice] = useState('');
   const [reloadKey, setReloadKey] = useState(0);
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -69,13 +82,14 @@ export function PlaylistsView({ token, onUnauthorized }: PlaylistsViewProps) {
   }, [token, reloadKey]);
 
   const sortedPlaylists = useMemo(
-    () => sortPlaylists(playlists, sortMode),
-    [playlists, sortMode],
+    () => sortPlaylists(playlists, sort),
+    [playlists, sort],
   );
 
-  function handleSortChange(mode: SortMode) {
-    setSortMode(mode);
-    writeSortMode(mode);
+  function handleSort(key: SortKey) {
+    const next = nextSort(sort, key);
+    setSort(next);
+    writeSort(next);
   }
 
   function handleRetry() {
@@ -139,7 +153,6 @@ export function PlaylistsView({ token, onUnauthorized }: PlaylistsViewProps) {
         >
           Twoje playlisty{count}
         </h2>
-        <SortControl value={sortMode} onChange={handleSortChange} />
       </div>
       <p className="playlists__notice" role="status">
         {notice}
@@ -167,22 +180,42 @@ export function PlaylistsView({ token, onUnauthorized }: PlaylistsViewProps) {
         >
           <thead className="playlists__head" role="rowgroup">
             <tr role="row">
-              <th className="playlists__column" scope="col" role="columnheader">
-                Tytuł
-              </th>
-              <th
-                className="playlists__column playlists__column--number"
-                scope="col"
-                role="columnheader"
-              >
-                Filmy
-              </th>
-              <th className="playlists__column" scope="col" role="columnheader">
-                Widoczność
-              </th>
-              <th className="playlists__column" scope="col" role="columnheader">
-                Utworzona
-              </th>
+              {SORTABLE_COLUMNS.map((column) => {
+                const active = sort.key === column.key;
+                return (
+                  <th
+                    key={column.key}
+                    className={
+                      column.numeric
+                        ? 'playlists__column playlists__column--number'
+                        : 'playlists__column'
+                    }
+                    scope="col"
+                    role="columnheader"
+                    aria-sort={
+                      active
+                        ? sort.direction === 'asc'
+                          ? 'ascending'
+                          : 'descending'
+                        : undefined
+                    }
+                  >
+                    <button
+                      type="button"
+                      className="playlists__sort-button"
+                      onClick={() => handleSort(column.key)}
+                    >
+                      {column.label}
+                      <span
+                        className="playlists__sort-indicator"
+                        aria-hidden="true"
+                      >
+                        {active ? (sort.direction === 'asc' ? '▲' : '▼') : ''}
+                      </span>
+                    </button>
+                  </th>
+                );
+              })}
               <th className="playlists__column" scope="col" role="columnheader">
                 <span className="visually-hidden">Akcje</span>
               </th>

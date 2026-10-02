@@ -96,7 +96,7 @@ body {
 .button:focus-visible,
 .playlist-row__input:focus-visible,
 .playlist-row__link:focus-visible,
-.sort-control__input:focus-visible,
+.playlists__sort-button:focus-visible,
 .playlists__heading:focus-visible {
   outline: 3px solid var(--color-focus);
   outline-offset: 2px;
@@ -182,28 +182,25 @@ body {
   text-align: right;
 }
 
-.sort-control {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
+.playlists__sort-button {
+  display: inline-flex;
+  gap: 4px;
   align-items: center;
-  margin: 0;
   padding: 0;
   border: 0;
-}
-
-.sort-control__legend {
-  float: left;
-  margin-right: 4px;
-  padding: 0;
-  font-weight: 600;
-}
-
-.sort-control__option {
-  display: inline-flex;
-  gap: 6px;
-  align-items: center;
+  background: none;
+  color: inherit;
+  font: inherit;
   cursor: pointer;
+}
+
+/* Filmy: przycisk dosunięty do prawej, jak liczby w kolumnie */
+.playlists__column--number .playlists__sort-button {
+  justify-content: flex-end;
+}
+
+.playlists__sort-indicator {
+  font-size: 0.75em;
 }
 
 .playlist-row:hover {

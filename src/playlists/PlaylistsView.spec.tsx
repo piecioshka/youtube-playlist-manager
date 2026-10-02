@@ -37,6 +37,18 @@ function rowTitles(): string[] {
   return screen.getAllByRole('rowheader').map((cell) => cell.textContent ?? '');
 }
 
+const SORT_KEY = 'youtube-playlist-manager.sort';
+
+function columnHeader(name: string): HTMLElement {
+  const header = screen
+    .getAllByRole('columnheader')
+    .find((item) => item.textContent?.startsWith(name));
+  if (!header) {
+    throw new Error(`No column header ${name}`);
+  }
+  return header;
+}
+
 function rowOf(title: string): HTMLElement {
   const row = screen
     .getAllByRole('row')
@@ -83,42 +95,76 @@ describe('PlaylistsView', () => {
     const table = await screen.findByRole('table', {
       name: 'Twoje playlisty (3)',
     });
-    const headers = within(table)
-      .getAllByRole('columnheader')
-      .map((header) => header.textContent);
-    expect(headers).toEqual([
-      'Tytuł',
-      'Filmy',
-      'Widoczność',
-      'Utworzona',
-      'Akcje',
-    ]);
+    const headers = within(table).getAllByRole('columnheader');
+    expect(headers).toHaveLength(5);
+    ['Tytuł', 'Filmy', 'Widoczność', 'Utworzona', 'Akcje'].forEach(
+      (name, index) => expect(headers[index]).toHaveAccessibleName(name),
+    );
   });
 
-  it('switches to alphabetical order and remembers it', async () => {
+  it('marks the default sort column as descending', async () => {
+    vi.mocked(listMyPlaylists).mockResolvedValue(playlists);
+    renderView();
+    await screen.findByRole('table');
+
+    expect(columnHeader('Utworzona')).toHaveAttribute(
+      'aria-sort',
+      'descending',
+    );
+    expect(columnHeader('Tytuł')).not.toHaveAttribute('aria-sort');
+    expect(columnHeader('Filmy')).not.toHaveAttribute('aria-sort');
+    expect(columnHeader('Widoczność')).not.toHaveAttribute('aria-sort');
+  });
+
+  it('sorts by a clicked header, flips on a second click and remembers it', async () => {
     vi.mocked(listMyPlaylists).mockResolvedValue(playlists);
     const { user } = renderView();
-    await screen.findByRole('heading', {
-      level: 2,
-      name: 'Twoje playlisty (3)',
-    });
+    await screen.findByRole('table');
 
-    await user.click(screen.getByRole('radio', { name: 'Alfabetycznie' }));
+    await user.click(within(columnHeader('Tytuł')).getByRole('button'));
 
     expect(rowTitles()).toEqual(['Algorytmy', 'Ćwiczenia', 'Zupa']);
-    expect(localStorage.getItem('youtube-playlist-manager.sort')).toBe('alpha');
+    expect(columnHeader('Tytuł')).toHaveAttribute('aria-sort', 'ascending');
+    expect(columnHeader('Utworzona')).not.toHaveAttribute('aria-sort');
+    expect(JSON.parse(localStorage.getItem(SORT_KEY) ?? 'null')).toEqual({
+      key: 'title',
+      direction: 'asc',
+    });
+
+    await user.click(within(columnHeader('Tytuł')).getByRole('button'));
+
+    expect(rowTitles()).toEqual(['Zupa', 'Ćwiczenia', 'Algorytmy']);
+    expect(columnHeader('Tytuł')).toHaveAttribute('aria-sort', 'descending');
+    expect(JSON.parse(localStorage.getItem(SORT_KEY) ?? 'null')).toEqual({
+      key: 'title',
+      direction: 'desc',
+    });
   });
 
-  it('starts with the stored sort order', async () => {
-    localStorage.setItem('youtube-playlist-manager.sort', 'alpha');
+  it('shows the arrow only on the active column', async () => {
+    vi.mocked(listMyPlaylists).mockResolvedValue(playlists);
+    const { user } = renderView();
+    await screen.findByRole('table');
+
+    expect(columnHeader('Utworzona')).toHaveTextContent('▼');
+    expect(columnHeader('Tytuł')).not.toHaveTextContent(/[▲▼]/);
+
+    await user.click(within(columnHeader('Tytuł')).getByRole('button'));
+
+    expect(columnHeader('Tytuł')).toHaveTextContent('▲');
+    expect(columnHeader('Utworzona')).not.toHaveTextContent(/[▲▼]/);
+  });
+
+  it('starts with the stored sort', async () => {
+    localStorage.setItem(
+      SORT_KEY,
+      JSON.stringify({ key: 'title', direction: 'asc' }),
+    );
     vi.mocked(listMyPlaylists).mockResolvedValue(playlists);
     renderView();
 
-    await screen.findByRole('heading', {
-      level: 2,
-      name: 'Twoje playlisty (3)',
-    });
-    expect(screen.getByRole('radio', { name: 'Alfabetycznie' })).toBeChecked();
+    await screen.findByRole('table');
+    expect(columnHeader('Tytuł')).toHaveAttribute('aria-sort', 'ascending');
     expect(rowTitles()).toEqual(['Algorytmy', 'Ćwiczenia', 'Zupa']);
   });
 
@@ -161,7 +207,10 @@ describe('PlaylistsView', () => {
   });
 
   it('renames a playlist and re-sorts the list', async () => {
-    localStorage.setItem('youtube-playlist-manager.sort', 'alpha');
+    localStorage.setItem(
+      SORT_KEY,
+      JSON.stringify({ key: 'title', direction: 'asc' }),
+    );
     vi.mocked(listMyPlaylists).mockResolvedValue(playlists);
     vi.mocked(renamePlaylist).mockResolvedValue({
       ...algorytmy,

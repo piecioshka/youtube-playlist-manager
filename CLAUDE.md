@@ -10,7 +10,7 @@ Static React SPA that signs in to a YouTube account with Google Identity Service
 
 - `src/youtube/` API client: zod schemas, `api.ts`, `ApiError`, user-facing error messages
 - `src/auth/` Google Identity Services loader, `useGoogleAuth`, `LoginScreen`
-- `src/playlists/` sorting, formatting, `PlaylistsView`, `PlaylistRow`, `SortControl`
+- `src/playlists/` sorting, formatting, `PlaylistsView`, `PlaylistRow`
 - `src/**/*.spec.ts(x)` Vitest next to the code, `e2e/` Playwright against a stubbed Google
 - `tmp/` takes logs, screenshots and throwaway scripts, and is ignored by git
 

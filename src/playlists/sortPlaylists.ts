@@ -1,26 +1,47 @@
-import type { Playlist } from '../youtube/types';
+import type { Playlist, PrivacyStatus } from '../youtube/types';
 
-export type SortMode = 'newest' | 'alpha';
+export type SortKey = 'title' | 'itemCount' | 'privacy' | 'publishedAt';
+export type SortDirection = 'asc' | 'desc';
+export type SortState = { key: SortKey; direction: SortDirection };
 
-export const SORT_MODES: readonly SortMode[] = ['newest', 'alpha'];
+export const DEFAULT_SORT: SortState = {
+  key: 'publishedAt',
+  direction: 'desc',
+};
 
-function byId(a: Playlist, b: Playlist): number {
-  return a.id.localeCompare(b.id);
-}
+const PRIVACY_RANK: Record<PrivacyStatus, number> = {
+  public: 0,
+  unlisted: 1,
+  private: 2,
+};
 
-function byTitle(a: Playlist, b: Playlist): number {
-  return (
-    a.title.localeCompare(b.title, 'pl', { sensitivity: 'base' }) || byId(a, b)
-  );
-}
+const COMPARATORS: Record<SortKey, (a: Playlist, b: Playlist) => number> = {
+  title: (a, b) =>
+    a.title.localeCompare(b.title, 'pl', { sensitivity: 'base' }),
+  itemCount: (a, b) => a.itemCount - b.itemCount,
+  privacy: (a, b) =>
+    PRIVACY_RANK[a.privacyStatus] - PRIVACY_RANK[b.privacyStatus],
+  publishedAt: (a, b) => Date.parse(a.publishedAt) - Date.parse(b.publishedAt),
+};
 
-function byNewest(a: Playlist, b: Playlist): number {
-  return Date.parse(b.publishedAt) - Date.parse(a.publishedAt) || byId(a, b);
-}
+// Klucze, które po pierwszym kliknięciu sortują rosnąco; reszta zaczyna od największych wartości
+const ASCENDING_FIRST: readonly SortKey[] = ['title', 'privacy'];
 
 export function sortPlaylists(
   playlists: readonly Playlist[],
-  mode: SortMode,
+  sort: SortState,
 ): Playlist[] {
-  return [...playlists].sort(mode === 'alpha' ? byTitle : byNewest);
+  const compare = COMPARATORS[sort.key];
+  const sign = sort.direction === 'asc' ? 1 : -1;
+  // Remisy zawsze po id rosnąco, niezależnie od kierunku
+  return [...playlists].sort(
+    (a, b) => sign * compare(a, b) || a.id.localeCompare(b.id),
+  );
+}
+
+export function nextSort(current: SortState, key: SortKey): SortState {
+  if (current.key === key) {
+    return { key, direction: current.direction === 'asc' ? 'desc' : 'asc' };
+  }
+  return { key, direction: ASCENDING_FIRST.includes(key) ? 'asc' : 'desc' };
 }
