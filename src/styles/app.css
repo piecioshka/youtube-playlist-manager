@@ -683,17 +683,27 @@ a.external-link:focus-visible .external-link__text {
   align-items: start;
 }
 
+/* Pasek powrotu wygląda jak karta konta na liście, żeby link było widać od razu */
+.profile-nav {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+
+/* Cały pasek jest celem kliknięcia */
 .profile__back {
-  grid-column: 1 / -1;
-  justify-self: start;
-  color: var(--color-muted);
-  font-size: 0.875rem;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  color: var(--color-text);
+  font-weight: 600;
   text-decoration: none;
 }
 
 .profile__back:hover {
-  color: var(--color-text);
-  text-decoration: underline;
+  background: color-mix(in srgb, var(--color-border) 35%, transparent);
 }
 
 .profile__thumbnail {

@@ -31,66 +31,71 @@ export function ProfileHeader({
   }, [playlist.id]);
 
   return (
-    <section className="profile" aria-labelledby="profile-heading">
-      <a className="profile__back" href={routeToHash({ name: 'list' })}>
-        <span aria-hidden="true">←</span> {t.allPlaylists}
-      </a>
-      {playlist.thumbnailUrl ? (
-        <img
-          className="profile__thumbnail"
-          src={playlist.thumbnailUrl}
-          alt=""
-          width={160}
-          height={90}
-          decoding="async"
-        />
-      ) : (
-        <span
-          className="profile__thumbnail profile__thumbnail--empty"
-          aria-hidden="true"
-        />
-      )}
-      <div className="profile__text">
-        <h2
-          id="profile-heading"
-          ref={headingRef}
-          className="profile__title"
-          tabIndex={-1}
-        >
-          {playlist.title}
-        </h2>
-        <p className="profile__meta">
-          {t.videoCount(playlist.itemCount)} ·{' '}
-          {playlist.privacyStatus === 'private' && (
-            <>
-              <span aria-hidden="true">🔒</span>{' '}
-            </>
-          )}
-          {t.privacy[playlist.privacyStatus]} ·{' '}
-          <time dateTime={playlist.publishedAt}>
-            {formatDate(playlist.publishedAt)}
-          </time>
-        </p>
-        <div className="profile__actions">
-          <YouTubeLink
-            className="profile__youtube"
-            href={`https://www.youtube.com/playlist?list=${encodeURIComponent(playlist.id)}`}
-          >
-            {t.openOnYouTube}
-          </YouTubeLink>
-          <button
-            type="button"
-            className="button button--small button--edit"
-            aria-expanded={editing}
-            // Schowanego panelu nie ma w DOM, więc nie ma na co wskazywać
-            aria-controls={editing ? editorId : undefined}
-            onClick={onToggleEdit}
-          >
-            {t.editPlaylist}
-          </button>
-          {actions}
-        </div>
+    <>
+      {/* Powrót do listy w osobnym pasku, żeby nie ginął nad danymi playlisty */}
+      <div className="profile-nav">
+        <a className="profile__back" href={routeToHash({ name: 'list' })}>
+          <span aria-hidden="true">←</span> {t.allPlaylists}
+        </a>
       </div>
-    </section>
+      <section className="profile" aria-labelledby="profile-heading">
+        {playlist.thumbnailUrl ? (
+          <img
+            className="profile__thumbnail"
+            src={playlist.thumbnailUrl}
+            alt=""
+            width={160}
+            height={90}
+            decoding="async"
+          />
+        ) : (
+          <span
+            className="profile__thumbnail profile__thumbnail--empty"
+            aria-hidden="true"
+          />
+        )}
+        <div className="profile__text">
+          <h2
+            id="profile-heading"
+            ref={headingRef}
+            className="profile__title"
+            tabIndex={-1}
+          >
+            {playlist.title}
+          </h2>
+          <p className="profile__meta">
+            {t.videoCount(playlist.itemCount)} ·{' '}
+            {playlist.privacyStatus === 'private' && (
+              <>
+                <span aria-hidden="true">🔒</span>{' '}
+              </>
+            )}
+            {t.privacy[playlist.privacyStatus]} ·{' '}
+            <time dateTime={playlist.publishedAt}>
+              {formatDate(playlist.publishedAt)}
+            </time>
+          </p>
+          <div className="profile__actions">
+            <YouTubeLink
+              className="profile__youtube"
+              href={`https://www.youtube.com/playlist?list=${encodeURIComponent(playlist.id)}`}
+            >
+              {t.openOnYouTube}
+            </YouTubeLink>
+            <button
+              type="button"
+              className="button button--small button--edit"
+              aria-expanded={editing}
+              // Schowanego panelu nie ma w DOM, więc nie ma na co wskazywać
+              aria-controls={editing ? editorId : undefined}
+              onClick={onToggleEdit}
+            >
+              {t.editPlaylist}
+            </button>
+            {actions}
+          </div>
+        </div>
+      </section>
+    </>
   );
 }

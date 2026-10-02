@@ -154,6 +154,22 @@ beforeEach(() => {
 
 describe('PlaylistProfile', () => {
   describe('header', () => {
+    it('shows the way back to the playlists in its own bar above the playlist details', async () => {
+      await renderLoaded();
+      const back = screen.getByRole('link', { name: 'Wszystkie playlisty' });
+      const bar = back.closest('.profile-nav');
+
+      expect(bar).not.toBeNull();
+      expect(back).toHaveAttribute('href', '#/');
+      // Pasek stoi nad danymi playlisty, a nie w ich środku
+      expect(bar?.contains(screen.getByRole('heading', { level: 2 }))).toBe(
+        false,
+      );
+      expect(
+        bar?.compareDocumentPosition(screen.getByRole('heading', { level: 2 })),
+      ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    });
+
     it('shows the playlist details with links back and to YouTube', async () => {
       renderProfile();
 
