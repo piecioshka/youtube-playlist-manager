@@ -993,19 +993,19 @@ body {
 
 .account {
   display: flex;
-  gap: 16px;
+  gap: 12px 16px;
   align-items: center;
   flex-wrap: wrap;
   margin-bottom: 20px;
-  padding: 12px 16px;
+  padding: 16px;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius);
   background: var(--color-surface);
   font-variant-numeric: tabular-nums;
 }
 
 .account--loading {
-  min-height: 74px;
+  min-height: 92px;
   border-color: transparent;
 }
 
@@ -1018,30 +1018,45 @@ body {
   height: 48px;
 }
 
+/* Nazwa bierze wolne miejsce, więc kafle z liczbami trzymają się prawej krawędzi */
 .account__identity {
+  flex: 1 1 200px;
   min-width: 0;
 }
 
 .account__name,
-.account__handle {
+.account__meta {
   margin: 0;
   overflow-wrap: anywhere;
 }
 
 .account__name {
+  font-size: 1.0625rem;
   font-weight: 600;
 }
 
-.account__handle {
+.account__meta {
   color: var(--color-muted);
   font-size: 0.875rem;
 }
 
+/* Liczby kanału jako równe kafle w jednym rzędzie */
 .account__stats {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(104px, 1fr);
+  gap: 8px;
+  margin: 0;
+}
+
+/* W kodzie podpis stoi przed wartością, na ekranie liczba jest u góry */
+.account__stat {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px 20px;
-  margin: 0 0 0 auto;
+  flex-direction: column-reverse;
+  gap: 2px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--color-bg);
 }
 
 .account__stat dt {
@@ -1051,7 +1066,9 @@ body {
 
 .account__stat dd {
   margin: 0;
+  font-size: 1.125rem;
   font-weight: 600;
+  line-height: 1.2;
 }
 
 @media (max-width: 640px) {
@@ -1068,13 +1085,20 @@ body {
     padding-right: 3px;
   }
 
-  /* Równa siatka zamiast zawijania: trzy liczby w rzędzie, reszta pod nimi */
+  /* Kafle schodzą pod nazwę kanału i układają się dwa na dwa */
   .account__stats {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px 12px;
-    margin-left: 0;
+    grid-auto-flow: row;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     flex-basis: 100%;
+  }
+
+  /* Nieparzysty ostatni kafel zajmuje cały rząd zamiast zostawiać dziurę */
+  .account__stat:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+
+  .account--loading {
+    min-height: 220px;
   }
 
   .app__title {

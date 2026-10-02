@@ -220,16 +220,23 @@ test('lays the list out for a phone', async ({ page }) => {
     Math.round(header.x + header.width),
   );
 
-  // Statystyki kanału w równej siatce: trzy w pierwszym rzędzie
-  const statTops = await page
-    .locator('.account__stat')
-    .evaluateAll((stats) =>
-      stats.map((stat) => Math.round(stat.getBoundingClientRect().top)),
-    );
-  expect(statTops).toHaveLength(5);
-  expect(new Set(statTops.slice(0, 3)).size).toBe(1);
-  expect(new Set(statTops.slice(3)).size).toBe(1);
-  expect(statTops[3]).toBeGreaterThan(statTops[0] ?? 0);
+  // Liczby kanału to cztery równe kafle w siatce dwa na dwa
+  const tiles = await page.locator('.account__stat').evaluateAll((stats) =>
+    stats.map((stat) => {
+      const rect = stat.getBoundingClientRect();
+      return {
+        top: Math.round(rect.top),
+        left: Math.round(rect.left),
+        width: Math.round(rect.width),
+      };
+    }),
+  );
+  expect(tiles).toHaveLength(4);
+  expect(tiles[0]?.top).toBe(tiles[1]?.top);
+  expect(tiles[2]?.top).toBe(tiles[3]?.top);
+  expect(tiles[2]?.top).toBeGreaterThan(tiles[0]?.top ?? 0);
+  expect(tiles[0]?.left).toBe(tiles[2]?.left);
+  expect(new Set(tiles.map((tile) => tile.width)).size).toBe(1);
 
   // Filtr widoczności to jeden przewijany rząd, a nie dwa
   const filterTops = await page
@@ -313,7 +320,7 @@ test('shows the channel details after sign-in', async ({ page }) => {
   await expect(stat('Filmy')).toHaveText('56');
   await expect(stat('Wyświetlenia')).toHaveText(/^7\s890\s123$/);
   await expect(stat('Playlisty')).toHaveText('4');
-  await expect(stat('Kanał od')).toHaveText('2012-03-04');
+  await expect(account).toContainText('Kanał od 2012-03-04');
 
   await expect(
     page.getByRole('link', { name: SEED_CHANNEL.title }),

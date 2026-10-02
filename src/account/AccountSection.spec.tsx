@@ -30,19 +30,28 @@ describe('AccountSection', () => {
     renderWithI18n(<AccountSection state={ready()} playlistCount={4} />);
     const section = screen.getByRole('region', { name: 'Twój kanał' });
     expect(within(section).getByText('Kanał testowy')).toBeInTheDocument();
-    expect(within(section).getByText('@kanaltestowy')).toBeInTheDocument();
     expect(stat('Subskrypcje')).toBe('1 234');
     expect(stat('Filmy')).toBe('56');
     expect(stat('Wyświetlenia')).toBe('7 890 123');
     expect(stat('Playlisty')).toBe('4');
-    expect(stat('Kanał od')).toBe('2012-03-04');
+    // Data założenia to opis kanału, a nie liczba: stoi przy nazwie, poza kaflami
+    expect(screen.getAllByRole('term')).toHaveLength(4);
+    expect(within(section).getByText(/Kanał od/)).toHaveTextContent(
+      '@kanaltestowy · Kanał od 2012-03-04',
+    );
+    expect(section.querySelector('time')).toHaveAttribute(
+      'datetime',
+      '2012-03-04',
+    );
   });
 
   it('uses the English labels and separator', () => {
     renderWithI18n(<AccountSection state={ready()} playlistCount={4} />, 'en');
     expect(screen.getByRole('region', { name: 'Your channel' })).toBeVisible();
     expect(stat('Subscribers')).toBe('1,234');
-    expect(stat('Channel since')).toBe('2012-03-04');
+    expect(screen.getByText(/Channel since/)).toHaveTextContent(
+      '@kanaltestowy · Channel since 2012-03-04',
+    );
   });
 
   it('omits hidden subscribers, the missing handle and the unknown playlist count', () => {
@@ -54,7 +63,11 @@ describe('AccountSection', () => {
     );
     expect(screen.queryByText('Subskrypcje')).not.toBeInTheDocument();
     expect(screen.queryByText('Playlisty')).not.toBeInTheDocument();
-    expect(screen.queryByText('@kanaltestowy')).not.toBeInTheDocument();
+    expect(screen.queryByText(/@kanaltestowy/)).not.toBeInTheDocument();
+    expect(screen.getByText(/Kanał od/)).toHaveTextContent(
+      /^Kanał od 2012-03-04$/,
+    );
+    expect(screen.getAllByRole('term')).toHaveLength(2);
   });
 
   it('shows a decorative avatar', () => {

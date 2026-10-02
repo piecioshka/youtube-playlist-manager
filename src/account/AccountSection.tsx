@@ -38,7 +38,7 @@ export function AccountSection({ state, playlistCount }: AccountSectionProps) {
   if (playlistCount !== null) {
     stats.push({ label: t.statPlaylists, value: format(playlistCount) });
   }
-  stats.push({ label: t.statCreated, value: formatDate(channel.publishedAt) });
+  const since = formatDate(channel.publishedAt);
 
   return (
     <section className="account" aria-label={t.accountLabel}>
@@ -56,9 +56,15 @@ export function AccountSection({ state, playlistCount }: AccountSectionProps) {
       )}
       <div className="account__identity">
         <p className="account__name">{channel.title}</p>
-        {channel.handle !== null && (
-          <p className="account__handle">{channel.handle}</p>
-        )}
+        {/* Data założenia opisuje kanał, więc stoi przy nazwie, a kafle zostają dla liczb */}
+        <p className="account__meta">
+          {channel.handle !== null && (
+            <>
+              {channel.handle} <span aria-hidden="true">·</span>{' '}
+            </>
+          )}
+          {t.statCreated} <time dateTime={since}>{since}</time>
+        </p>
       </div>
       <dl className="account__stats">
         {stats.map((stat) => (
