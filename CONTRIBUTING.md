@@ -11,7 +11,7 @@ The app needs an OAuth 2.0 Client ID. It is not a secret, but it only works for 
 
 1. Open [Google Cloud Console](https://console.cloud.google.com/) and create a project (for example `youtube-playlist-manager`).
 2. Go to **APIs & Services > Library**, find **YouTube Data API v3** and click **Enable**.
-3. Go to **Google Auth Platform > Branding** (OAuth consent screen): user type **External**, fill in the app name and your e-mail.
+3. Go to **Google Auth Platform > Branding** and click **Get started**. The wizard asks for the app name and a support e-mail (**App Information**), the user type, choose **External** (**Audience**), a contact e-mail (**Contact Information**), and the policy agreement (**Finish**). Click **Create**.
 4. In **Audience** keep the publishing status **Testing** and add your Google account under **Test users**. Only test users can sign in, and the app does not need Google verification in this mode.
 5. In **Data Access** add the scope `https://www.googleapis.com/auth/youtube`.
 6. In **Clients** create an **OAuth client ID** of type **Web application** with these **Authorized JavaScript origins**:
