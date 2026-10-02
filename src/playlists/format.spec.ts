@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { PrivacyStatus } from '../youtube/types';
-import { formatDate, privacyLabel } from './format';
+import { formatDate } from './format';
 
 describe('formatDate', () => {
   it('formats local time as YYYY-MM-DD', () => {
@@ -10,17 +9,5 @@ describe('formatDate', () => {
 
   it('pads month and day', () => {
     expect(formatDate('2026-01-05T12:00:00Z')).toBe('2026-01-05');
-  });
-});
-
-describe('privacyLabel', () => {
-  const cases: [PrivacyStatus, string][] = [
-    ['public', 'Publiczna'],
-    ['unlisted', 'Niepubliczna'],
-    ['private', 'Prywatna'],
-  ];
-
-  it.each(cases)('%s -> %s', (status, expected) => {
-    expect(privacyLabel(status)).toBe(expected);
   });
 });

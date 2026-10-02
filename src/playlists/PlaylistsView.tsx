@@ -6,6 +6,8 @@ import {
   useRef,
   useState,
 } from 'react';
+import { useI18n } from '../i18n/LocaleProvider';
+import type { Messages } from '../i18n/messages';
 import { normalizeText } from '../search/normalize';
 import { SearchField } from '../search/SearchField';
 import { searchPlaylists, type SearchResult } from '../search/searchPlaylists';
@@ -39,16 +41,22 @@ import {
 
 type LoadState =
   | { status: 'loading' }
-  | { status: 'error'; message: string }
+  | { status: 'error'; error: unknown }
   | { status: 'ready' };
 
-type SortableColumn = { key: SortKey; label: string; numeric?: boolean };
+// Komunikat trzyma dane, a nie tekst, żeby zmiana języka tłumaczyła go od nowa
+type Notice = { kind: 'deleted'; title: string } | { kind: 'missing' } | null;
+
+type ColumnLabel =
+  'columnTitle' | 'columnVideos' | 'columnPrivacy' | 'columnCreated';
+
+type SortableColumn = { key: SortKey; label: ColumnLabel; numeric?: boolean };
 
 const SORTABLE_COLUMNS: readonly SortableColumn[] = [
-  { key: 'title', label: 'Tytuł' },
-  { key: 'itemCount', label: 'Filmy', numeric: true },
-  { key: 'privacy', label: 'Widoczność' },
-  { key: 'publishedAt', label: 'Utworzona' },
+  { key: 'title', label: 'columnTitle' },
+  { key: 'itemCount', label: 'columnVideos', numeric: true },
+  { key: 'privacy', label: 'columnPrivacy' },
+  { key: 'publishedAt', label: 'columnCreated' },
 ];
 
 type PlaylistsViewProps = {
@@ -56,31 +64,44 @@ type PlaylistsViewProps = {
   onUnauthorized: () => void;
 };
 
-const NO_CHANNEL_MESSAGE = 'Nie znaleziono kanału YouTube na tym koncie.';
-
 const MIN_QUERY_LENGTH = 2;
 
 function isApiError(error: unknown, kind: ApiError['kind']): boolean {
   return error instanceof ApiError && error.kind === kind;
 }
 
-function indexStatus(index: VideoIndex): string {
+function indexStatus(index: VideoIndex, t: Messages): string {
   if (index.status === 'loading') {
-    return `Indeksowanie filmów: ${index.done}/${index.total} playlist`;
+    return t.indexingVideos(index.done, index.total);
   }
   if (index.status === 'ready' && index.failed > 0) {
-    return `Nie udało się pobrać filmów z ${index.failed} playlist.`;
+    return t.indexFailed(index.failed);
   }
   return '';
 }
 
+function loadErrorMessage(error: unknown, t: Messages): string {
+  // 404 przy wczytywaniu listy znaczy brak kanału, nie brak playlisty
+  return isApiError(error, 'notFound') ? t.noChannel : errorMessage(error, t);
+}
+
+function noticeText(notice: Notice, t: Messages): string {
+  if (notice === null) {
+    return '';
+  }
+  return notice.kind === 'deleted'
+    ? t.playlistDeleted(notice.title)
+    : t.apiError.notFound;
+}
+
 export function PlaylistsView({ token, onUnauthorized }: PlaylistsViewProps) {
+  const { t } = useI18n();
   const [loadState, setLoadState] = useState<LoadState>({ status: 'loading' });
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [sort, setSort] = useState<SortState>(readSort);
   const [visibility, setVisibility] = useState<Filter>(readVisibilityFilter);
   const [query, setQuery] = useState('');
-  const [notice, setNotice] = useState('');
+  const [notice, setNotice] = useState<Notice>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const notifyUnauthorized = useEffectEvent(() => onUnauthorized());
@@ -104,13 +125,7 @@ export function PlaylistsView({ token, onUnauthorized }: PlaylistsViewProps) {
           notifyUnauthorized();
           return;
         }
-        // 404 przy wczytywaniu listy znaczy brak kanału, nie brak playlisty
-        setLoadState({
-          status: 'error',
-          message: isApiError(error, 'notFound')
-            ? NO_CHANNEL_MESSAGE
-            : errorMessage(error),
-        });
+        setLoadState({ status: 'error', error });
       },
     );
     return () => {
@@ -172,10 +187,10 @@ export function PlaylistsView({ token, onUnauthorized }: PlaylistsViewProps) {
     }
     if (isApiError(error, 'notFound')) {
       removePlaylist(playlist.id);
-      setNotice(errorMessage(error));
+      setNotice({ kind: 'missing' });
       headingRef.current?.focus();
     }
-    return new Error(errorMessage(error));
+    return new Error(errorMessage(error, t));
   }
 
   async function handleRename(
@@ -187,7 +202,7 @@ export function PlaylistsView({ token, onUnauthorized }: PlaylistsViewProps) {
       setPlaylists((current) =>
         current.map((item) => (item.id === updated.id ? updated : item)),
       );
-      setNotice('');
+      setNotice(null);
     } catch (error) {
       throw toRowError(error, playlist);
     }
@@ -200,16 +215,16 @@ export function PlaylistsView({ token, onUnauthorized }: PlaylistsViewProps) {
       throw toRowError(error, playlist);
     }
     removePlaylist(playlist.id);
-    setNotice(`Usunięto playlistę „${playlist.title}”.`);
+    setNotice({ kind: 'deleted', title: playlist.title });
     headingRef.current?.focus();
   }
 
-  const count =
+  const heading =
     loadState.status !== 'ready'
-      ? ''
+      ? t.playlistsHeading
       : visibility === 'all' && !searching
-        ? ` (${playlists.length})`
-        : ` (${results.length} z ${playlists.length})`;
+        ? t.playlistsHeadingAll(playlists.length)
+        : t.playlistsHeadingFiltered(results.length, playlists.length);
 
   return (
     <section className="playlists" aria-labelledby="playlists-heading">
@@ -220,13 +235,13 @@ export function PlaylistsView({ token, onUnauthorized }: PlaylistsViewProps) {
           className="playlists__heading"
           tabIndex={-1}
         >
-          Twoje playlisty{count}
+          {heading}
         </h2>
       </div>
       {loadState.status === 'ready' && playlists.length > 0 && (
         <SearchField
           value={query}
-          status={indexStatus(index)}
+          status={indexStatus(index, t)}
           onChange={setQuery}
           onFocus={index.start}
         />
@@ -239,29 +254,31 @@ export function PlaylistsView({ token, onUnauthorized }: PlaylistsViewProps) {
         />
       )}
       <p className="playlists__notice" role="status">
-        {notice}
+        {noticeText(notice, t)}
       </p>
       {loadState.status === 'loading' && (
-        <p className="playlists__state">Wczytywanie playlist...</p>
+        <p className="playlists__state">{t.loadingPlaylists}</p>
       )}
       {loadState.status === 'error' && (
         <div className="playlists__state notice notice--error" role="alert">
-          <p className="playlists__error-text">{loadState.message}</p>
+          <p className="playlists__error-text">
+            {loadErrorMessage(loadState.error, t)}
+          </p>
           <button type="button" className="button" onClick={handleRetry}>
-            Spróbuj ponownie
+            {t.retry}
           </button>
         </div>
       )}
       {loadState.status === 'ready' && playlists.length === 0 && (
-        <p className="playlists__state">Nie masz jeszcze żadnych playlist.</p>
+        <p className="playlists__state">{t.noPlaylists}</p>
       )}
       {loadState.status === 'ready' &&
         playlists.length > 0 &&
         results.length === 0 && (
           <p className="playlists__state">
             {searching
-              ? `Brak wyników dla „${query.trim()}”.`
-              : 'Brak playlist o tej widoczności.'}
+              ? t.noResults(query.trim())
+              : t.noPlaylistsWithVisibility}
           </p>
         )}
       {loadState.status === 'ready' && results.length > 0 && (
@@ -298,7 +315,7 @@ export function PlaylistsView({ token, onUnauthorized }: PlaylistsViewProps) {
                       className="playlists__sort-button"
                       onClick={() => handleSort(column.key)}
                     >
-                      {column.label}
+                      {t[column.label]}
                       <span
                         className="playlists__sort-indicator"
                         aria-hidden="true"
@@ -310,7 +327,7 @@ export function PlaylistsView({ token, onUnauthorized }: PlaylistsViewProps) {
                 );
               })}
               <th className="playlists__column" scope="col" role="columnheader">
-                <span className="visually-hidden">Akcje</span>
+                <span className="visually-hidden">{t.columnActions}</span>
               </th>
             </tr>
           </thead>

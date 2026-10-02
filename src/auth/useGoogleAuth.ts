@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { z } from 'zod';
 import { YOUTUBE_SCOPE } from '../config';
+import type { AuthMessage } from '../i18n/messages';
 import { loadGis } from './loadGis';
 
 export type AuthStatus = 'loading' | 'signedOut' | 'signedIn' | 'error';
@@ -8,16 +9,12 @@ export type AuthStatus = 'loading' | 'signedOut' | 'signedIn' | 'error';
 export type GoogleAuth = {
   status: AuthStatus;
   token: string | null;
-  message: string | null;
+  // Klucz komunikatu, nie tekst: ekran logowania tłumaczy go w bieżącym języku
+  message: AuthMessage | null;
   signIn: () => void;
-  signOut: (reason?: string) => void;
+  signOut: (reason?: AuthMessage) => void;
   retry: () => void;
 };
-
-const SIGN_IN_FAILED = 'Nie udało się zalogować. Spróbuj ponownie.';
-const POPUP_FAILED = 'Nie udało się otworzyć okna logowania Google.';
-const SCRIPT_FAILED =
-  'Nie udało się wczytać logowania Google. Sprawdź połączenie.';
 
 const SESSION_KEY = 'youtube-playlist-manager.session';
 // Zapas na różnicę zegarów i opóźnienie żądania
@@ -68,7 +65,7 @@ export function useGoogleAuth(clientId: string): GoogleAuth {
     restoredToken === null ? 'loading' : 'signedIn',
   );
   const [token, setToken] = useState<string | null>(restoredToken);
-  const [message, setMessage] = useState<string | null>(null);
+  const [message, setMessage] = useState<AuthMessage | null>(null);
   const [loadAttempt, setLoadAttempt] = useState(0);
   const tokenClientRef = useRef<google.accounts.oauth2.TokenClient | null>(
     null,
@@ -92,7 +89,7 @@ export function useGoogleAuth(clientId: string): GoogleAuth {
           scope: YOUTUBE_SCOPE,
           callback: (response) => {
             if (!response.access_token) {
-              setMessage(SIGN_IN_FAILED);
+              setMessage('signInFailed');
               return;
             }
             const lifetimeSeconds =
@@ -108,7 +105,7 @@ export function useGoogleAuth(clientId: string): GoogleAuth {
           error_callback: (error) => {
             // Zamknięcie okienka to świadoma decyzja użytkownika, nie błąd
             if (error.type !== 'popup_closed') {
-              setMessage(POPUP_FAILED);
+              setMessage('popupFailed');
             }
           },
         });
@@ -123,7 +120,7 @@ export function useGoogleAuth(clientId: string): GoogleAuth {
         // Przywrócona sesja działa bez GIS, błąd skryptu jej nie psuje
         setStatus((current) => (current === 'signedIn' ? current : 'error'));
         setMessage((current) =>
-          statusRef.current === 'signedIn' ? current : SCRIPT_FAILED,
+          statusRef.current === 'signedIn' ? current : 'scriptFailed',
         );
       },
     );
@@ -145,7 +142,7 @@ export function useGoogleAuth(clientId: string): GoogleAuth {
   }, []);
 
   const signOut = useCallback(
-    (reason?: string) => {
+    (reason?: AuthMessage) => {
       // Wygasły token nie wymaga unieważnienia, ręczne wylogowanie tak
       if (
         token !== null &&

@@ -201,3 +201,24 @@ test('has no accessibility violations in the light theme', async ({ page }) => {
   const results = await new AxeBuilder({ page }).analyze();
   expect(results.violations).toEqual([]);
 });
+
+test('switches the interface to English and remembers it after reload', async ({
+  page,
+}) => {
+  await signIn(page);
+  await expect(page.locator('html')).toHaveAttribute('lang', 'pl');
+
+  await page.getByRole('combobox', { name: 'Język' }).selectOption('English');
+
+  const heading = page.getByRole('heading', { level: 2 });
+  await expect(heading).toHaveText('Your playlists (4)');
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+  await expect(page.getByRole('button', { name: 'Sign out' })).toBeVisible();
+
+  await page.reload();
+  await expect(heading).toHaveText('Your playlists (4)');
+  await expect(page.getByRole('combobox', { name: 'Language' })).toHaveValue(
+    'en',
+  );
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+});

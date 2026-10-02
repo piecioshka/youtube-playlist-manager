@@ -1,8 +1,10 @@
+import { useI18n } from '../i18n/LocaleProvider';
+import type { AuthMessage } from '../i18n/messages';
 import type { AuthStatus } from './useGoogleAuth';
 
 type LoginScreenProps = {
   status: AuthStatus;
-  message: string | null;
+  message: AuthMessage | null;
   onSignIn: () => void;
   onRetry: () => void;
 };
@@ -13,26 +15,25 @@ export function LoginScreen({
   onSignIn,
   onRetry,
 }: LoginScreenProps) {
+  const { t } = useI18n();
+
   return (
     <section className="login" aria-labelledby="login-heading">
       <h2 id="login-heading" className="login__heading">
-        Zaloguj się
+        {t.signInHeading}
       </h2>
-      <p className="login__lead">
-        Połącz konto Google, żeby zobaczyć swoje playlisty na YouTube,
-        posortować je, zmienić im nazwy albo je usunąć.
-      </p>
+      <p className="login__lead">{t.signInLead}</p>
       {message && (
         <p
           className={status === 'error' ? 'notice notice--error' : 'notice'}
           role={status === 'error' ? 'alert' : 'status'}
         >
-          {message}
+          {t.authMessage[message]}
         </p>
       )}
       {status === 'error' && (
         <button type="button" className="button" onClick={onRetry}>
-          Spróbuj ponownie
+          {t.retry}
         </button>
       )}
       <button
@@ -41,7 +42,7 @@ export function LoginScreen({
         onClick={onSignIn}
         disabled={status !== 'signedOut'}
       >
-        {status === 'loading' ? 'Wczytywanie...' : 'Zaloguj przez Google'}
+        {status === 'loading' ? t.loading : t.signInButton}
       </button>
     </section>
   );

@@ -2,11 +2,11 @@ import { useCallback, type ReactNode } from 'react';
 import { LoginScreen } from './auth/LoginScreen';
 import { useGoogleAuth } from './auth/useGoogleAuth';
 import { getGoogleClientId } from './config';
+import { LanguageSelect } from './i18n/LanguageSelect';
+import { useI18n } from './i18n/LocaleProvider';
 import { PlaylistsView } from './playlists/PlaylistsView';
 import { ThemeToggle } from './theme/ThemeToggle';
 import { useTheme } from './theme/useTheme';
-
-const SESSION_EXPIRED_MESSAGE = 'Sesja wygasła, zaloguj się ponownie.';
 
 type LayoutProps = {
   actions?: ReactNode;
@@ -15,6 +15,7 @@ type LayoutProps = {
 
 function Layout({ actions, children }: LayoutProps) {
   const { theme, toggle } = useTheme();
+  const { t } = useI18n();
 
   return (
     <div className="app">
@@ -27,21 +28,19 @@ function Layout({ actions, children }: LayoutProps) {
             width={28}
             height={28}
           />
-          YouTube Playlist Manager
+          {t.appTitle}
         </h1>
         <div className="app__actions">
-          <ThemeToggle theme={theme} label="Ciemny motyw" onToggle={toggle} />
+          <LanguageSelect />
+          <ThemeToggle theme={theme} label={t.themeDark} onToggle={toggle} />
           {actions}
         </div>
       </header>
       <main className="app__main">{children}</main>
       <footer className="app__footer">
+        <p className="app__footer-line">{t.footerNoServer}</p>
         <p className="app__footer-line">
-          Aplikacja nie ma serwera: Twoje playlisty i sesja zostają w tej karcie
-          przeglądarki.
-        </p>
-        <p className="app__footer-line">
-          Działa z{' '}
+          {t.footerWorksWith}{' '}
           <a
             className="app__footer-link"
             href="https://www.youtube.com"
@@ -50,7 +49,7 @@ function Layout({ actions, children }: LayoutProps) {
           >
             YouTube
           </a>{' '}
-          · Autor:{' '}
+          · {t.footerAuthor}{' '}
           <a
             className="app__footer-link"
             href="https://piecioshka.pl/"
@@ -66,7 +65,7 @@ function Layout({ actions, children }: LayoutProps) {
             target="_blank"
             rel="noreferrer"
           >
-            Licencja MIT
+            {t.footerLicense}
           </a>
         </p>
       </footer>
@@ -75,10 +74,11 @@ function Layout({ actions, children }: LayoutProps) {
 }
 
 function AuthenticatedApp({ clientId }: { clientId: string }) {
+  const { t } = useI18n();
   const { status, token, message, signIn, signOut, retry } =
     useGoogleAuth(clientId);
   const handleUnauthorized = useCallback(
-    () => signOut(SESSION_EXPIRED_MESSAGE),
+    () => signOut('sessionExpired'),
     [signOut],
   );
 
@@ -87,7 +87,7 @@ function AuthenticatedApp({ clientId }: { clientId: string }) {
       <Layout
         actions={
           <button type="button" className="button" onClick={() => signOut()}>
-            Wyloguj
+            {t.signOut}
           </button>
         }
       >
@@ -109,14 +109,16 @@ function AuthenticatedApp({ clientId }: { clientId: string }) {
 }
 
 export function App() {
+  const { t } = useI18n();
   const clientId = getGoogleClientId();
 
   if (clientId === null) {
     return (
       <Layout>
         <p className="notice notice--error" role="alert">
-          Brakuje zmiennej <code>VITE_GOOGLE_CLIENT_ID</code>. Instrukcja
-          konfiguracji jest w pliku CONTRIBUTING.md.
+          {t.missingClientIdBefore}
+          <code>VITE_GOOGLE_CLIENT_ID</code>
+          {t.missingClientIdAfter}
         </p>
       </Layout>
     );

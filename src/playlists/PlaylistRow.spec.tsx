@@ -1,11 +1,13 @@
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { makePlaylist } from '../test/playlistFactory';
+import { renderWithI18n } from '../test/renderWithI18n';
+import type { Locale } from '../i18n/messages';
 import type { Playlist } from '../youtube/types';
 import { PlaylistRow } from './PlaylistRow';
 
-function renderRow(overrides: Partial<Playlist> = {}) {
+function renderRow(overrides: Partial<Playlist> = {}, locale: Locale = 'pl') {
   const playlist = makePlaylist({
     id: 'PL1',
     title: 'Muzyka',
@@ -20,7 +22,7 @@ function renderRow(overrides: Partial<Playlist> = {}) {
   const onDelete = vi
     .fn<(playlist: Playlist) => Promise<void>>()
     .mockResolvedValue(undefined);
-  render(
+  renderWithI18n(
     <table>
       <tbody>
         <PlaylistRow
@@ -30,6 +32,7 @@ function renderRow(overrides: Partial<Playlist> = {}) {
         />
       </tbody>
     </table>,
+    locale,
   );
   return { playlist, onRename, onDelete, user: userEvent.setup() };
 }
@@ -275,5 +278,55 @@ describe('PlaylistRow', () => {
       'Wyczerpano dzienny limit YouTube API.',
     );
     expect(screen.getByRole('button', { name: 'Usuń na stałe' })).toBeEnabled();
+  });
+
+  describe('in English', () => {
+    it('labels cells, buttons and the privacy status', () => {
+      renderRow({ privacyStatus: 'private' }, 'en');
+
+      const labels = screen
+        .getAllByRole('cell')
+        .map((cell) => cell.getAttribute('data-label'));
+      expect(labels.slice(0, 3)).toEqual(['Videos', 'Visibility', 'Created']);
+      expect(screen.getByRole('cell', { name: 'Private' })).toBeVisible();
+      expect(
+        screen.getByRole('button', { name: 'Rename playlist Muzyka' }),
+      ).toBeVisible();
+      expect(
+        screen.getByRole('button', { name: 'Delete playlist Muzyka' }),
+      ).toBeVisible();
+    });
+
+    it('validates the new title', async () => {
+      const { user } = renderRow({}, 'en');
+
+      await user.click(screen.getByRole('button', { name: /^Rename/ }));
+      const input = screen.getByRole('textbox', { name: 'New playlist name' });
+      await user.clear(input);
+      await user.type(input, '   {Enter}');
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        'The name cannot be empty.',
+      );
+
+      await user.click(input);
+      await user.paste('a'.repeat(151));
+      await user.keyboard('{Enter}');
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        'The name can have at most 150 characters.',
+      );
+      expect(screen.getByRole('button', { name: 'Cancel' })).toBeVisible();
+    });
+
+    it('asks for confirmation before deleting', async () => {
+      const { user } = renderRow({}, 'en');
+
+      await user.click(
+        screen.getByRole('button', { name: /^Delete playlist/ }),
+      );
+
+      expect(
+        screen.getByRole('group', { name: 'Confirm deleting playlist Muzyka' }),
+      ).toHaveTextContent('Delete permanently?');
+    });
   });
 });

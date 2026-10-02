@@ -1,12 +1,13 @@
+import { useI18n } from '../i18n/LocaleProvider';
 import type { VisibilityFilter as Filter } from './filterPlaylists';
 
-type Option = { value: Filter; label: string; icon?: string };
+type Option = { value: Filter; icon?: string };
 
 const OPTIONS: readonly Option[] = [
-  { value: 'all', label: 'Wszystkie' },
-  { value: 'public', label: 'Publiczne' },
-  { value: 'unlisted', label: 'Niepubliczne' },
-  { value: 'private', label: 'Prywatne', icon: '🔒' },
+  { value: 'all' },
+  { value: 'public' },
+  { value: 'unlisted' },
+  { value: 'private', icon: '🔒' },
 ];
 
 type VisibilityFilterProps = {
@@ -20,11 +21,13 @@ export function VisibilityFilter({
   counts,
   onChange,
 }: VisibilityFilterProps) {
+  const { t } = useI18n();
+
   return (
     <div
       className="visibility-filter"
       role="group"
-      aria-label="Filtruj po widoczności"
+      aria-label={t.visibilityFilterLabel}
     >
       {OPTIONS.map((option) => (
         <button
@@ -35,7 +38,7 @@ export function VisibilityFilter({
           onClick={() => onChange(option.value)}
         >
           {option.icon && <span aria-hidden="true">{option.icon} </span>}
-          {option.label} ({counts[option.value]})
+          {t.visibilityFilter[option.value]} ({counts[option.value]})
         </button>
       ))}
     </div>

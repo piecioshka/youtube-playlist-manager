@@ -46,10 +46,12 @@ npm run format        # Prettier over the whole repository
 
 - Static SPA (Vite + React + TypeScript), no backend.
 - Sign-in: Google Identity Services token client (`src/auth/useGoogleAuth.ts`). The token is kept in `sessionStorage` for the current tab, so a refresh keeps the session, while closing the tab or expiry (~1 h) ends it; any `401` from the API brings back the sign-in screen.
-- API: `src/youtube/api.ts` calls YouTube Data API v3 with `fetch` and validates responses with zod (`src/youtube/schemas.ts`). Errors are `ApiError` with a `kind`; `src/youtube/errorMessage.ts` turns them into Polish UI copy.
+- API: `src/youtube/api.ts` calls YouTube Data API v3 with `fetch` and validates responses with zod (`src/youtube/schemas.ts`). Errors are `ApiError` with a `kind`; `src/youtube/errorMessage.ts` turns them into UI copy in the current language.
 - Rename uses `PUT playlists?part=snippet`. The request carries the current description and default language, because the API replaces the whole snippet.
 - UI: `src/playlists/PlaylistsView.tsx` (loading, sorting, list state) and `src/playlists/PlaylistRow.tsx` (inline rename and delete confirmation).
 - Search: `src/search/` filters by playlist titles and by the titles and channels of the videos inside. Video titles come from `playlistItems`, fetched lazily the first time the search field gets focus (at most 4 playlists at once), and stay in memory only. Indexing costs 1 quota unit per 50 videos of every playlist.
+- Languages: `src/i18n/messages.ts` holds every UI string in Polish (`pl`, the default) and English (`en`). The `Messages` type comes from the `pl` object and `en` is typed with it, so to add a string you add the key to `pl` and TypeScript makes you add it to `en`. Strings with parameters are functions (English plurals included). `LocaleProvider` keeps the chosen language in `localStorage`, sets `<html lang>` and gives components `useI18n()`; code outside components (`errorMessage`) takes the messages as an argument, and `useGoogleAuth` returns message keys that the sign-in screen translates.
+- Theme: `src/theme/` keeps the light/dark choice in `localStorage` (dark by default) and sets `data-theme` on `<html>`; `src/styles/app.css` defines the color tokens per theme. A small inline script in `index.html` sets the attribute before React mounts, so the page never flashes the wrong theme.
 - Quota: YouTube Data API allows 10 000 units a day. A list page costs 1 unit (playlists and `playlistItems` alike), a rename or a delete 50.
 
 ## Tests
@@ -63,7 +65,7 @@ npm run format        # Prettier over the whole repository
 
 ## Conventions
 
-- Identifiers in English, UI copy in Polish.
+- Identifiers in English. UI copy lives in `src/i18n/messages.ts` (pl + en), never inline in components.
 - No `as` type assertions, no inline styles, CSS targets classes only.
 - Dates in the UI as `YYYY-MM-DD`.
 - Conventional Commits in English.

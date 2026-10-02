@@ -1,7 +1,9 @@
-import { render, screen, within } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Locale } from '../i18n/messages';
 import { makePlaylist } from '../test/playlistFactory';
+import { renderWithI18n } from '../test/renderWithI18n';
 import {
   deletePlaylist,
   listMyPlaylists,
@@ -82,9 +84,12 @@ function rowOf(title: string): HTMLElement {
   return row;
 }
 
-function renderView() {
+function renderView(locale: Locale = 'pl') {
   const onUnauthorized = vi.fn();
-  render(<PlaylistsView token="tok" onUnauthorized={onUnauthorized} />);
+  renderWithI18n(
+    <PlaylistsView token="tok" onUnauthorized={onUnauthorized} />,
+    locale,
+  );
   return { onUnauthorized, user: userEvent.setup() };
 }
 
@@ -349,6 +354,74 @@ describe('PlaylistsView', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Nie znaleziono kanału YouTube na tym koncie.',
     );
+  });
+
+  describe('in English', () => {
+    it('labels the heading, columns, cells, filter and search', async () => {
+      vi.mocked(listMyPlaylists).mockResolvedValue(mixed);
+      renderView('en');
+
+      expect(screen.getByText('Loading playlists...')).toBeInTheDocument();
+      const table = await screen.findByRole('table', {
+        name: 'Your playlists (4)',
+      });
+      const headers = within(table).getAllByRole('columnheader');
+      ['Title', 'Videos', 'Visibility', 'Created', 'Actions'].forEach(
+        (name, index) => expect(headers[index]).toHaveAccessibleName(name),
+      );
+      expect(within(rowOf('Tajna')).getByText('Private')).toBeInTheDocument();
+      expect(
+        screen.getByRole('searchbox', { name: 'Search playlists and videos' }),
+      ).toHaveAttribute('placeholder', 'Search playlists and videos...');
+
+      const filter = screen.getByRole('group', {
+        name: 'Filter by visibility',
+      });
+      await userEvent.click(
+        within(filter).getByRole('button', { name: /^Private/ }),
+      );
+      expect(
+        screen.getByRole('heading', {
+          level: 2,
+          name: 'Your playlists (1 of 4)',
+        }),
+      ).toBeInTheDocument();
+    });
+
+    it('announces a deleted playlist', async () => {
+      vi.mocked(listMyPlaylists).mockResolvedValue(playlists);
+      vi.mocked(deletePlaylist).mockResolvedValue(undefined);
+      const { user } = renderView('en');
+      await screen.findByRole('table');
+
+      const row = rowOf('Zupa');
+      await user.click(
+        within(row).getByRole('button', { name: /^Delete playlist/ }),
+      );
+      await user.click(
+        within(row).getByRole('button', { name: 'Delete permanently' }),
+      );
+
+      expect(
+        await screen.findByText('Playlist "Zupa" deleted.'),
+      ).toHaveAttribute('role', 'status');
+    });
+
+    it('explains a missing channel and an empty account', async () => {
+      vi.mocked(listMyPlaylists).mockRejectedValueOnce(
+        new ApiError('notFound', 'x', 404),
+      );
+      vi.mocked(listMyPlaylists).mockResolvedValueOnce([]);
+      const { user } = renderView('en');
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'No YouTube channel found on this account.',
+      );
+      await user.click(screen.getByRole('button', { name: 'Try again' }));
+      expect(
+        await screen.findByText('You have no playlists yet.'),
+      ).toBeInTheDocument();
+    });
   });
 
   describe('visibility filter', () => {

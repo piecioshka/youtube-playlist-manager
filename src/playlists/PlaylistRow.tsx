@@ -6,8 +6,9 @@ import {
   type FormEvent,
   type KeyboardEvent,
 } from 'react';
+import { useI18n } from '../i18n/LocaleProvider';
 import type { Playlist } from '../youtube/types';
-import { formatDate, privacyLabel } from './format';
+import { formatDate } from './format';
 
 export const MAX_TITLE_LENGTH = 150;
 
@@ -20,15 +21,12 @@ type PlaylistRowProps = {
   onDelete: (playlist: Playlist) => Promise<void>;
 };
 
-function toMessage(error: unknown): string {
-  return error instanceof Error ? error.message : 'Coś poszło nie tak.';
-}
-
 export function PlaylistRow({
   playlist,
   onRename,
   onDelete,
 }: PlaylistRowProps) {
+  const { t } = useI18n();
   const [mode, setMode] = useState<Mode>('view');
   const [draft, setDraft] = useState(playlist.title);
   const [pending, setPending] = useState(false);
@@ -86,7 +84,7 @@ export function PlaylistRow({
       await action();
       return true;
     } catch (caught) {
-      setError(toMessage(caught));
+      setError(caught instanceof Error ? caught.message : t.genericError);
       return false;
     } finally {
       pendingRef.current = false;
@@ -101,11 +99,11 @@ export function PlaylistRow({
     }
     const title = draft.trim();
     if (title === '') {
-      setError('Nazwa nie może być pusta.');
+      setError(t.titleEmpty);
       return;
     }
     if ([...title].length > MAX_TITLE_LENGTH) {
-      setError(`Nazwa może mieć najwyżej ${MAX_TITLE_LENGTH} znaków.`);
+      setError(t.titleTooLong(MAX_TITLE_LENGTH));
       return;
     }
     if (title === playlist.title.trim()) {
@@ -162,7 +160,7 @@ export function PlaylistRow({
               noValidate
             >
               <label className="visually-hidden" htmlFor={inputId}>
-                Nowa nazwa playlisty
+                {t.newTitleLabel}
               </label>
               <input
                 id={inputId}
@@ -181,7 +179,7 @@ export function PlaylistRow({
                 className="button button--primary button--small"
                 disabled={pending}
               >
-                {pending ? 'Zapisywanie...' : 'Zapisz'}
+                {pending ? t.saving : t.save}
               </button>
               <button
                 type="button"
@@ -189,7 +187,7 @@ export function PlaylistRow({
                 onClick={cancelEdit}
                 disabled={pending}
               >
-                Anuluj
+                {t.cancel}
               </button>
             </form>
           ) : (
@@ -213,14 +211,14 @@ export function PlaylistRow({
       <td
         className="playlist-row__cell playlist-row__cell--number"
         role="cell"
-        data-label="Filmy"
+        data-label={t.columnVideos}
       >
         {playlist.itemCount}
       </td>
       <td
         className="playlist-row__cell playlist-row__cell--nowrap"
         role="cell"
-        data-label="Widoczność"
+        data-label={t.columnPrivacy}
       >
         {playlist.privacyStatus === 'private' && (
           <>
@@ -229,12 +227,12 @@ export function PlaylistRow({
             </span>{' '}
           </>
         )}
-        {privacyLabel(playlist.privacyStatus)}
+        {t.privacy[playlist.privacyStatus]}
       </td>
       <td
         className="playlist-row__cell playlist-row__cell--nowrap"
         role="cell"
-        data-label="Utworzona"
+        data-label={t.columnCreated}
       >
         <time dateTime={playlist.publishedAt}>
           {formatDate(playlist.publishedAt)}
@@ -245,16 +243,18 @@ export function PlaylistRow({
           <div
             className="playlist-row__buttons"
             role="group"
-            aria-label={`Potwierdzenie usunięcia playlisty ${playlist.title}`}
+            aria-label={t.confirmDeleteLabel(playlist.title)}
           >
-            <span className="playlist-row__question">Usunąć na stałe?</span>
+            <span className="playlist-row__question">
+              {t.confirmDeleteQuestion}
+            </span>
             <button
               type="button"
               className="button button--danger button--small"
               onClick={handleConfirmDelete}
               disabled={pending}
             >
-              {pending ? 'Usuwanie...' : 'Usuń na stałe'}
+              {pending ? t.deleting : t.deletePermanently}
             </button>
             <button
               ref={cancelDeleteRef}
@@ -263,7 +263,7 @@ export function PlaylistRow({
               onClick={() => switchMode('view', 'delete')}
               disabled={pending}
             >
-              Anuluj
+              {t.cancel}
             </button>
           </div>
         ) : (
@@ -275,9 +275,9 @@ export function PlaylistRow({
               onClick={startEdit}
               disabled={mode === 'edit'}
             >
-              Zmień nazwę{' '}
+              {t.rename}{' '}
               <span className="visually-hidden">
-                playlisty {playlist.title}
+                {t.renameTarget(playlist.title)}
               </span>
             </button>
             <button
@@ -287,9 +287,9 @@ export function PlaylistRow({
               onClick={() => switchMode('confirmDelete', 'cancelDelete')}
               disabled={mode === 'edit'}
             >
-              Usuń{' '}
+              {t.delete}{' '}
               <span className="visually-hidden">
-                playlistę {playlist.title}
+                {t.deleteTarget(playlist.title)}
               </span>
             </button>
           </div>

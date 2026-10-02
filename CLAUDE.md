@@ -9,6 +9,8 @@ Static React SPA that signs in to a YouTube account with Google Identity Service
 ## Layout
 
 - `src/youtube/` API client: zod schemas, `api.ts`, `ApiError`, user-facing error messages
+- `src/i18n/` UI strings in Polish and English (`messages.ts`), `LocaleProvider` with `useI18n()`
+- `src/theme/` light/dark theme switch (dark by default)
 - `src/auth/` Google Identity Services loader, `useGoogleAuth`, `LoginScreen`
 - `src/playlists/` sorting, formatting, `PlaylistsView`, `PlaylistRow`
 - `src/**/*.spec.ts(x)` Vitest next to the code, `e2e/` Playwright against a stubbed Google
@@ -16,7 +18,8 @@ Static React SPA that signs in to a YouTube account with Google Identity Service
 
 ## Conventions
 
-- Identifiers in English, UI copy in Polish
+- Identifiers in English
+- UI copy lives in `src/i18n/messages.ts` (pl + en), never inline in components
 - No `as` type assertions, no inline styles, CSS targets classes only
 - Dates in the UI as `YYYY-MM-DD`
 - Commit messages in English, Conventional Commits, no `Co-Authored-By`

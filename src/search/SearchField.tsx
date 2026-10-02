@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, type KeyboardEvent } from 'react';
+import { useI18n } from '../i18n/LocaleProvider';
 
 type SearchFieldProps = {
   value: string;
@@ -17,6 +18,7 @@ export function SearchField({
   onChange,
   onFocus,
 }: SearchFieldProps) {
+  const { t } = useI18n();
   const inputRef = useRef<HTMLInputElement>(null);
   const inputId = useId();
 
@@ -45,14 +47,14 @@ export function SearchField({
     <>
       <div className="search">
         <label className="visually-hidden" htmlFor={inputId}>
-          Szukaj playlist i filmów
+          {t.searchLabel}
         </label>
         <input
           id={inputId}
           ref={inputRef}
           type="search"
           className="search__input"
-          placeholder="Szukaj playlist i filmów..."
+          placeholder={t.searchPlaceholder}
           autoComplete="off"
           spellCheck={false}
           aria-keyshortcuts="Meta+K Control+K"

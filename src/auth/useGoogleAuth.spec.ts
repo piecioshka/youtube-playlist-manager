@@ -111,7 +111,7 @@ describe('useGoogleAuth', () => {
     expect(result.current).toMatchObject({
       status: 'signedOut',
       token: null,
-      message: 'Nie udało się zalogować. Spróbuj ponownie.',
+      message: 'signInFailed',
     });
   });
 
@@ -131,9 +131,7 @@ describe('useGoogleAuth', () => {
 
     act(() => config().error_callback?.(popupError('popup_failed_to_open')));
 
-    expect(result.current.message).toBe(
-      'Nie udało się otworzyć okna logowania Google.',
-    );
+    expect(result.current.message).toBe('popupFailed');
   });
 
   it('signOut() revokes the token', async () => {
@@ -154,13 +152,13 @@ describe('useGoogleAuth', () => {
     const { result } = await renderSignedOut();
     act(() => config().callback(tokenResponse('tok-1')));
 
-    act(() => result.current.signOut('Sesja wygasła, zaloguj się ponownie.'));
+    act(() => result.current.signOut('sessionExpired'));
 
     expect(revoke).not.toHaveBeenCalled();
     expect(result.current).toMatchObject({
       status: 'signedOut',
       token: null,
-      message: 'Sesja wygasła, zaloguj się ponownie.',
+      message: 'sessionExpired',
     });
   });
 
@@ -170,9 +168,7 @@ describe('useGoogleAuth', () => {
     const { result } = renderHook(() => useGoogleAuth('client-1'));
 
     await waitFor(() => expect(result.current.status).toBe('error'));
-    expect(result.current.message).toBe(
-      'Nie udało się wczytać logowania Google. Sprawdź połączenie.',
-    );
+    expect(result.current.message).toBe('scriptFailed');
   });
 
   it('retries after a failed script load', async () => {
@@ -300,7 +296,7 @@ describe('useGoogleAuth', () => {
       const { result } = await renderSignedOut();
       act(() => config().callback(tokenResponse('tok-1')));
 
-      act(() => result.current.signOut('Sesja wygasła, zaloguj się ponownie.'));
+      act(() => result.current.signOut('sessionExpired'));
 
       expect(sessionStorage.getItem(SESSION_KEY)).toBeNull();
     });
@@ -323,7 +319,7 @@ describe('useGoogleAuth', () => {
         token: 'tok-1',
       });
 
-      act(() => result.current.signOut('koniec'));
+      act(() => result.current.signOut('sessionExpired'));
       expect(result.current.status).toBe('signedOut');
     });
   });
