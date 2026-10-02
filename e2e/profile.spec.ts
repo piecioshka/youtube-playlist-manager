@@ -2,6 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import type { Page } from '@playwright/test';
 import {
   expect,
+  horizontalScroll,
   MISSING_VIDEO_ID,
   playlistRows,
   signIn,
@@ -330,12 +331,7 @@ test('fits a phone screen without horizontal scrolling', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 800 });
   await openAlgorithms(page);
 
-  const overflow = await page.evaluate(
-    () =>
-      document.documentElement.scrollWidth -
-      document.documentElement.clientWidth,
-  );
-  expect(overflow).toBe(0);
+  expect(await horizontalScroll(page)).toBe(0);
 });
 
 test('has no accessibility violations on the profile', async ({ page }) => {

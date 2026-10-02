@@ -528,6 +528,19 @@ export async function signIn(page: Page): Promise<void> {
   );
 }
 
+/*
+ * O ile pikseli strona daje się przewinąć w poziomie. Różnica `scrollWidth`
+ * i `clientWidth` się do tego nie nadaje: przy `scrollbar-gutter: stable`
+ * i klasycznych paskach przewijania (Linux) jest ujemna na stronie, która
+ * mieści się w oknie.
+ */
+export function horizontalScroll(page: Page): Promise<number> {
+  return page.evaluate(() => {
+    window.scrollTo({ left: 10_000, behavior: 'instant' });
+    return window.scrollX;
+  });
+}
+
 // Wiersze z danymi, bez wiersza nagłówka tabeli
 export function playlistRows(page: Page): Locator {
   return page.getByRole('rowgroup').nth(1).getByRole('row');

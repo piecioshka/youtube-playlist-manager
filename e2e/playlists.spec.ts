@@ -1,6 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import {
   expect,
+  horizontalScroll,
   LONG_TITLE,
   playlistRows,
   playlistTitles,
@@ -160,12 +161,7 @@ test('fits a phone screen without horizontal scrolling', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 800 });
   await signIn(page);
 
-  const overflow = await page.evaluate(
-    () =>
-      document.documentElement.scrollWidth -
-      document.documentElement.clientWidth,
-  );
-  expect(overflow).toBe(0);
+  expect(await horizontalScroll(page)).toBe(0);
 });
 
 test('has no accessibility violations on the playlist screen', async ({
