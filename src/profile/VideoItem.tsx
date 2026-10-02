@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { useI18n } from '../i18n/LocaleProvider';
 import type { PlaylistVideo } from '../youtube/types';
 import type { DropPlacement } from './reorder';
@@ -8,7 +8,7 @@ function classNames(...names: (string | false)[]): string {
   return names.filter(Boolean).join(' ');
 }
 
-type FocusTarget = 'up' | 'down' | 'remove' | 'cancel';
+type FocusTarget = 'handle' | 'remove' | 'cancel';
 
 type VideoItemProps = {
   video: PlaylistVideo;
@@ -21,7 +21,7 @@ type VideoItemProps = {
   // Inna operacja na filmach trwa, więc przyciski czekają
   locked: boolean;
   error: string | null;
-  // Zdarzenia uchwytu; null, gdy filmu nie da się teraz złapać
+  // Zdarzenia uchwytu; null, gdy filmu nie da się teraz przenieść
   dragHandlers: DragHandlers | null;
   // Ten film jest właśnie przeciągany
   dragging: boolean;
@@ -52,33 +52,26 @@ export function VideoItem({
   const { t } = useI18n();
   const [confirming, setConfirming] = useState(false);
   const focusTargetRef = useRef<FocusTarget | null>(null);
-  const upRef = useRef<HTMLButtonElement>(null);
-  const downRef = useRef<HTMLButtonElement>(null);
+  const handleRef = useRef<HTMLButtonElement>(null);
   const removeRef = useRef<HTMLButtonElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
   const disabled = pending || locked;
 
-  /*
-   * Przyciski są wyłączone na czas żądania, więc gubią fokus; oddajemy go po
-   * odpowiedzi. Po przesunięciu na skraj listy ten sam kierunek jest wyłączony,
-   * wtedy fokus trafia na przeciwny.
-   */
+  // Przesunięcie i potwierdzenia przebudowują wiersz, więc fokus oddajemy po odpowiedzi
   useEffect(() => {
     const target = focusTargetRef.current;
     if (target === null || disabled) {
       return;
     }
     focusTargetRef.current = null;
-    if (target === 'up') {
-      (isFirst ? downRef : upRef).current?.focus();
-    } else if (target === 'down') {
-      (isLast ? upRef : downRef).current?.focus();
+    if (target === 'handle') {
+      handleRef.current?.focus();
     } else if (target === 'remove') {
       removeRef.current?.focus();
     } else {
       cancelRef.current?.focus();
     }
-  }, [disabled, confirming, isFirst, isLast]);
+  }, [disabled, confirming]);
 
   // Przycisk jest wyłączony do końca operacji, więc fokus bierze dopiero po niej
   useEffect(() => {
@@ -87,8 +80,24 @@ export function VideoItem({
     }
   }, [focusRemove, disabled]);
 
-  function move(direction: 'up' | 'down') {
-    focusTargetRef.current = direction;
+  // Z klawiatury uchwyt przesuwa film strzałkami: przeciąganie wymaga myszy albo palca
+  function handleKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
+    const direction =
+      event.key === 'ArrowUp'
+        ? 'up'
+        : event.key === 'ArrowDown'
+          ? 'down'
+          : null;
+    if (direction === null) {
+      return;
+    }
+    // Strzałka na uchwycie nie przewija strony
+    event.preventDefault();
+    const atEdge = direction === 'up' ? isFirst : isLast;
+    if (dragHandlers === null || atEdge) {
+      return;
+    }
+    focusTargetRef.current = 'handle';
     onMove(direction);
   }
 
@@ -123,14 +132,19 @@ export function VideoItem({
         dropIndicator !== null && `video-item--drop-${dropIndicator}`,
       )}
     >
-      <span
+      <button
+        ref={handleRef}
+        type="button"
         className={
           dragHandlers === null
             ? 'video-item__handle video-item__handle--disabled'
             : 'video-item__handle'
         }
-        aria-hidden="true"
+        aria-label={`${t.moveVideo} ${t.videoTarget(name)}`}
+        // aria-disabled zamiast disabled: uchwyt nie gubi fokusa na czas żądania
+        aria-disabled={dragHandlers === null ? true : undefined}
         title={t.dragToReorder}
+        onKeyDown={handleKeyDown}
         {...dragHandlers}
       >
         <svg width="12" height="16" viewBox="0 0 12 16" aria-hidden="true">
@@ -141,7 +155,7 @@ export function VideoItem({
           <circle cx="3" cy="13" r="1.5" />
           <circle cx="9" cy="13" r="1.5" />
         </svg>
-      </span>
+      </button>
       <span className="video-item__position">{number}</span>
       {video.available && video.thumbnailUrl ? (
         <img
@@ -210,46 +224,6 @@ export function VideoItem({
       ) : (
         <div className="video-item__actions">
           {pending && <span className="video-item__working">{t.working}</span>}
-          <span className="video-item__moves">
-            <button
-              ref={upRef}
-              type="button"
-              className="button button--small video-item__button"
-              onClick={() => move('up')}
-              disabled={disabled || isFirst}
-            >
-              <svg
-                className="video-item__icon"
-                width="16"
-                height="16"
-                viewBox="0 0 16 16"
-                aria-hidden="true"
-              >
-                <path d="M8 4l5 7H3z" fill="currentColor" />
-              </svg>
-              <span className="video-item__button-label">{t.moveUp}</span>{' '}
-              {target}
-            </button>
-            <button
-              ref={downRef}
-              type="button"
-              className="button button--small video-item__button"
-              onClick={() => move('down')}
-              disabled={disabled || isLast}
-            >
-              <svg
-                className="video-item__icon"
-                width="16"
-                height="16"
-                viewBox="0 0 16 16"
-                aria-hidden="true"
-              >
-                <path d="M8 12l5-7H3z" fill="currentColor" />
-              </svg>
-              <span className="video-item__button-label">{t.moveDown}</span>{' '}
-              {target}
-            </button>
-          </span>
           <button
             ref={removeRef}
             type="button"

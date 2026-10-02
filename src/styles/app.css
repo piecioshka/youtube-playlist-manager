@@ -219,6 +219,7 @@ body {
 .profile__title:focus-visible,
 .profile__videos-heading:focus-visible,
 .video-item__link:focus-visible,
+.video-item__handle:focus-visible,
 .input:focus-visible,
 .textarea:focus-visible,
 .search__input:focus-visible,
@@ -803,6 +804,10 @@ body {
   justify-content: center;
   align-self: stretch;
   width: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: none;
   color: var(--color-muted);
   cursor: grab;
   /* Palec na uchwycie przeciąga film, a nie przewija stronę ani nie zaznacza tekstu */
@@ -910,11 +915,7 @@ body {
   white-space: normal;
 }
 
-/* Na szerokim ekranie przyciski mają tekst; ikony i pionowy układ strzałek włącza telefon */
-.video-item__moves {
-  display: contents;
-}
-
+/* Na szerokim ekranie przycisk usuwania ma tekst; ikonę włącza telefon */
 .video-item__icon {
   display: none;
 }
@@ -1120,7 +1121,7 @@ body {
     font-size: 1.125rem;
   }
 
-  /* Wiersz filmu mieści się w jednym rzędzie: przyciski to ikony, a strzałki stoją jedna nad drugą */
+  /* Wiersz filmu mieści się w jednym rzędzie: usuwanie to ikona */
   .video-item {
     grid-template-columns: auto 1.25rem 56px minmax(0, 1fr) auto;
     gap: 4px 8px;
@@ -1141,11 +1142,6 @@ body {
   }
 
   .video-item__actions {
-    gap: 4px;
-  }
-
-  .video-item__moves {
-    display: grid;
     gap: 4px;
   }
 

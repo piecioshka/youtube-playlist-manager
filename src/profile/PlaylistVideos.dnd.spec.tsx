@@ -272,11 +272,8 @@ describe('drag and drop reordering', () => {
     const { user } = await renderVideos();
     expect(handle('Grafy')).not.toHaveClass('video-item__handle--disabled');
 
-    await user.click(
-      within(item('Quicksort')).getByRole('button', {
-        name: 'W dół „Quicksort”',
-      }),
-    );
+    handle('Quicksort').focus();
+    await user.keyboard('{ArrowDown}');
 
     expect(handle('Grafy')).toHaveClass('video-item__handle--disabled');
     grab('Grafy');
@@ -296,21 +293,20 @@ describe('drag and drop reordering', () => {
     expect(item('Quicksort')).not.toHaveClass('video-item--dragging');
   });
 
-  it('keeps the handle out of the accessibility tree', async () => {
+  it('names the handle for assistive technology', async () => {
     await renderVideos();
 
-    expect(handle('Quicksort')).toHaveAttribute('aria-hidden', 'true');
+    expect(handle('Quicksort')).toBe(
+      screen.getByRole('button', { name: 'Przenieś „Quicksort”' }),
+    );
   });
 
-  it('keeps the buttons working and announces their moves', async () => {
+  it('moves with the arrow keys on the handle and announces it', async () => {
     youtube.movePlaylistItem.mockResolvedValue(undefined);
     const { user } = await renderVideos();
 
-    await user.click(
-      within(item('Quicksort')).getByRole('button', {
-        name: 'W dół „Quicksort”',
-      }),
-    );
+    handle('Quicksort').focus();
+    await user.keyboard('{ArrowDown}');
 
     expect(titles()).toEqual(['Big O', 'Quicksort', 'Grafy']);
     expect(youtube.movePlaylistItem).toHaveBeenCalledWith(

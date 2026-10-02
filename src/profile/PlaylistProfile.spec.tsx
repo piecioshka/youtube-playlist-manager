@@ -117,6 +117,20 @@ function item(title: string): HTMLElement {
   return found;
 }
 
+// Uchwyt filmu: przeciąga się go myszą albo palcem, a z klawiatury przesuwa strzałkami
+function handleOf(name: string): HTMLElement {
+  return screen.getByRole('button', { name: `Przenieś „${name}”` });
+}
+
+async function pressOnHandle(
+  user: ReturnType<typeof userEvent.setup>,
+  name: string,
+  key: 'ArrowUp' | 'ArrowDown',
+) {
+  handleOf(name).focus();
+  await user.keyboard(`{${key}}`);
+}
+
 function form(): HTMLElement {
   return screen.getByRole('form', { name: 'Ustawienia playlisty' });
 }
@@ -414,12 +428,34 @@ describe('PlaylistProfile', () => {
         within(first).getByRole('link', { name: 'Quicksort' }),
       ).toHaveAttribute('target', '_blank');
       expect(first.querySelector('img')).toHaveAttribute('alt', '');
+      expect(handleOf('Quicksort')).toHaveAttribute(
+        'title',
+        'Przeciągnij albo użyj strzałek w górę i w dół, aby zmienić kolejność',
+      );
+      // Kolejność zmienia tylko uchwyt: osobnych przycisków w górę i w dół już nie ma
       expect(
-        within(first).getByRole('button', { name: 'W górę „Quicksort”' }),
-      ).toBeDisabled();
-      expect(
-        within(item('Grafy')).getByRole('button', { name: 'W dół „Grafy”' }),
-      ).toBeDisabled();
+        screen.queryByRole('button', { name: /^W (górę|dół)/ }),
+      ).not.toBeInTheDocument();
+    });
+
+    it('ignores an arrow that would move a video past the edge of the list', async () => {
+      const { user } = await renderLoaded();
+
+      await pressOnHandle(user, 'Quicksort', 'ArrowUp');
+      await pressOnHandle(user, 'Grafy', 'ArrowDown');
+
+      expect(videoTitles()).toEqual(['Quicksort', 'Big O', 'Grafy']);
+      expect(youtube.movePlaylistItem).not.toHaveBeenCalled();
+    });
+
+    it('keeps the focus on the handle after a keyboard move', async () => {
+      youtube.movePlaylistItem.mockResolvedValue(undefined);
+      const { user } = await renderLoaded();
+
+      await pressOnHandle(user, 'Quicksort', 'ArrowDown');
+
+      await waitFor(() => expect(handleOf('Quicksort')).toHaveFocus());
+      expect(handleOf('Quicksort')).not.toHaveAttribute('aria-disabled');
     });
 
     it('shows a loading state, then an empty playlist', async () => {
@@ -453,11 +489,7 @@ describe('PlaylistProfile', () => {
       youtube.movePlaylistItem.mockResolvedValue(undefined);
       const { user, replaceVideos } = await renderLoaded();
 
-      await user.click(
-        within(item('Quicksort')).getByRole('button', {
-          name: 'W dół „Quicksort”',
-        }),
-      );
+      await pressOnHandle(user, 'Quicksort', 'ArrowDown');
 
       expect(videoTitles()).toEqual(['Big O', 'Quicksort', 'Grafy']);
       expect(youtube.movePlaylistItem).toHaveBeenCalledWith(
@@ -479,9 +511,7 @@ describe('PlaylistProfile', () => {
       youtube.movePlaylistItem.mockResolvedValue(undefined);
       const { user } = await renderLoaded();
 
-      await user.click(
-        within(item('Grafy')).getByRole('button', { name: 'W górę „Grafy”' }),
-      );
+      await pressOnHandle(user, 'Grafy', 'ArrowUp');
 
       expect(videoTitles()).toEqual(['Quicksort', 'Grafy', 'Big O']);
       expect(youtube.movePlaylistItem).toHaveBeenCalledWith(
@@ -501,23 +531,15 @@ describe('PlaylistProfile', () => {
       );
       const { user } = await renderLoaded();
 
-      await user.click(
-        within(item('Quicksort')).getByRole('button', {
-          name: 'W dół „Quicksort”',
-        }),
-      );
+      await pressOnHandle(user, 'Quicksort', 'ArrowDown');
 
       expect(item('Quicksort')).toHaveTextContent('Pracuję...');
-      expect(
-        within(item('Grafy')).getByRole('button', { name: 'W górę „Grafy”' }),
-      ).toBeDisabled();
+      expect(handleOf('Grafy')).toHaveAttribute('aria-disabled', 'true');
+      await pressOnHandle(user, 'Grafy', 'ArrowUp');
+      expect(youtube.movePlaylistItem).toHaveBeenCalledTimes(1);
       finish();
       await waitFor(() =>
-        expect(
-          within(item('Grafy')).getByRole('button', {
-            name: 'W górę „Grafy”',
-          }),
-        ).toBeEnabled(),
+        expect(handleOf('Grafy')).not.toHaveAttribute('aria-disabled'),
       );
     });
 
@@ -527,11 +549,7 @@ describe('PlaylistProfile', () => {
       );
       const { user, replaceVideos } = await renderLoaded();
 
-      await user.click(
-        within(item('Quicksort')).getByRole('button', {
-          name: 'W dół „Quicksort”',
-        }),
-      );
+      await pressOnHandle(user, 'Quicksort', 'ArrowDown');
 
       expect(
         await within(item('Quicksort')).findByRole('alert'),
@@ -760,9 +778,7 @@ describe('PlaylistProfile', () => {
       youtube.movePlaylistItem.mockResolvedValue(undefined);
       const { user } = await renderLoaded();
 
-      await user.click(
-        screen.getByRole('button', { name: 'W dół „niedostępny nr 2”' }),
-      );
+      await pressOnHandle(user, 'niedostępny nr 2', 'ArrowDown');
 
       expect(youtube.movePlaylistItem).toHaveBeenCalledWith(
         'PL-algo',
@@ -1009,8 +1025,11 @@ describe('PlaylistProfile', () => {
     expect(meta()).toHaveTextContent('3 videos · Unlisted · 2023-03-05');
     expect(screen.getByRole('textbox', { name: 'Title' })).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'Move up "Quicksort"' }),
-    ).toBeDisabled();
+      screen.getByRole('button', { name: 'Move "Quicksort"' }),
+    ).toHaveAttribute(
+      'title',
+      'Drag, or use the up and down arrow keys, to reorder',
+    );
     expect(
       screen.getByRole('button', { name: 'Delete playlist' }),
     ).toBeInTheDocument();

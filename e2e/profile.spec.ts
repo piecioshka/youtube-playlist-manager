@@ -41,19 +41,23 @@ test('opens a playlist profile from the table', async ({ page }) => {
   expect(await videoTitles(page)).toEqual(ALGO_VIDEOS);
 });
 
-test('moves a video down', async ({ page, youtube }) => {
+test('moves a video down with the arrow key on its handle', async ({
+  page,
+  youtube,
+}) => {
   await openAlgorithms(page);
+  const handle = page.getByRole('button', {
+    name: 'Przenieś „Quicksort in 4 minutes”',
+  });
 
-  await page
-    .getByRole('button', { name: 'W dół „Quicksort in 4 minutes”' })
-    .click();
+  await handle.focus();
+  await page.keyboard.press('ArrowDown');
 
   await expect
     .poll(() => videoTitles(page))
     .toEqual([ALGO_VIDEOS[1], ALGO_VIDEOS[0], ALGO_VIDEOS[2]]);
-  await expect(
-    page.getByRole('button', { name: 'W dół „Quicksort in 4 minutes”' }),
-  ).toBeEnabled();
+  await expect(handle).toBeFocused();
+  await expect(handle).not.toHaveAttribute('aria-disabled');
   const put = youtube.requests.find(
     (request) =>
       request.method === 'PUT' &&
@@ -450,24 +454,20 @@ test('lays the profile out for a phone', async ({ page }) => {
   expect(thumbnail.x + thumbnail.width).toBeLessThanOrEqual(title.x);
   expect(title.y).toBeLessThan(thumbnail.y + thumbnail.height);
 
-  // Przyciski filmu to ikony w tym samym rzędzie co tytuł
+  // Usuwanie to ikona w tym samym rzędzie co tytuł
   const item = videoList(page).getByRole('listitem').first();
   const text = await item.locator('.video-item__text').boundingBox();
   const remove = item.getByRole('button', {
     name: 'Usuń z playlisty „Quicksort in 4 minutes”',
   });
   const removeBox = await remove.boundingBox();
-  const down = await item
-    .getByRole('button', { name: 'W dół „Quicksort in 4 minutes”' })
-    .boundingBox();
-  if (text === null || removeBox === null || down === null) {
+  if (text === null || removeBox === null) {
     throw new Error('The video row has no box');
   }
   expect(removeBox.y).toBeLessThan(text.y + text.height);
   expect(removeBox.y + removeBox.height).toBeGreaterThan(text.y);
   expect(removeBox.x).toBeGreaterThan(text.x + text.width - 1);
   expect(removeBox.width).toBeLessThanOrEqual(40);
-  expect(down.width).toBeLessThanOrEqual(40);
 
   expect(await horizontalScroll(page)).toBe(0);
   const results = await new AxeBuilder({ page }).analyze();
