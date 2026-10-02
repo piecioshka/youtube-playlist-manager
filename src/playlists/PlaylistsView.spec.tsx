@@ -201,6 +201,61 @@ describe('PlaylistsView', () => {
     });
   });
 
+  it('sorts through the select that replaces the headers on a phone', async () => {
+    youtube.listMyPlaylists.mockResolvedValue(playlists);
+    const { user } = renderView();
+    await screen.findByRole('table');
+    const select = screen.getByRole('combobox', { name: 'Sortowanie' });
+
+    expect(select).toHaveValue('publishedAt-desc');
+    expect(
+      within(select)
+        .getAllByRole('option')
+        .map((option) => option.textContent),
+    ).toEqual([
+      'Tytuł: A-Z',
+      'Tytuł: Z-A',
+      'Filmy: od największej liczby',
+      'Filmy: od najmniejszej liczby',
+      'Widoczność: od publicznych',
+      'Widoczność: od prywatnych',
+      'Utworzona: od najnowszych',
+      'Utworzona: od najstarszych',
+    ]);
+
+    await user.selectOptions(select, 'Tytuł: A-Z');
+
+    expect(rowTitles()).toEqual(['Algorytmy', 'Ćwiczenia', 'Zupa']);
+    expect(columnHeader('Tytuł')).toHaveAttribute('aria-sort', 'ascending');
+    expect(JSON.parse(localStorage.getItem(SORT_KEY) ?? 'null')).toEqual({
+      key: 'title',
+      direction: 'asc',
+    });
+  });
+
+  it('keeps the sort select in step with the headers', async () => {
+    youtube.listMyPlaylists.mockResolvedValue(playlists);
+    const { user } = renderView();
+    await screen.findByRole('table');
+
+    await user.click(within(columnHeader('Filmy')).getByRole('button'));
+
+    expect(screen.getByRole('combobox', { name: 'Sortowanie' })).toHaveValue(
+      'itemCount-desc',
+    );
+  });
+
+  it('labels the sort select in English', async () => {
+    youtube.listMyPlaylists.mockResolvedValue(playlists);
+    renderView('en');
+    await screen.findByRole('table');
+
+    const select = screen.getByRole('combobox', { name: 'Sort by' });
+    expect(
+      within(select).getByRole('option', { selected: true }),
+    ).toHaveTextContent('Created: newest first');
+  });
+
   it('shows the arrow only on the active column', async () => {
     youtube.listMyPlaylists.mockResolvedValue(playlists);
     const { user } = renderView();

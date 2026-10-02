@@ -4,6 +4,9 @@ export type SortKey = 'title' | 'itemCount' | 'privacy' | 'publishedAt';
 export type SortDirection = 'asc' | 'desc';
 export type SortState = { key: SortKey; direction: SortDirection };
 
+// Wartość opcji w liście wyboru sortowania
+export type SortOption = `${SortKey}-${SortDirection}`;
+
 export const DEFAULT_SORT: SortState = {
   key: 'publishedAt',
   direction: 'desc',
@@ -26,6 +29,22 @@ const COMPARATORS: Record<SortKey, (a: Playlist, b: Playlist) => number> = {
 
 // Klucze, które po pierwszym kliknięciu sortują rosnąco; reszta zaczyna od największych wartości
 const ASCENDING_FIRST: readonly SortKey[] = ['title', 'privacy'];
+
+// Kolejność w liście wyboru: w każdej parze najpierw kierunek, od którego zaczyna kliknięcie w nagłówek
+export const SORT_OPTIONS: readonly SortState[] = [
+  { key: 'title', direction: 'asc' },
+  { key: 'title', direction: 'desc' },
+  { key: 'itemCount', direction: 'desc' },
+  { key: 'itemCount', direction: 'asc' },
+  { key: 'privacy', direction: 'asc' },
+  { key: 'privacy', direction: 'desc' },
+  { key: 'publishedAt', direction: 'desc' },
+  { key: 'publishedAt', direction: 'asc' },
+];
+
+export function sortOptionId(sort: SortState): SortOption {
+  return `${sort.key}-${sort.direction}`;
+}
 
 export function sortPlaylists(
   playlists: readonly Playlist[],

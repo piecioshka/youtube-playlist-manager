@@ -346,6 +346,22 @@ body {
   color: var(--color-accent-text);
 }
 
+/* Lista wyboru sortowania zastępuje nagłówki tabeli dopiero na telefonie */
+.sort-select {
+  display: none;
+}
+
+.sort-select__label {
+  color: var(--color-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.sort-select__control {
+  flex: 1;
+  min-width: 0;
+}
+
 /* Live region zostaje w DOM, ale pusty nie zabiera miejsca nad tabelą */
 .playlists__notice {
   margin: 12px 0 0;
@@ -1050,6 +1066,13 @@ body {
 
 /* Na telefonie wiersz staje się kartą: tytuł i akcje na całą szerokość, dane w trzech kolumnach z etykietami */
 @media (max-width: 640px) {
+  .sort-select {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin: 12px 0;
+  }
+
   .playlists__head {
     position: absolute;
     width: 1px;

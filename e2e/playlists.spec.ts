@@ -164,6 +164,32 @@ test('fits a phone screen without horizontal scrolling', async ({ page }) => {
   expect(await horizontalScroll(page)).toBe(0);
 });
 
+test('sorts with a select on a phone, where the table has no headers', async ({
+  page,
+}) => {
+  await signIn(page);
+  const select = page.getByRole('combobox', { name: 'Sortowanie' });
+  // Na szerokim ekranie sortują nagłówki tabeli
+  await expect(select).toBeHidden();
+
+  await page.setViewportSize({ width: 375, height: 800 });
+  await expect(select).toBeVisible();
+  await expect(select).toHaveValue('publishedAt-desc');
+  await select.selectOption('Tytuł: A-Z');
+
+  const titles = await playlistTitles(page);
+  expect(titles).toEqual(
+    [...titles].sort((a, b) =>
+      a.localeCompare(b, 'pl', { sensitivity: 'base' }),
+    ),
+  );
+  expect(titles[0]).toBe('Algorytmy');
+  expect(await horizontalScroll(page)).toBe(0);
+
+  const results = await new AxeBuilder({ page }).analyze();
+  expect(results.violations).toEqual([]);
+});
+
 test('has no accessibility violations on the playlist screen', async ({
   page,
 }) => {

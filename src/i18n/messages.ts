@@ -1,4 +1,5 @@
 import type { VisibilityFilter } from '../playlists/filterPlaylists';
+import type { SortOption } from '../playlists/sortPlaylists';
 import type { ApiErrorKind, PrivacyStatus } from '../youtube/types';
 
 export type Locale = 'pl' | 'en';
@@ -107,6 +108,18 @@ const pl = {
   columnPrivacy: 'Widoczność',
   columnCreated: 'Utworzona',
   columnActions: 'Akcje',
+
+  sortLabel: 'Sortowanie',
+  sortOptions: {
+    'title-asc': 'Tytuł: A-Z',
+    'title-desc': 'Tytuł: Z-A',
+    'itemCount-desc': 'Filmy: od największej liczby',
+    'itemCount-asc': 'Filmy: od najmniejszej liczby',
+    'privacy-asc': 'Widoczność: od publicznych',
+    'privacy-desc': 'Widoczność: od prywatnych',
+    'publishedAt-desc': 'Utworzona: od najnowszych',
+    'publishedAt-asc': 'Utworzona: od najstarszych',
+  } satisfies Record<SortOption, string>,
 
   privacy: {
     public: 'Publiczna',
@@ -253,6 +266,18 @@ const en: Messages = {
   columnPrivacy: 'Visibility',
   columnCreated: 'Created',
   columnActions: 'Actions',
+
+  sortLabel: 'Sort by',
+  sortOptions: {
+    'title-asc': 'Title: A-Z',
+    'title-desc': 'Title: Z-A',
+    'itemCount-desc': 'Videos: most first',
+    'itemCount-asc': 'Videos: fewest first',
+    'privacy-asc': 'Visibility: public first',
+    'privacy-desc': 'Visibility: private first',
+    'publishedAt-desc': 'Created: newest first',
+    'publishedAt-asc': 'Created: oldest first',
+  },
 
   privacy: {
     public: 'Public',

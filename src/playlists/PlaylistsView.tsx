@@ -22,6 +22,7 @@ import {
   type SortState,
 } from './sortPlaylists';
 import { readSort, writeSort } from './sortPreference';
+import { SortSelect } from './SortSelect';
 import { type Notice, type PlaylistsState } from './usePlaylists';
 import { VisibilityFilter } from './VisibilityFilter';
 import {
@@ -110,10 +111,13 @@ export function PlaylistsView({ list, index, channel }: PlaylistsViewProps) {
     sort,
   ]);
 
-  function handleSort(key: SortKey) {
-    const next = nextSort(sort, key);
+  function applySort(next: SortState) {
     setSort(next);
     writeSort(next);
+  }
+
+  function handleSort(key: SortKey) {
+    applySort(nextSort(sort, key));
   }
 
   function handleVisibility(next: Filter) {
@@ -159,6 +163,9 @@ export function PlaylistsView({ list, index, channel }: PlaylistsViewProps) {
             counts={visibleCounts}
             onChange={handleVisibility}
           />
+        )}
+        {loadState.status === 'ready' && playlists.length > 0 && (
+          <SortSelect value={sort} onChange={applySort} />
         )}
         <p className="playlists__notice" role="status">
           {noticeText(notice, t)}
