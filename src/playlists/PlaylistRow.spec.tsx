@@ -51,6 +51,22 @@ describe('PlaylistRow', () => {
     expect(cells.slice(0, 3)).toEqual(['3', 'Niepubliczna', '2026-03-01']);
   });
 
+  it('marks a private playlist with a decorative lock', () => {
+    renderRow({ privacyStatus: 'private' });
+
+    const cell = screen.getByRole('cell', { name: 'Prywatna' });
+    const lock = cell.querySelector('.playlist-row__lock');
+    expect(lock).toHaveAttribute('aria-hidden', 'true');
+    expect(lock).toHaveTextContent('🔒');
+    expect(cell).toHaveTextContent('🔒 Prywatna');
+  });
+
+  it('shows no lock for an unlisted playlist', () => {
+    renderRow({ privacyStatus: 'unlisted' });
+
+    expect(document.querySelector('.playlist-row__lock')).toBeNull();
+  });
+
   it('labels every data cell for the stacked phone layout', () => {
     renderRow();
 

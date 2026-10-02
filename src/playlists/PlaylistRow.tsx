@@ -204,6 +204,13 @@ export function PlaylistRow({
         role="cell"
         data-label="Widoczność"
       >
+        {playlist.privacyStatus === 'private' && (
+          <>
+            <span className="playlist-row__lock" aria-hidden="true">
+              🔒
+            </span>{' '}
+          </>
+        )}
         {privacyLabel(playlist.privacyStatus)}
       </td>
       <td
