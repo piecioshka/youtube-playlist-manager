@@ -275,7 +275,6 @@ a.external-link:focus-visible .external-link__text {
 .profile__back:focus-visible,
 .profile__back-inline:focus-visible,
 .profile__youtube:focus-visible,
-.profile__title:focus-visible,
 .profile__videos-heading:focus-visible,
 .video-item__link:focus-visible,
 .video-item__handle:focus-visible,
@@ -719,6 +718,11 @@ a.external-link:focus-visible .external-link__text {
   display: grid;
   gap: 4px;
   min-width: 0;
+}
+
+/* Tytuł dostaje fokus tylko ze skryptu (dla czytników ekranu) i nie jest kontrolką, więc nie rysuje obrysu */
+.profile__title:focus {
+  outline: none;
 }
 
 .profile__title {

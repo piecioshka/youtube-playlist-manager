@@ -398,6 +398,20 @@ test('keeps Delete playlist in one row with Edit under the playlist details', as
   expect(remove.y).toBeLessThan(table.y);
 });
 
+test('focuses the playlist title on entry without drawing a frame around it', async ({
+  page,
+}) => {
+  await signIn(page);
+  // Wejście klawiaturą: po nim przeglądarka rysuje obrys także dla fokusa ustawionego przez skrypt
+  await page.getByRole('link', { name: 'Algorytmy', exact: true }).focus();
+  await page.keyboard.press('Enter');
+  const title = page.getByRole('heading', { level: 2, name: 'Algorytmy' });
+
+  // Fokus trafia na tytuł dla czytników ekranu, ale tytuł nie jest kontrolką, więc nie dostaje obrysu
+  await expect(title).toBeFocused();
+  await expect(title).toHaveCSS('outline-style', 'none');
+});
+
 test('goes to the playlist table when the app title is clicked', async ({
   page,
 }) => {
