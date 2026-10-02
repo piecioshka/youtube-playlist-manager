@@ -73,6 +73,53 @@ test('moves a video down', async ({ page, youtube }) => {
   ]);
 });
 
+// Cały wiersz docelowy musi być w oknie, bo mysz nie przewinie strony w trakcie przeciągania
+test.describe('drag and drop', () => {
+  test.use({ viewport: { width: 1280, height: 1100 } });
+
+  test('drags the first video onto the last one', async ({ page, youtube }) => {
+    await openAlgorithms(page);
+    const items = videoList(page).getByRole('listitem');
+    const handle = items.first().locator('.video-item__handle');
+    const last = items.last();
+
+    const box = await last.boundingBox();
+    if (box === null) {
+      throw new Error('The last video has no box');
+    }
+    await handle.hover();
+    await page.mouse.down();
+    await page.mouse.move(box.x + 200, box.y + 5, { steps: 5 });
+    await page.mouse.move(box.x + 200, box.y + box.height - 5, { steps: 5 });
+    await page.mouse.up();
+
+    await expect
+      .poll(() => videoTitles(page))
+      .toEqual([ALGO_VIDEOS[1], ALGO_VIDEOS[2], ALGO_VIDEOS[0]]);
+    await expect(
+      page.getByRole('status').filter({ hasText: 'Przeniesiono' }),
+    ).toHaveText('Przeniesiono „Quicksort in 4 minutes” na pozycję 3.');
+    const put = youtube.requests.find(
+      (request) =>
+        request.method === 'PUT' &&
+        request.url.pathname.endsWith('playlistItems'),
+    );
+    expect(put?.body).toEqual({
+      id: 'item-quicksort',
+      snippet: {
+        playlistId: 'PL-algo',
+        resourceId: { kind: 'youtube#video', videoId: 'vid-quicksort' },
+        position: 2,
+      },
+    });
+    expect(youtube.videos['PL-algo']?.map((video) => video.title)).toEqual([
+      ALGO_VIDEOS[1],
+      ALGO_VIDEOS[2],
+      ALGO_VIDEOS[0],
+    ]);
+  });
+});
+
 test('removes a video after confirmation and shows the new count in the table', async ({
   page,
   youtube,

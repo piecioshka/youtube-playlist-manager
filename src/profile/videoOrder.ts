@@ -1,24 +1,35 @@
 import type { PlaylistVideo } from '../youtube/types';
+import { moveItem } from './reorder';
 
 /*
- * Zamienia miejscami dwa sąsiednie filmy listy. Przesuwany film dostaje pozycję
- * sąsiada z YouTube (a nie indeks w liście), bo pozycje liczą też ukryte filmy,
- * których lista nie pokazuje; sąsiad przesuwa się o jedno miejsce, jak na YouTube.
+ * Przenosi film z indeksu `from` na `to`. Przenoszony film dostaje pozycję z YouTube
+ * filmu, który stał na `to` (a nie indeks w liście), bo pozycje liczą też ukryte filmy,
+ * których lista nie pokazuje; filmy po drodze przesuwają się o jedno miejsce, jak na YouTube.
  */
-export function swapVideos(
+export function moveVideos(
   videos: PlaylistVideo[],
-  index: number,
-  target: number,
+  from: number,
+  to: number,
 ): PlaylistVideo[] {
-  const moved = videos[index];
-  const neighbor = videos[target];
-  if (moved === undefined || neighbor === undefined) {
+  const moved = videos[from];
+  const destination = videos[to];
+  if (moved === undefined || destination === undefined || from === to) {
     return videos;
   }
-  const shift = target > index ? -1 : 1;
-  const next = [...videos];
-  next[target] = { ...moved, position: neighbor.position };
-  next[index] = { ...neighbor, position: neighbor.position + shift };
+  const shift = to > from ? -1 : 1;
+  const next = moveItem(videos, from, to);
+  const low = Math.min(from, to);
+  const high = Math.max(from, to);
+  for (let index = low; index <= high; index += 1) {
+    const video = next[index];
+    if (video === undefined) {
+      continue;
+    }
+    next[index] =
+      index === to
+        ? { ...video, position: destination.position }
+        : { ...video, position: video.position + shift };
+  }
   return next;
 }
 

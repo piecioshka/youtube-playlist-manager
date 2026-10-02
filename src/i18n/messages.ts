@@ -157,6 +157,9 @@ const pl = {
   videoTarget: (title: string) => `„${title}”`,
   moveUp: 'W górę',
   moveDown: 'W dół',
+  dragToReorder: 'Przeciągnij, aby zmienić kolejność',
+  videoMoved: (title: string, position: number) =>
+    `Przeniesiono „${title}” na pozycję ${position}.`,
   removeVideo: 'Usuń z playlisty',
   removeVideoQuestion: (title: string) => `Usunąć film „${title}” z playlisty?`,
   remove: 'Usuń',
@@ -291,6 +294,8 @@ const en: Messages = {
   videoTarget: (title) => `"${title}"`,
   moveUp: 'Move up',
   moveDown: 'Move down',
+  dragToReorder: 'Drag to reorder',
+  videoMoved: (title, position) => `Moved "${title}" to position ${position}.`,
   removeVideo: 'Remove from playlist',
   removeVideoQuestion: (title) => `Remove video "${title}" from the playlist?`,
   remove: 'Remove',

@@ -12,7 +12,8 @@ import { AddVideoForm } from './AddVideoForm';
 import { reportError } from './errors';
 import { UnavailableBar } from './UnavailableBar';
 import { VideoItem } from './VideoItem';
-import { removeVideo, swapVideos } from './videoOrder';
+import { dropIndex, type DropPlacement } from './reorder';
+import { moveVideos, removeVideo } from './videoOrder';
 
 export type ProfileVideoIndex = Pick<VideoIndex, 'replaceVideos'>;
 
@@ -28,6 +29,13 @@ type Pending =
 type Progress = { done: number; total: number } | null;
 
 type ItemError = { itemId: string; message: string } | null;
+
+// Przeciągany film i miejsce, nad którym jest wskaźnik (overId to null poza wierszami)
+type Drag = {
+  itemId: string;
+  overId: string | null;
+  placement: DropPlacement;
+} | null;
 
 type PlaylistVideosProps = {
   token: string;
@@ -62,6 +70,8 @@ export function PlaylistVideos({
   const [itemError, setItemError] = useState<ItemError>(null);
   const [progress, setProgress] = useState<Progress>(null);
   const [bulkError, setBulkError] = useState<string | null>(null);
+  const [drag, setDrag] = useState<Drag>(null);
+  const [announcement, setAnnouncement] = useState('');
   const pendingRef = useRef(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
 
@@ -108,6 +118,7 @@ export function PlaylistVideos({
     setPending(next);
     setItemError(null);
     setBulkError(null);
+    setAnnouncement('');
     return true;
   }
 
@@ -123,22 +134,27 @@ export function PlaylistVideos({
   }
 
   // Optymistycznie: kolejność zmienia się od razu, a przy błędzie wraca
-  async function move(index: number, direction: 'up' | 'down') {
-    const target = direction === 'up' ? index - 1 : index + 1;
-    const video = videos[index];
-    const neighbor = videos[target];
-    if (video === undefined || neighbor === undefined) {
+  async function moveVideo(from: number, to: number) {
+    const video = videos[from];
+    const destination = videos[to];
+    if (video === undefined || destination === undefined || from === to) {
       return;
     }
     if (!begin({ kind: 'item', itemId: video.itemId })) {
       return;
     }
     const previous = videos;
-    const next = swapVideos(videos, index, target);
+    const next = moveVideos(videos, from, to);
     setVideos(next);
     try {
-      await movePlaylistItem(token, playlistId, video, neighbor.position);
+      await movePlaylistItem(token, playlistId, video, destination.position);
       videoIndex.replaceVideos(playlistId, availableOnly(next));
+      setAnnouncement(
+        t.videoMoved(
+          video.available ? video.title : t.videoUnavailable,
+          to + 1,
+        ),
+      );
     } catch (error) {
       setVideos(previous);
       setItemError({
@@ -148,6 +164,44 @@ export function PlaylistVideos({
     } finally {
       finish();
     }
+  }
+
+  function move(index: number, direction: 'up' | 'down') {
+    return moveVideo(index, direction === 'up' ? index - 1 : index + 1);
+  }
+
+  function dragFromIndex(): number {
+    return drag === null
+      ? -1
+      : videos.findIndex((video) => video.itemId === drag.itemId);
+  }
+
+  function dragOver(itemId: string, placement: DropPlacement) {
+    setDrag((current) =>
+      current === null ||
+      (current.overId === itemId && current.placement === placement)
+        ? current
+        : { ...current, overId: itemId, placement },
+    );
+  }
+
+  function drop(overIndex: number, placement: DropPlacement) {
+    const from = dragFromIndex();
+    setDrag(null);
+    if (from >= 0) {
+      void moveVideo(from, dropIndex(from, overIndex, placement));
+    }
+  }
+
+  // Wskaźnik pojawia się tylko tam, gdzie upuszczenie zmieni kolejność
+  function dropIndicator(index: number, itemId: string): DropPlacement | null {
+    const from = dragFromIndex();
+    if (drag === null || drag.overId !== itemId || from < 0) {
+      return null;
+    }
+    return dropIndex(from, index, drag.placement) === from
+      ? null
+      : drag.placement;
   }
 
   // Pesymistycznie: film znika dopiero po odpowiedzi API
@@ -269,7 +323,21 @@ export function PlaylistVideos({
           />
         )}
       {load.status === 'ready' && videos.length > 0 && (
-        <ol className="video-list" aria-labelledby="profile-videos">
+        <ol
+          className="video-list"
+          aria-labelledby="profile-videos"
+          onDragLeave={(event) => {
+            const next = event.relatedTarget;
+            if (
+              !(next instanceof Node) ||
+              !event.currentTarget.contains(next)
+            ) {
+              setDrag((current) =>
+                current === null ? current : { ...current, overId: null },
+              );
+            }
+          }}
+        >
           {videos.map((video, index) => (
             <VideoItem
               key={video.itemId}
@@ -285,12 +353,29 @@ export function PlaylistVideos({
               error={
                 itemError?.itemId === video.itemId ? itemError.message : null
               }
+              canDrag={videos.length > 1 && pending === null}
+              dragging={drag?.itemId === video.itemId}
+              dragActive={drag !== null}
+              dropIndicator={dropIndicator(index, video.itemId)}
+              onDragStart={() =>
+                setDrag({
+                  itemId: video.itemId,
+                  overId: null,
+                  placement: 'after',
+                })
+              }
+              onDragOver={(placement) => dragOver(video.itemId, placement)}
+              onDrop={(placement) => drop(index, placement)}
+              onDragEnd={() => setDrag(null)}
               onMove={(direction) => void move(index, direction)}
               onRemove={() => remove(video)}
             />
           ))}
         </ol>
       )}
+      <p className="visually-hidden" role="status">
+        {announcement}
+      </p>
       {load.status === 'ready' && (
         <AddVideoForm
           locked={pending !== null && pending.kind !== 'add'}

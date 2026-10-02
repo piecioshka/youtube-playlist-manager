@@ -757,10 +757,10 @@ body {
   font-size: 0.9375rem;
 }
 
-/* Kolumny: numer, miniatura, tytuł z kanałem (reszta miejsca), przyciski */
+/* Kolumny: uchwyt, numer, miniatura, tytuł z kanałem (reszta miejsca), przyciski */
 .video-item {
   display: grid;
-  grid-template-columns: 2rem 64px minmax(0, 1fr) auto;
+  grid-template-columns: 20px 2rem 64px minmax(0, 1fr) auto;
   gap: 4px 12px;
   align-items: center;
   padding: 8px 12px;
@@ -773,6 +773,43 @@ body {
 
 .video-item:hover {
   background: color-mix(in srgb, var(--color-border) 35%, transparent);
+}
+
+.video-item__handle {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  color: var(--color-muted);
+  cursor: grab;
+  touch-action: none;
+}
+
+.video-item__handle:active {
+  cursor: grabbing;
+}
+
+.video-item__handle--disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.video-item__handle svg {
+  fill: currentColor;
+}
+
+.video-item--dragging {
+  opacity: 0.5;
+}
+
+/* Kreska nie przesuwa układu, bo jest cieniem we wnętrzu wiersza */
+.video-item--drop-before {
+  box-shadow: inset 0 2px 0 var(--color-accent);
+}
+
+.video-item--drop-after {
+  box-shadow: inset 0 -2px 0 var(--color-accent);
 }
 
 .video-item__position {
@@ -880,7 +917,7 @@ body {
   }
 
   .video-item {
-    grid-template-columns: 1.5rem 64px minmax(0, 1fr);
+    grid-template-columns: 20px 1.5rem 64px minmax(0, 1fr);
   }
 
   .video-item__actions {
@@ -969,5 +1006,16 @@ body {
   .playlist-row:has(+ .playlist-videos) {
     padding-bottom: 6px;
     border-bottom: 0;
+  }
+}
+
+/* Bez myszy uchwyt jest zbędny: na dotyku zostają przyciski */
+@media (hover: none) {
+  .video-item__handle {
+    display: none;
+  }
+
+  .video-item {
+    grid-template-columns: 2rem 64px minmax(0, 1fr) auto;
   }
 }
