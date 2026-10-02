@@ -228,6 +228,38 @@ describe('useGoogleAuth', () => {
       });
     });
 
+    it('keeps a restored session when the Google script fails to load', async () => {
+      storeSession('tok-stored', Date.now() + 600_000);
+      vi.mocked(loadGis).mockRejectedValue(new Error('offline'));
+
+      const { result } = renderHook(() => useGoogleAuth('client-1'));
+      await waitFor(() => expect(loadGis).toHaveBeenCalled());
+      await act(async () => undefined);
+
+      expect(result.current).toMatchObject({
+        status: 'signedIn',
+        token: 'tok-stored',
+        message: null,
+      });
+    });
+
+    it('signOut() works without the google global and clears the session', async () => {
+      storeSession('tok-stored', Date.now() + 600_000);
+      vi.mocked(loadGis).mockRejectedValue(new Error('offline'));
+      vi.unstubAllGlobals();
+
+      const { result } = renderHook(() => useGoogleAuth('client-1'));
+      await act(async () => undefined);
+
+      expect(() => act(() => result.current.signOut())).not.toThrow();
+      expect(sessionStorage.getItem(SESSION_KEY)).toBeNull();
+      expect(result.current).toMatchObject({
+        status: 'signedOut',
+        token: null,
+        message: null,
+      });
+    });
+
     it('ignores and removes an expired session', async () => {
       storeSession('tok-old', Date.now() - 1000);
 

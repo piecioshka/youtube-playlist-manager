@@ -74,6 +74,11 @@ export function useGoogleAuth(clientId: string): GoogleAuth {
     null,
   );
 
+  const statusRef = useRef(status);
+  useEffect(() => {
+    statusRef.current = status;
+  }, [status]);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -115,8 +120,11 @@ export function useGoogleAuth(clientId: string): GoogleAuth {
         if (cancelled) {
           return;
         }
-        setStatus('error');
-        setMessage(SCRIPT_FAILED);
+        // Przywrócona sesja działa bez GIS, błąd skryptu jej nie psuje
+        setStatus((current) => (current === 'signedIn' ? current : 'error'));
+        setMessage((current) =>
+          statusRef.current === 'signedIn' ? current : SCRIPT_FAILED,
+        );
       },
     );
 
