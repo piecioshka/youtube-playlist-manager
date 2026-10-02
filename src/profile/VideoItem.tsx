@@ -263,32 +263,70 @@ export function VideoItem({
       ) : (
         <div className="video-item__actions">
           {pending && <span className="video-item__working">{t.working}</span>}
-          <button
-            ref={upRef}
-            type="button"
-            className="button button--small"
-            onClick={() => move('up')}
-            disabled={disabled || isFirst}
-          >
-            {t.moveUp} {target}
-          </button>
-          <button
-            ref={downRef}
-            type="button"
-            className="button button--small"
-            onClick={() => move('down')}
-            disabled={disabled || isLast}
-          >
-            {t.moveDown} {target}
-          </button>
+          <span className="video-item__moves">
+            <button
+              ref={upRef}
+              type="button"
+              className="button button--small video-item__button"
+              onClick={() => move('up')}
+              disabled={disabled || isFirst}
+            >
+              <svg
+                className="video-item__icon"
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                aria-hidden="true"
+              >
+                <path d="M8 4l5 7H3z" fill="currentColor" />
+              </svg>
+              <span className="video-item__button-label">{t.moveUp}</span>{' '}
+              {target}
+            </button>
+            <button
+              ref={downRef}
+              type="button"
+              className="button button--small video-item__button"
+              onClick={() => move('down')}
+              disabled={disabled || isLast}
+            >
+              <svg
+                className="video-item__icon"
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                aria-hidden="true"
+              >
+                <path d="M8 12l5-7H3z" fill="currentColor" />
+              </svg>
+              <span className="video-item__button-label">{t.moveDown}</span>{' '}
+              {target}
+            </button>
+          </span>
           <button
             ref={removeRef}
             type="button"
-            className="button button--danger button--small"
+            className="button button--danger button--small video-item__button"
             onClick={startConfirm}
             disabled={disabled}
           >
-            {t.removeVideo} {target}
+            <svg
+              className="video-item__icon"
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+              aria-hidden="true"
+            >
+              <path
+                d="M4 4l8 8M12 4l-8 8"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+            </svg>
+            <span className="video-item__button-label">{t.removeVideo}</span>{' '}
+            {target}
           </button>
         </div>
       )}

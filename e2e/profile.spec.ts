@@ -379,6 +379,43 @@ test('fits a phone screen without horizontal scrolling', async ({ page }) => {
   expect(await horizontalScroll(page)).toBe(0);
 });
 
+test('lays the profile out for a phone', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 800 });
+  await openAlgorithms(page);
+
+  // Miniatura stoi obok tytułu, a nie nad nim
+  const thumbnail = await page.locator('.profile__thumbnail').boundingBox();
+  const title = await page.getByRole('heading', { level: 2 }).boundingBox();
+  if (thumbnail === null || title === null) {
+    throw new Error('The profile header has no box');
+  }
+  expect(thumbnail.x + thumbnail.width).toBeLessThanOrEqual(title.x);
+  expect(title.y).toBeLessThan(thumbnail.y + thumbnail.height);
+
+  // Przyciski filmu to ikony w tym samym rzędzie co tytuł
+  const item = videoList(page).getByRole('listitem').first();
+  const text = await item.locator('.video-item__text').boundingBox();
+  const remove = item.getByRole('button', {
+    name: 'Usuń z playlisty „Quicksort in 4 minutes”',
+  });
+  const removeBox = await remove.boundingBox();
+  const down = await item
+    .getByRole('button', { name: 'W dół „Quicksort in 4 minutes”' })
+    .boundingBox();
+  if (text === null || removeBox === null || down === null) {
+    throw new Error('The video row has no box');
+  }
+  expect(removeBox.y).toBeLessThan(text.y + text.height);
+  expect(removeBox.y + removeBox.height).toBeGreaterThan(text.y);
+  expect(removeBox.x).toBeGreaterThan(text.x + text.width - 1);
+  expect(removeBox.width).toBeLessThanOrEqual(40);
+  expect(down.width).toBeLessThanOrEqual(40);
+
+  expect(await horizontalScroll(page)).toBe(0);
+  const results = await new AxeBuilder({ page }).analyze();
+  expect(results.violations).toEqual([]);
+});
+
 test('has no accessibility violations on the profile', async ({ page }) => {
   await openAlgorithms(page);
   await page

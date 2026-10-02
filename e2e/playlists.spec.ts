@@ -205,6 +205,45 @@ test('keeps the footer on one line on a wide screen', async ({ page }) => {
   expect(spread).toBeLessThan(8);
 });
 
+test('lays the list out for a phone', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 800 });
+  await signIn(page);
+  await expect(page.getByRole('table')).toBeVisible();
+
+  // Kontrolki nagłówka stoją w jednym rzędzie przy prawej krawędzi
+  const header = await page.getByRole('banner').boundingBox();
+  const actions = await page.locator('.app__actions').boundingBox();
+  if (header === null || actions === null) {
+    throw new Error('The header has no box');
+  }
+  expect(Math.round(actions.x + actions.width)).toBe(
+    Math.round(header.x + header.width),
+  );
+
+  // Statystyki kanału w równej siatce: trzy w pierwszym rzędzie
+  const statTops = await page
+    .locator('.account__stat')
+    .evaluateAll((stats) =>
+      stats.map((stat) => Math.round(stat.getBoundingClientRect().top)),
+    );
+  expect(statTops).toHaveLength(5);
+  expect(new Set(statTops.slice(0, 3)).size).toBe(1);
+  expect(new Set(statTops.slice(3)).size).toBe(1);
+  expect(statTops[3]).toBeGreaterThan(statTops[0] ?? 0);
+
+  // Filtr widoczności to jeden przewijany rząd, a nie dwa
+  const filterTops = await page
+    .getByRole('group', { name: 'Filtruj po widoczności' })
+    .getByRole('button')
+    .evaluateAll((buttons) =>
+      buttons.map((button) => Math.round(button.getBoundingClientRect().top)),
+    );
+  expect(filterTops).toHaveLength(4);
+  expect(new Set(filterTops).size).toBe(1);
+
+  expect(await horizontalScroll(page)).toBe(0);
+});
+
 test('has no accessibility violations on the playlist screen', async ({
   page,
 }) => {

@@ -898,6 +898,15 @@ body {
   white-space: normal;
 }
 
+/* Na szerokim ekranie przyciski mają tekst; ikony i pionowy układ strzałek włącza telefon */
+.video-item__moves {
+  display: contents;
+}
+
+.video-item__icon {
+  display: none;
+}
+
 .video-item__question {
   color: var(--color-danger);
   font-size: 0.8125rem;
@@ -1046,25 +1055,111 @@ body {
     padding-right: 3px;
   }
 
+  /* Równa siatka zamiast zawijania: trzy liczby w rzędzie, reszta pod nimi */
   .account__stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px 12px;
     margin-left: 0;
     flex-basis: 100%;
+  }
+
+  .app__title {
+    font-size: 1.25rem;
+  }
+
+  .app__logo {
+    width: 24px;
+    height: 24px;
+  }
+
+  /* Kontrolki schodzą pod tytuł i trzymają się prawej krawędzi */
+  .app__actions {
+    margin-left: auto;
+  }
+
+  /* Jeden przewijany rząd; odstęp wewnątrz zostawia miejsce na obrys fokusa */
+  .visibility-filter {
+    flex-wrap: nowrap;
+    margin: 7px -5px;
+    padding: 5px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .visibility-filter__option {
+    flex: none;
   }
 }
 
 @media (max-width: 640px) {
+  /* Miniatura obok tytułu, żeby nagłówek profilu nie zajmował połowy ekranu */
   .profile {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: 96px minmax(0, 1fr);
+    gap: 8px 12px;
   }
 
+  .profile__thumbnail {
+    width: 96px;
+    height: 54px;
+  }
+
+  .profile__title {
+    font-size: 1.125rem;
+  }
+
+  /* Wiersz filmu mieści się w jednym rzędzie: przyciski to ikony, a strzałki stoją jedna nad drugą */
   .video-item {
-    grid-template-columns: 20px 1.5rem 64px minmax(0, 1fr);
+    grid-template-columns: 20px 1.25rem 56px minmax(0, 1fr) auto;
+    gap: 4px 8px;
+    padding: 8px;
+  }
+
+  .video-item__thumbnail {
+    width: 56px;
+    height: 32px;
+  }
+
+  .video-item__link {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
 
   .video-item__actions {
-    grid-column: 1 / -1;
-    flex-wrap: wrap;
-    justify-content: flex-start;
+    gap: 4px;
+  }
+
+  .video-item__moves {
+    display: grid;
+    gap: 4px;
+  }
+
+  .video-item__button {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+  }
+
+  .video-item__icon {
+    display: block;
+  }
+
+  /* Tekst zostaje dla czytników ekranu */
+  .video-item__button-label,
+  .video-item__working {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
   }
 }
 
@@ -1165,5 +1260,11 @@ body {
 
   .video-item {
     grid-template-columns: 2rem 64px minmax(0, 1fr) auto;
+  }
+}
+
+@media (hover: none) and (max-width: 640px) {
+  .video-item {
+    grid-template-columns: 1.25rem 56px minmax(0, 1fr) auto;
   }
 }
