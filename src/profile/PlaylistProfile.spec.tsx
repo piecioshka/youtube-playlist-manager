@@ -538,6 +538,128 @@ describe('PlaylistProfile', () => {
       expect(handleOf('Quicksort')).not.toHaveAttribute('aria-disabled');
     });
 
+    describe('sorting', () => {
+      function header(name: string): HTMLElement {
+        const found = screen
+          .getAllByRole('columnheader')
+          .find((item) => item.textContent === name);
+        if (!found) {
+          throw new Error(`No column header ${name}`);
+        }
+        return found;
+      }
+
+      function numbers(): string[] {
+        return screen
+          .getAllByRole('row')
+          .slice(1)
+          .map((row) => within(row).getAllByRole('cell')[1]?.textContent ?? '');
+      }
+
+      it('starts in the playlist order with a sort icon on every sortable column', async () => {
+        await renderLoaded();
+
+        expect(header('Nr')).toHaveAttribute('aria-sort', 'ascending');
+        for (const name of ['Nr', 'Tytuł', 'Kanał', 'Opublikowano']) {
+          expect(header(name).querySelector('.sort-icon')).not.toBeNull();
+        }
+        for (const name of ['Kolejność', 'Miniatura', 'Akcje']) {
+          expect(header(name).querySelector('.sort-icon')).toBeNull();
+        }
+        expect(header('Nr').querySelector('.sort-icon')).toHaveClass(
+          'sort-icon--asc',
+        );
+      });
+
+      it('sorts by a clicked header and keeps the playlist numbers', async () => {
+        const { user } = await renderLoaded();
+
+        await user.click(within(header('Tytuł')).getByRole('button'));
+
+        expect(videoTitles()).toEqual(['Big O', 'Grafy', 'Quicksort']);
+        expect(numbers()).toEqual(['2', '3', '1']);
+        expect(header('Tytuł')).toHaveAttribute('aria-sort', 'ascending');
+        expect(header('Nr')).not.toHaveAttribute('aria-sort');
+
+        await user.click(within(header('Tytuł')).getByRole('button'));
+
+        expect(videoTitles()).toEqual(['Quicksort', 'Grafy', 'Big O']);
+        expect(header('Tytuł')).toHaveAttribute('aria-sort', 'descending');
+      });
+
+      it('allows reordering only in the playlist order', async () => {
+        youtube.movePlaylistItem.mockResolvedValue(undefined);
+        const { user } = await renderLoaded();
+
+        await user.click(within(header('Tytuł')).getByRole('button'));
+
+        expect(handleOf('Big O')).toHaveAttribute('aria-disabled', 'true');
+        expect(handleOf('Big O')).toHaveAttribute(
+          'title',
+          'Zmiana kolejności działa przy sortowaniu według numeru',
+        );
+        await pressOnHandle(user, 'Big O', 'ArrowDown');
+        expect(youtube.movePlaylistItem).not.toHaveBeenCalled();
+
+        await user.click(within(header('Nr')).getByRole('button'));
+
+        expect(videoTitles()).toEqual(['Quicksort', 'Big O', 'Grafy']);
+        expect(handleOf('Big O')).not.toHaveAttribute('aria-disabled');
+        await pressOnHandle(user, 'Big O', 'ArrowDown');
+        expect(youtube.movePlaylistItem).toHaveBeenCalledTimes(1);
+      });
+
+      it('sorts through the select that replaces the headers on a phone', async () => {
+        const { user } = await renderLoaded();
+        const select = screen.getByRole('combobox', { name: 'Sortowanie' });
+
+        expect(select).toHaveValue('position-asc');
+        expect(
+          within(select)
+            .getAllByRole('option')
+            .map((option) => option.textContent),
+        ).toEqual([
+          'Kolejność na playliście',
+          'Kolejność na playliście: od końca',
+          'Tytuł: A-Z',
+          'Tytuł: Z-A',
+          'Kanał: A-Z',
+          'Kanał: Z-A',
+          'Opublikowano: od najnowszych',
+          'Opublikowano: od najstarszych',
+        ]);
+
+        await user.selectOptions(select, 'Kolejność na playliście: od końca');
+
+        expect(videoTitles()).toEqual(['Grafy', 'Big O', 'Quicksort']);
+        expect(header('Nr')).toHaveAttribute('aria-sort', 'descending');
+      });
+
+      it('moves the focus to the next row of the sorted view after a removal', async () => {
+        youtube.removePlaylistItem.mockResolvedValue(undefined);
+        const { user } = await renderLoaded();
+        await user.click(within(header('Tytuł')).getByRole('button'));
+
+        // W widoku posortowanym po tytule za „Big O” stoi „Grafy”
+        await user.click(
+          within(item('Big O')).getByRole('button', {
+            name: 'Usuń z playlisty „Big O”',
+          }),
+        );
+        await user.click(
+          within(item('Big O')).getByRole('button', { name: 'Usuń' }),
+        );
+
+        await waitFor(() =>
+          expect(
+            within(item('Grafy')).getByRole('button', {
+              name: 'Usuń z playlisty „Grafy”',
+            }),
+          ).toHaveFocus(),
+        );
+      });
+    });
+
     it('shows a loading state, then an empty playlist', async () => {
       youtube.listPlaylistVideos.mockResolvedValue([]);
       renderProfile();

@@ -535,6 +535,51 @@ for (const width of [1280, 375]) {
   });
 }
 
+test('sorts the videos by a column and blocks reordering until the playlist order is back', async ({
+  page,
+}) => {
+  await openAlgorithms(page);
+  const table = videoList(page);
+  const titleHeader = table.getByRole('columnheader', { name: 'Tytuł' });
+  const numberHeader = table.getByRole('columnheader', { name: 'Nr' });
+  await expect(numberHeader).toHaveAttribute('aria-sort', 'ascending');
+
+  await titleHeader.getByRole('button').click();
+
+  await expect(titleHeader).toHaveAttribute('aria-sort', 'ascending');
+  expect(await videoTitles(page)).toEqual([
+    ALGO_VIDEOS[1],
+    ALGO_VIDEOS[2],
+    ALGO_VIDEOS[0],
+  ]);
+  const handle = page.getByRole('button', {
+    name: 'Przenieś „Quicksort in 4 minutes”',
+  });
+  await expect(handle).toHaveAttribute('aria-disabled', 'true');
+
+  await numberHeader.getByRole('button').click();
+
+  expect(await videoTitles(page)).toEqual(ALGO_VIDEOS);
+  await expect(handle).not.toHaveAttribute('aria-disabled');
+});
+
+test('sorts the videos with a select on a phone', async ({ page }) => {
+  await openAlgorithms(page);
+  const select = page.getByRole('combobox', { name: 'Sortowanie' });
+  await expect(select).toBeHidden();
+
+  await page.setViewportSize({ width: 375, height: 800 });
+  await expect(select).toBeVisible();
+  await select.selectOption('Tytuł: Z-A');
+
+  expect(await videoTitles(page)).toEqual([
+    ALGO_VIDEOS[0],
+    ALGO_VIDEOS[2],
+    ALGO_VIDEOS[1],
+  ]);
+  expect(await horizontalScroll(page)).toBe(0);
+});
+
 test('marks every link to YouTube on the profile', async ({ page }) => {
   await openAlgorithms(page);
 

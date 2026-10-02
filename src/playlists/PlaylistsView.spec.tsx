@@ -261,21 +261,21 @@ describe('PlaylistsView', () => {
     const { user } = renderView();
     await screen.findByRole('table');
     const icon = (name: string) =>
-      columnHeader(name).querySelector('.playlists__sort-icon');
+      columnHeader(name).querySelector('.sort-icon');
 
     // Piktogram widać od razu na każdej kolumnie, którą da się sortować
     for (const name of ['Tytuł', 'Filmy', 'Widoczność', 'Utworzona']) {
       expect(icon(name)).toHaveAttribute('aria-hidden', 'true');
     }
     expect(icon('Akcje')).toBeNull();
-    expect(icon('Utworzona')).toHaveClass('playlists__sort-icon--desc');
-    expect(icon('Tytuł')).not.toHaveClass('playlists__sort-icon--asc');
-    expect(icon('Tytuł')).not.toHaveClass('playlists__sort-icon--desc');
+    expect(icon('Utworzona')).toHaveClass('sort-icon--desc');
+    expect(icon('Tytuł')).not.toHaveClass('sort-icon--asc');
+    expect(icon('Tytuł')).not.toHaveClass('sort-icon--desc');
 
     await user.click(within(columnHeader('Tytuł')).getByRole('button'));
 
-    expect(icon('Tytuł')).toHaveClass('playlists__sort-icon--asc');
-    expect(icon('Utworzona')).not.toHaveClass('playlists__sort-icon--desc');
+    expect(icon('Tytuł')).toHaveClass('sort-icon--asc');
+    expect(icon('Utworzona')).not.toHaveClass('sort-icon--desc');
   });
 
   it('starts with the stored sort', async () => {

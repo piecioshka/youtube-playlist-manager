@@ -1,5 +1,6 @@
 import type { VisibilityFilter } from '../playlists/filterPlaylists';
 import type { SortOption } from '../playlists/sortPlaylists';
+import type { VideoSortOption } from '../profile/sortVideos';
 import type { ApiErrorKind, PrivacyStatus } from '../youtube/types';
 
 export type Locale = 'pl' | 'en';
@@ -176,6 +177,18 @@ const pl = {
   playlistEmpty: 'Ta playlista jest pusta.',
   videoTarget: (title: string) => `„${title}”`,
   editPlaylist: 'Edytuj',
+  videoSortOptions: {
+    'position-asc': 'Kolejność na playliście',
+    'position-desc': 'Kolejność na playliście: od końca',
+    'title-asc': 'Tytuł: A-Z',
+    'title-desc': 'Tytuł: Z-A',
+    'channel-asc': 'Kanał: A-Z',
+    'channel-desc': 'Kanał: Z-A',
+    'published-desc': 'Opublikowano: od najnowszych',
+    'published-asc': 'Opublikowano: od najstarszych',
+  } satisfies Record<VideoSortOption, string>,
+  reorderNeedsPlaylistOrder:
+    'Zmiana kolejności działa przy sortowaniu według numeru',
   videoColumnOrder: 'Kolejność',
   videoColumnNumber: 'Nr',
   videoColumnThumbnail: 'Miniatura',
@@ -340,6 +353,17 @@ const en: Messages = {
   playlistEmpty: 'This playlist is empty.',
   videoTarget: (title) => `"${title}"`,
   editPlaylist: 'Edit',
+  videoSortOptions: {
+    'position-asc': 'Playlist order',
+    'position-desc': 'Playlist order: reversed',
+    'title-asc': 'Title: A-Z',
+    'title-desc': 'Title: Z-A',
+    'channel-asc': 'Channel: A-Z',
+    'channel-desc': 'Channel: Z-A',
+    'published-desc': 'Published: newest first',
+    'published-asc': 'Published: oldest first',
+  },
+  reorderNeedsPlaylistOrder: 'Reordering works when sorted by number',
   videoColumnOrder: 'Order',
   videoColumnNumber: 'No.',
   videoColumnThumbnail: 'Thumbnail',

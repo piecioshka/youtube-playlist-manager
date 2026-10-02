@@ -25,6 +25,8 @@ type VideoItemProps = {
   error: string | null;
   // Zdarzenia uchwytu; null, gdy filmu nie da się teraz przenieść
   dragHandlers: DragHandlers | null;
+  // Podpowiedź uchwytu: jak przenosić albo dlaczego teraz się nie da
+  handleTitle: string;
   // Ten film jest właśnie przeciągany
   dragging: boolean;
   dropIndicator: DropPlacement | null;
@@ -45,6 +47,7 @@ export function VideoItem({
   locked,
   error,
   dragHandlers,
+  handleTitle,
   dragging,
   dropIndicator,
   focusRemove,
@@ -151,7 +154,7 @@ export function VideoItem({
           aria-label={`${t.moveVideo} ${t.videoTarget(name)}`}
           // aria-disabled zamiast disabled: uchwyt nie gubi fokusa na czas żądania
           aria-disabled={dragHandlers === null ? true : undefined}
-          title={t.dragToReorder}
+          title={handleTitle}
           onKeyDown={handleKeyDown}
           {...dragHandlers}
         >

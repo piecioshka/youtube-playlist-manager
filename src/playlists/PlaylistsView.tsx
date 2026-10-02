@@ -7,6 +7,9 @@ import { normalizeText } from '../search/normalize';
 import { SearchField } from '../search/SearchField';
 import { searchPlaylists, type SearchResult } from '../search/searchPlaylists';
 import type { VideoIndex } from '../search/useVideoIndex';
+import { SortButton } from '../sorting/SortButton';
+import { SortSelect } from '../sorting/SortSelect';
+import { ariaSort } from '../sorting/types';
 import {
   countByVisibility,
   filterByVisibility,
@@ -17,12 +20,13 @@ import { PlaylistsLoadError } from './PlaylistsLoadError';
 import { PlaylistVideosRow } from './PlaylistVideosRow';
 import {
   nextSort,
+  SORT_OPTIONS,
+  sortOptionId,
   sortPlaylists,
   type SortKey,
   type SortState,
 } from './sortPlaylists';
 import { readSort, writeSort } from './sortPreference';
-import { SortSelect } from './SortSelect';
 import { type Notice, type PlaylistsState } from './usePlaylists';
 import { VisibilityFilter } from './VisibilityFilter';
 import {
@@ -165,7 +169,22 @@ export function PlaylistsView({ list, index, channel }: PlaylistsViewProps) {
           />
         )}
         {loadState.status === 'ready' && playlists.length > 0 && (
-          <SortSelect value={sort} onChange={applySort} />
+          <SortSelect
+            label={t.sortLabel}
+            value={sortOptionId(sort)}
+            options={SORT_OPTIONS.map((option) => ({
+              id: sortOptionId(option),
+              label: t.sortOptions[sortOptionId(option)],
+            }))}
+            onChange={(id) => {
+              const next = SORT_OPTIONS.find(
+                (option) => sortOptionId(option) === id,
+              );
+              if (next !== undefined) {
+                applySort(next);
+              }
+            }}
+          />
         )}
         <p className="playlists__notice" role="status">
           {noticeText(notice, t)}
@@ -209,42 +228,13 @@ export function PlaylistsView({ list, index, channel }: PlaylistsViewProps) {
                       }
                       scope="col"
                       role="columnheader"
-                      aria-sort={
-                        active
-                          ? sort.direction === 'asc'
-                            ? 'ascending'
-                            : 'descending'
-                          : undefined
-                      }
+                      aria-sort={ariaSort(active ? sort.direction : null)}
                     >
-                      <button
-                        type="button"
-                        className="playlists__sort-button"
+                      <SortButton
+                        label={t[column.label]}
+                        direction={active ? sort.direction : null}
                         onClick={() => handleSort(column.key)}
-                      >
-                        {t[column.label]}
-                        {/* Dwie strzałki na każdej sortowalnej kolumnie; aktywna podświetla swój kierunek */}
-                        <svg
-                          className={
-                            active
-                              ? `playlists__sort-icon playlists__sort-icon--${sort.direction}`
-                              : 'playlists__sort-icon'
-                          }
-                          width="8"
-                          height="14"
-                          viewBox="0 0 8 14"
-                          aria-hidden="true"
-                        >
-                          <path
-                            className="playlists__sort-arrow playlists__sort-arrow--asc"
-                            d="M4 1l3.5 5h-7z"
-                          />
-                          <path
-                            className="playlists__sort-arrow playlists__sort-arrow--desc"
-                            d="M4 13l3.5-5h-7z"
-                          />
-                        </svg>
-                      </button>
+                      />
                     </th>
                   );
                 })}

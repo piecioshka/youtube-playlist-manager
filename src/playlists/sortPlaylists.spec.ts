@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { makePlaylist } from '../test/playlistFactory';
+import type { SortDirection } from '../sorting/types';
 import type { Playlist } from '../youtube/types';
 import {
   DEFAULT_SORT,
   nextSort,
   sortPlaylists,
-  type SortDirection,
   type SortKey,
   type SortState,
 } from './sortPlaylists';

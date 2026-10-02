@@ -1,7 +1,20 @@
 import { useRef, useState } from 'react';
 import { useI18n } from '../i18n/LocaleProvider';
+import { SortButton } from '../sorting/SortButton';
+import { SortSelect } from '../sorting/SortSelect';
+import { ariaSort } from '../sorting/types';
 import type { Playlist, PlaylistVideo } from '../youtube/types';
 import { AddVideoForm } from './AddVideoForm';
+import {
+  DEFAULT_VIDEO_SORT,
+  isPlaylistOrder,
+  nextVideoSort,
+  sortVideos,
+  VIDEO_SORT_OPTIONS,
+  videoSortId,
+  type VideoSort,
+  type VideoSortKey,
+} from './sortVideos';
 import { UnavailableBar } from './UnavailableBar';
 import { VideoItem } from './VideoItem';
 import { usePlaylistVideos, type ProfileVideoIndex } from './usePlaylistVideos';
@@ -26,7 +39,17 @@ export function PlaylistVideos({
   const [announcement, setAnnouncement] = useState('');
   // Film, którego przycisk usuwania przejmuje fokus po usunięciu sąsiada
   const [focusItemId, setFocusItemId] = useState<string | null>(null);
+  const [sort, setSort] = useState<VideoSort>(DEFAULT_VIDEO_SORT);
   const headingRef = useRef<HTMLHeadingElement>(null);
+  /*
+   * Sortowanie zmienia tylko widok: `videos` zostaje w kolejności z playlisty,
+   * a numer filmu to jego miejsce na playliście, nie w posortowanej tabeli.
+   */
+  const playlistOrder = isPlaylistOrder(sort);
+  const rows = playlistOrder ? videos : sortVideos(videos, sort);
+  const numbers = new Map(
+    videos.map((video, index) => [video.itemId, index + 1]),
+  );
 
   // Każda nowa operacja zaczyna z czystym ogłoszeniem i bez zaległej prośby o fokus
   function startOperation() {
@@ -49,8 +72,9 @@ export function PlaylistVideos({
 
   async function remove(video: PlaylistVideo): Promise<boolean> {
     startOperation();
-    const index = videos.findIndex((item) => item.itemId === video.itemId);
-    const neighbour = videos[index + 1] ?? videos[index - 1];
+    // Sąsiad z widoku: po usunięciu to on stoi w miejscu usuniętego filmu
+    const index = rows.findIndex((item) => item.itemId === video.itemId);
+    const neighbour = rows[index + 1] ?? rows[index - 1];
     const removed = await list.remove(video);
     if (removed) {
       // Fokus zostaje w miejscu usuniętego filmu: nagłówek nad listą przewinąłby stronę do góry
@@ -81,11 +105,15 @@ export function PlaylistVideos({
 
   // Rozbite od razu: obiekt z refem w środku reguła react-hooks/refs traktuje w całości jak ref
   const { listRef, draggingId, dropIndicator, handlers } = useVideoDrag(
-    videos,
+    rows,
     (from, to) => void moveVideo(from, to),
   );
-  // Uchwyt można złapać, gdy lista ma kilka filmów i nic nie trwa
-  const canDrag = videos.length > 1 && pending === null;
+  // Uchwyt można złapać, gdy tabela pokazuje kolejność z playlisty, ma kilka filmów i nic nie trwa
+  const canDrag = playlistOrder && videos.length > 1 && pending === null;
+
+  function sortDirection(key: VideoSortKey) {
+    return sort.key === key ? sort.direction : null;
+  }
 
   const count = load.status === 'ready' ? videos.length : playlist.itemCount;
   const unavailableCount = videos.filter((video) => !video.available).length;
@@ -125,6 +153,24 @@ export function PlaylistVideos({
           />
         )}
       {load.status === 'ready' && videos.length > 0 && (
+        <SortSelect
+          label={t.sortLabel}
+          value={videoSortId(sort)}
+          options={VIDEO_SORT_OPTIONS.map((option) => ({
+            id: videoSortId(option),
+            label: t.videoSortOptions[videoSortId(option)],
+          }))}
+          onChange={(id) => {
+            const next = VIDEO_SORT_OPTIONS.find(
+              (option) => videoSortId(option) === id,
+            );
+            if (next !== undefined) {
+              setSort(next);
+            }
+          }}
+        />
+      )}
+      {load.status === 'ready' && videos.length > 0 && (
         // Jawne role: na telefonie wiersze dostają display: grid, co w części przeglądarek gubi semantykę tabeli
         <table
           className="video-table"
@@ -144,8 +190,13 @@ export function PlaylistVideos({
                 className="video-table__column video-table__column--number"
                 scope="col"
                 role="columnheader"
+                aria-sort={ariaSort(sortDirection('position'))}
               >
-                {t.videoColumnNumber}
+                <SortButton
+                  label={t.videoColumnNumber}
+                  direction={sortDirection('position')}
+                  onClick={() => setSort(nextVideoSort(sort, 'position'))}
+                />
               </th>
               <th
                 className="video-table__column video-table__column--thumbnail"
@@ -160,22 +211,37 @@ export function PlaylistVideos({
                 className="video-table__column"
                 scope="col"
                 role="columnheader"
+                aria-sort={ariaSort(sortDirection('title'))}
               >
-                {t.columnTitle}
+                <SortButton
+                  label={t.columnTitle}
+                  direction={sortDirection('title')}
+                  onClick={() => setSort(nextVideoSort(sort, 'title'))}
+                />
               </th>
               <th
                 className="video-table__column video-table__column--channel"
                 scope="col"
                 role="columnheader"
+                aria-sort={ariaSort(sortDirection('channel'))}
               >
-                {t.videoColumnChannel}
+                <SortButton
+                  label={t.videoColumnChannel}
+                  direction={sortDirection('channel')}
+                  onClick={() => setSort(nextVideoSort(sort, 'channel'))}
+                />
               </th>
               <th
                 className="video-table__column video-table__column--published"
                 scope="col"
                 role="columnheader"
+                aria-sort={ariaSort(sortDirection('published'))}
               >
-                {t.videoColumnPublished}
+                <SortButton
+                  label={t.videoColumnPublished}
+                  direction={sortDirection('published')}
+                  onClick={() => setSort(nextVideoSort(sort, 'published'))}
+                />
               </th>
               <th
                 className="video-table__column video-table__column--actions"
@@ -188,29 +254,39 @@ export function PlaylistVideos({
           </thead>
           {/* Kolejne wiersze odpowiadają kolejnym filmom: na tym opiera się przeciąganie */}
           <tbody ref={listRef} role="rowgroup">
-            {videos.map((video, index) => (
-              <VideoItem
-                key={video.itemId}
-                video={video}
-                playlistId={playlistId}
-                number={index + 1}
-                isFirst={index === 0}
-                isLast={index === videos.length - 1}
-                pending={
-                  pending?.kind === 'item' && pending.itemId === video.itemId
-                }
-                locked={pending !== null}
-                error={
-                  itemError?.itemId === video.itemId ? itemError.message : null
-                }
-                dragHandlers={canDrag ? handlers(video.itemId) : null}
-                dragging={draggingId === video.itemId}
-                dropIndicator={dropIndicator(index, video.itemId)}
-                focusRemove={focusItemId === video.itemId}
-                onMove={(direction) => void move(index, direction)}
-                onRemove={() => remove(video)}
-              />
-            ))}
+            {rows.map((video, index) => {
+              const number = numbers.get(video.itemId) ?? index + 1;
+              return (
+                <VideoItem
+                  key={video.itemId}
+                  video={video}
+                  playlistId={playlistId}
+                  number={number}
+                  isFirst={number === 1}
+                  isLast={number === videos.length}
+                  pending={
+                    pending?.kind === 'item' && pending.itemId === video.itemId
+                  }
+                  locked={pending !== null}
+                  error={
+                    itemError?.itemId === video.itemId
+                      ? itemError.message
+                      : null
+                  }
+                  dragHandlers={canDrag ? handlers(video.itemId) : null}
+                  handleTitle={
+                    playlistOrder
+                      ? t.dragToReorder
+                      : t.reorderNeedsPlaylistOrder
+                  }
+                  dragging={draggingId === video.itemId}
+                  dropIndicator={dropIndicator(index, video.itemId)}
+                  focusRemove={focusItemId === video.itemId}
+                  onMove={(direction) => void move(number - 1, direction)}
+                  onRemove={() => remove(video)}
+                />
+              );
+            })}
           </tbody>
         </table>
       )}

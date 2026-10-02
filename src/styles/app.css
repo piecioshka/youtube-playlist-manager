@@ -262,7 +262,7 @@ a.external-link:focus-visible .external-link__text {
 .input:focus-visible,
 .textarea:focus-visible,
 .search__input:focus-visible,
-.playlists__sort-button:focus-visible,
+.sort-button:focus-visible,
 .playlists__heading:focus-visible,
 .account-chip:focus-visible {
   outline: 3px solid var(--color-focus);
@@ -448,7 +448,7 @@ a.external-link:focus-visible .external-link__text {
   text-align: right;
 }
 
-.playlists__sort-button {
+.sort-button {
   display: inline-flex;
   gap: 4px;
   align-items: center;
@@ -461,31 +461,32 @@ a.external-link:focus-visible .external-link__text {
 }
 
 /* Filmy: przycisk dosunięty do prawej, jak liczby w kolumnie */
-.playlists__column--number .playlists__sort-button {
+.playlists__column--number .sort-button,
+.video-table__column--number .sort-button {
   justify-content: flex-end;
 }
 
 /* Piktogram mówi, że kolumnę da się sortować; pełny kolor dostaje tylko aktywny kierunek */
-.playlists__sort-icon {
+.sort-icon {
   flex: none;
 }
 
-.playlists__sort-arrow {
+.sort-icon__arrow {
   fill: currentColor;
   opacity: 0.35;
 }
 
-.playlists__sort-button:hover .playlists__sort-arrow {
+.sort-button:hover .sort-icon__arrow {
   opacity: 0.6;
 }
 
-.playlists__sort-icon--asc .playlists__sort-arrow--asc,
-.playlists__sort-icon--desc .playlists__sort-arrow--desc {
+.sort-icon--asc .sort-icon__arrow--asc,
+.sort-icon--desc .sort-icon__arrow--desc {
   opacity: 1;
 }
 
-.playlists__sort-icon--asc .playlists__sort-arrow--desc,
-.playlists__sort-icon--desc .playlists__sort-arrow--asc {
+.sort-icon--asc .sort-icon__arrow--desc,
+.sort-icon--desc .sort-icon__arrow--asc {
   opacity: 0.2;
 }
 
@@ -639,8 +640,10 @@ a.external-link:focus-visible .external-link__text {
 }
 
 /* Profil playlisty */
+/* Kolumna nie rośnie razem z najszerszą treścią (np. listą wyboru), więc strona nie wychodzi poza ekran */
 .profile-page {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 24px;
 }
 
@@ -811,6 +814,8 @@ a.external-link:focus-visible .external-link__text {
 
 .profile__videos {
   display: grid;
+  /* Jak w .profile-page: kolumna trzyma szerokość strony mimo szerokiej treści */
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
 }
 

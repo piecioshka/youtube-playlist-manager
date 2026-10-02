@@ -1,7 +1,7 @@
+import type { SortDirection } from '../sorting/types';
 import type { Playlist, PrivacyStatus } from '../youtube/types';
 
 export type SortKey = 'title' | 'itemCount' | 'privacy' | 'publishedAt';
-export type SortDirection = 'asc' | 'desc';
 export type SortState = { key: SortKey; direction: SortDirection };
 
 // Wartość opcji w liście wyboru sortowania
