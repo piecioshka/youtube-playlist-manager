@@ -8,14 +8,18 @@ Static React SPA that signs in to a YouTube account with Google Identity Service
 
 ## Layout
 
-- `src/youtube/` API client: zod schemas, `api.ts`, `ApiError`, user-facing error messages
+- `src/youtube/` YouTube session (`session.ts`, `YouTubeProvider` with `useYouTube()`) over the fetch-level `api.ts`, zod schemas, `ApiError`, user-facing error messages
 - `src/i18n/` UI strings in Polish and English (`messages.ts`), `LocaleProvider` with `useI18n()`
 - `src/theme/` light/dark theme switch (dark by default)
 - `src/auth/` Google Identity Services loader, `useGoogleAuth`, `LoginScreen`
-- `src/playlists/` sorting, formatting, `usePlaylists`, `PlaylistsView`, `PlaylistRow`
+- `src/account/` the signed-in channel: `useChannel`, header chip, account section
+- `src/playlists/` the playlist list (`usePlaylists`: load, update, delete, notice), sorting, filtering, `PlaylistsView`, `PlaylistRow`
+- `src/search/` video index (`useVideoIndex`) and search across playlists and their videos
 - `src/routing/` hash routes (`#/`, `#/playlists/<id>`) and `useRoute`
-- `src/profile/` playlist page: edit form, videos (move, remove, add), delete
+- `src/profile/` playlist profile: edit form, videos (`usePlaylistVideos`: move, remove, add, bulk removal), delete
+- `src/test/` factories, the fake YouTube session and render helpers for specs
 - `src/**/*.spec.ts(x)` Vitest next to the code, `e2e/` Playwright against a stubbed Google
+- `CONTEXT.md` the domain vocabulary
 - `tmp/` takes logs, screenshots and throwaway scripts, and is ignored by git
 
 ## Conventions
