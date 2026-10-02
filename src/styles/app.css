@@ -870,6 +870,15 @@ a.external-link:focus-visible .external-link__text {
   align-items: center;
 }
 
+/* Stała wysokość rzędu: przycisk obok nagłówka pojawia się i znika bez przesuwania treści pod spodem */
+.profile__videos-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  align-items: center;
+  min-height: 28px;
+}
+
 .profile__videos-heading {
   margin: 0;
   font-size: 1.125rem;
@@ -884,11 +893,6 @@ a.external-link:focus-visible .external-link__text {
   border-spacing: 0;
   background: var(--color-surface);
   font-size: 0.9375rem;
-}
-
-/* Przycisk nie rozciąga się na całą szerokość siatki nad tabelą */
-.video-table__clear {
-  justify-self: start;
 }
 
 .video-table__column {

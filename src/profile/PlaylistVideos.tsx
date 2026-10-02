@@ -128,14 +128,26 @@ export function PlaylistVideos({
 
   return (
     <section className="profile__videos" aria-labelledby="profile-videos">
-      <h3
-        id="profile-videos"
-        ref={headingRef}
-        className="profile__videos-heading"
-        tabIndex={-1}
-      >
-        {t.videosHeading(count)}
-      </h3>
+      {/* Przycisk czyszczenia sortowania stoi przy nagłówku, żeby jego pojawienie się nie przesuwało tabeli */}
+      <div className="profile__videos-header">
+        <h3
+          id="profile-videos"
+          ref={headingRef}
+          className="profile__videos-heading"
+          tabIndex={-1}
+        >
+          {t.videosHeading(count)}
+        </h3>
+        {load.status === 'ready' && videos.length > 0 && !playlistOrder && (
+          <button
+            type="button"
+            className="button button--small"
+            onClick={clearSorting}
+          >
+            {t.clearSorting}
+          </button>
+        )}
+      </div>
       {load.status === 'loading' && (
         <p className="playlists__state">{t.loadingVideos}</p>
       )}
@@ -177,15 +189,6 @@ export function PlaylistVideos({
             }
           }}
         />
-      )}
-      {load.status === 'ready' && videos.length > 0 && !playlistOrder && (
-        <button
-          type="button"
-          className="button button--small video-table__clear"
-          onClick={clearSorting}
-        >
-          {t.clearSorting}
-        </button>
       )}
       {load.status === 'ready' && videos.length > 0 && (
         // Jawne role: na telefonie wiersze dostają display: grid, co w części przeglądarek gubi semantykę tabeli

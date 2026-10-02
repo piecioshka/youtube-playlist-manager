@@ -678,9 +678,17 @@ describe('PlaylistProfile', () => {
         ).not.toBeInTheDocument();
 
         await user.click(within(header('Kanał')).getByRole('button'));
-        await user.click(
-          screen.getByRole('button', { name: 'Wyczyść sortowanie' }),
+        const clear = screen.getByRole('button', {
+          name: 'Wyczyść sortowanie',
+        });
+        // Przycisk stoi w rzędzie nagłówka sekcji, więc nie przesuwa tabeli pod sobą
+        expect(clear.closest('.profile__videos-header')).toBe(
+          screen
+            .getByRole('heading', { level: 3 })
+            .closest('.profile__videos-header'),
         );
+        expect(clear.closest('.profile__videos-header')).not.toBeNull();
+        await user.click(clear);
 
         expect(videoTitles()).toEqual(['Quicksort', 'Big O', 'Grafy']);
         expect(header('Nr')).toHaveAttribute('aria-sort', 'ascending');

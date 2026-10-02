@@ -580,6 +580,7 @@ test('sorts the videos by a column, hides the drag handles and clears the sortin
   const numberHeader = table.getByRole('columnheader', { name: 'Nr' });
   await expect(numberHeader).toHaveAttribute('aria-sort', 'ascending');
 
+  const tableTop = (await table.boundingBox())?.y;
   await titleHeader.getByRole('button').click();
 
   await expect(titleHeader).toHaveAttribute('aria-sort', 'ascending');
@@ -592,6 +593,8 @@ test('sorts the videos by a column, hides the drag handles and clears the sortin
     name: 'Przenieś „Quicksort in 4 minutes”',
   });
   await expect(handle).toHaveCount(0);
+  // Pojawienie się przycisku nie przesuwa tabeli
+  expect((await table.boundingBox())?.y).toBe(tableTop);
 
   await page.getByRole('button', { name: 'Wyczyść sortowanie' }).click();
 
