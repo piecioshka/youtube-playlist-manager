@@ -223,12 +223,27 @@ export function PlaylistsView({ list, index, channel }: PlaylistsViewProps) {
                         onClick={() => handleSort(column.key)}
                       >
                         {t[column.label]}
-                        <span
-                          className="playlists__sort-indicator"
+                        {/* Dwie strzałki na każdej sortowalnej kolumnie; aktywna podświetla swój kierunek */}
+                        <svg
+                          className={
+                            active
+                              ? `playlists__sort-icon playlists__sort-icon--${sort.direction}`
+                              : 'playlists__sort-icon'
+                          }
+                          width="8"
+                          height="14"
+                          viewBox="0 0 8 14"
                           aria-hidden="true"
                         >
-                          {active ? (sort.direction === 'asc' ? '▲' : '▼') : ''}
-                        </span>
+                          <path
+                            className="playlists__sort-arrow playlists__sort-arrow--asc"
+                            d="M4 1l3.5 5h-7z"
+                          />
+                          <path
+                            className="playlists__sort-arrow playlists__sort-arrow--desc"
+                            d="M4 13l3.5-5h-7z"
+                          />
+                        </svg>
                       </button>
                     </th>
                   );

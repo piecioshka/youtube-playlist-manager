@@ -426,8 +426,28 @@ body {
   justify-content: flex-end;
 }
 
-.playlists__sort-indicator {
-  font-size: 0.75em;
+/* Piktogram mówi, że kolumnę da się sortować; pełny kolor dostaje tylko aktywny kierunek */
+.playlists__sort-icon {
+  flex: none;
+}
+
+.playlists__sort-arrow {
+  fill: currentColor;
+  opacity: 0.35;
+}
+
+.playlists__sort-button:hover .playlists__sort-arrow {
+  opacity: 0.6;
+}
+
+.playlists__sort-icon--asc .playlists__sort-arrow--asc,
+.playlists__sort-icon--desc .playlists__sort-arrow--desc {
+  opacity: 1;
+}
+
+.playlists__sort-icon--asc .playlists__sort-arrow--desc,
+.playlists__sort-icon--desc .playlists__sort-arrow--asc {
+  opacity: 0.2;
 }
 
 .playlist-row:hover {
