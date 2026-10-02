@@ -120,7 +120,14 @@ a.external-link {
   display: inline-flex;
   gap: 0.3em;
   align-items: center;
+  min-width: 0;
   max-width: 100%;
+}
+
+/* Podkreślenie należy do tekstu w środku; sam link nie rysuje własnego, także pod kursorem */
+a.external-link,
+a.external-link:hover,
+a.external-link:focus-visible {
   text-decoration: none;
 }
 
@@ -573,11 +580,6 @@ a.external-link:focus-visible .external-link__text {
   text-decoration: none;
 }
 
-.playlist-videos__link:hover,
-.playlist-videos__link:focus-visible {
-  text-decoration: underline;
-}
-
 .playlist-videos__channel {
   color: var(--color-muted);
 }
@@ -689,10 +691,6 @@ a.external-link:focus-visible .external-link__text {
   color: var(--color-text);
   font-size: 0.875rem;
   text-decoration: none;
-}
-
-.profile__youtube:hover {
-  text-decoration: underline;
 }
 
 /* Link w środku zdania musi odróżniać się od tekstu także bez kursora */
@@ -911,8 +909,10 @@ a.external-link:focus-visible .external-link__text {
   background: var(--color-border);
 }
 
+/* Kolumna nie rośnie razem z długim tytułem, więc tytuł ucina się przed przyciskami */
 .video-item__text {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   min-width: 0;
 }
 
@@ -928,10 +928,6 @@ a.external-link:focus-visible .external-link__text {
   color: inherit;
   font-weight: 500;
   text-decoration: none;
-}
-
-.video-item__link:hover {
-  text-decoration: underline;
 }
 
 .video-item__channel {

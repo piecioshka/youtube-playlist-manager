@@ -475,12 +475,62 @@ test('lays the profile out for a phone', async ({ page }) => {
   expect(results.violations).toEqual([]);
 });
 
+for (const width of [1280, 375]) {
+  test(`cuts a long video title short before the remove button at ${width} px`, async ({
+    page,
+    youtube,
+  }) => {
+    const first = youtube.videos['PL-algo']?.[0];
+    if (first === undefined) {
+      throw new Error('No seeded video');
+    }
+    first.title =
+      'Bardzo długi tytuł filmu, który nie mieści się w wierszu. '.repeat(6);
+    await page.setViewportSize({ width, height: 800 });
+    await openAlgorithms(page);
+    const item = videoList(page).getByRole('listitem').first();
+
+    const link = await item.locator('.video-item__link').boundingBox();
+    const remove = await item
+      .getByRole('button', { name: /^Usuń z playlisty/ })
+      .boundingBox();
+    if (link === null || remove === null) {
+      throw new Error('The video row has no box');
+    }
+    // Tytuł kończy się przed przyciskiem, a piktogram linku zostaje widoczny
+    expect(link.x + link.width).toBeLessThanOrEqual(remove.x);
+    await expect(item.locator('.external-link__icon')).toBeInViewport();
+    const clipped = await item
+      .locator('.external-link__text')
+      .evaluate(
+        (text) =>
+          text.scrollWidth > text.clientWidth ||
+          text.scrollHeight > text.clientHeight,
+      );
+    expect(clipped).toBe(true);
+    expect(await horizontalScroll(page)).toBe(0);
+  });
+}
+
 test('marks every link to YouTube on the profile', async ({ page }) => {
   await openAlgorithms(page);
 
   expect(await unmarkedYouTubeLinks(page)).toEqual([]);
   // Link do playlisty, trzy filmy, kanał w nagłówku i stopka
   expect(await page.locator('a[href*="youtube.com"]').count()).toBe(6);
+
+  // Pod kursorem kropki zmieniają się w jedną ciągłą linię, a link nie dokłada drugiej
+  for (const link of [
+    page.getByRole('link', { name: 'Otwórz na YouTube' }),
+    videoList(page).getByRole('link').first(),
+    page.getByRole('contentinfo').getByRole('link', { name: 'YouTube' }),
+  ]) {
+    await link.hover();
+    await expect(link).toHaveCSS('text-decoration-line', 'none');
+    const text = link.locator('.external-link__text');
+    await expect(text).toHaveCSS('text-decoration-line', 'underline');
+    await expect(text).toHaveCSS('text-decoration-style', 'solid');
+  }
 });
 
 test('has no accessibility violations on the profile', async ({ page }) => {
