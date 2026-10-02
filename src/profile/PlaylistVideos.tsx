@@ -17,6 +17,7 @@ import {
 } from './sortVideos';
 import { UnavailableBar } from './UnavailableBar';
 import { VideoItem } from './VideoItem';
+import { VideoSkeleton } from './VideoSkeleton';
 import { usePlaylistVideos, type ProfileVideoIndex } from './usePlaylistVideos';
 import { useVideoDrag } from './useVideoDrag';
 
@@ -149,7 +150,10 @@ export function PlaylistVideos({
         )}
       </div>
       {load.status === 'loading' && (
-        <p className="playlists__state">{t.loadingVideos}</p>
+        <>
+          <p className="visually-hidden">{t.loadingVideos}</p>
+          <VideoSkeleton count={playlist.itemCount} />
+        </>
       )}
       {load.status === 'error' && (
         <div className="notice notice--error" role="alert">

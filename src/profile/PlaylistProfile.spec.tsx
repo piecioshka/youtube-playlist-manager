@@ -12,6 +12,7 @@ import { renderWithYouTube } from '../test/renderWithYouTube';
 import { makeVideo } from '../test/videoFactory';
 import { ApiError, type Playlist, type PlaylistVideo } from '../youtube/types';
 import { PlaylistProfile } from './PlaylistProfile';
+import { VideoSkeleton } from './VideoSkeleton';
 
 let youtube: FakeYouTube;
 
@@ -791,6 +792,36 @@ describe('PlaylistProfile', () => {
           ).toHaveFocus(),
         );
       });
+    });
+
+    it('shows a skeleton of as many rows as the playlist has videos while they load', async () => {
+      renderProfile();
+      const skeleton = document.querySelector('.video-skeleton');
+
+      // Szkielet jest tylko ozdobą; czytnik ekranu dostaje zwykły tekst o wczytywaniu
+      expect(skeleton).toHaveAttribute('aria-hidden', 'true');
+      expect(skeleton?.querySelectorAll('.video-skeleton__row')).toHaveLength(
+        3,
+      );
+      expect(screen.getByText('Wczytywanie filmów...')).toBeInTheDocument();
+
+      await screen.findByRole('table', { name: /^Filmy/ });
+      expect(document.querySelector('.video-skeleton')).toBeNull();
+      expect(
+        screen.queryByText('Wczytywanie filmów...'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('caps the skeleton for a long playlist and shows one row for an empty count', () => {
+      const { unmount } = renderWithYouTube(
+        <VideoSkeleton count={250} />,
+        youtube,
+      );
+      expect(document.querySelectorAll('.video-skeleton__row')).toHaveLength(8);
+      unmount();
+
+      renderWithYouTube(<VideoSkeleton count={0} />, youtube);
+      expect(document.querySelectorAll('.video-skeleton__row')).toHaveLength(1);
     });
 
     it('shows a loading state, then an empty playlist', async () => {
