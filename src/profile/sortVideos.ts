@@ -1,7 +1,8 @@
 import type { SortDirection } from '../sorting/types';
 import type { PlaylistVideo } from '../youtube/types';
 
-export type VideoSortKey = 'position' | 'title' | 'channel' | 'published';
+export type VideoSortKey =
+  'position' | 'title' | 'channel' | 'published' | 'duration';
 export type VideoSort = { key: VideoSortKey; direction: SortDirection };
 
 // Wartość opcji w liście wyboru sortowania
@@ -23,6 +24,8 @@ export const VIDEO_SORT_OPTIONS: readonly VideoSort[] = [
   { key: 'channel', direction: 'desc' },
   { key: 'published', direction: 'desc' },
   { key: 'published', direction: 'asc' },
+  { key: 'duration', direction: 'desc' },
+  { key: 'duration', direction: 'asc' },
 ];
 
 export function videoSortId(sort: VideoSort): VideoSortOption {
@@ -37,25 +40,27 @@ function compareText(a: string, b: string): number {
   return a.localeCompare(b, 'pl', { sensitivity: 'base' });
 }
 
-// Wartość, po której sortuje kolumna; null, gdy film jej nie ma (niedostępny, bez kanału, bez daty)
+type SortValue = string | number;
+
+// Wartość, po której sortuje kolumna; null, gdy film jej nie ma (niedostępny, bez kanału, bez daty, bez czasu trwania)
 const VALUES: Record<
   Exclude<VideoSortKey, 'position'>,
-  (video: PlaylistVideo) => string | null
+  (video: PlaylistVideo) => SortValue | null
 > = {
   title: (video) => (video.available ? video.title : null),
   channel: (video) =>
     video.available && video.channelTitle !== '' ? video.channelTitle : null,
-  published: (video) => video.videoPublishedAt,
+  published: (video) =>
+    video.videoPublishedAt === null ? null : Date.parse(video.videoPublishedAt),
+  duration: (video) => video.durationSeconds,
 };
 
-const COMPARATORS: Record<
-  Exclude<VideoSortKey, 'position'>,
-  (a: string, b: string) => number
-> = {
-  title: compareText,
-  channel: compareText,
-  published: (a, b) => Date.parse(a) - Date.parse(b),
-};
+// Liczby (daty, sekundy) porównujemy liczbowo, teksty po polsku
+function compareValues(a: SortValue, b: SortValue): number {
+  return typeof a === 'number' && typeof b === 'number'
+    ? a - b
+    : compareText(String(a), String(b));
+}
 
 export function sortVideos(
   videos: readonly PlaylistVideo[],
@@ -66,7 +71,6 @@ export function sortVideos(
     return [...videos].sort((a, b) => sign * (a.position - b.position));
   }
   const valueOf = VALUES[sort.key];
-  const compare = COMPARATORS[sort.key];
   return [...videos].sort((a, b) => {
     const left = valueOf(a);
     const right = valueOf(b);
@@ -78,11 +82,11 @@ export function sortVideos(
       );
     }
     // Remisy zawsze w kolejności z playlisty
-    return sign * compare(left, right) || a.position - b.position;
+    return sign * compareValues(left, right) || a.position - b.position;
   });
 }
 
-// Klucze, które po pierwszym kliknięciu sortują rosnąco; data zaczyna od najnowszych
+// Klucze, które po pierwszym kliknięciu sortują rosnąco; data zaczyna od najnowszych, czas trwania od najdłuższych
 const ASCENDING_FIRST: readonly VideoSortKey[] = [
   'position',
   'title',

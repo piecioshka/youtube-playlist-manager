@@ -4,6 +4,7 @@ import {
   getMyChannel,
   listMyPlaylists,
   listPlaylistVideos,
+  listVideoDurations,
   movePlaylistItem,
   removePlaylistItem,
   updatePlaylist,
@@ -29,6 +30,9 @@ export type YouTubeSession = {
     playlistId: string,
     options?: ListVideosOptions,
   ) => Promise<PlaylistVideo[]>;
+  listVideoDurations: (
+    videoIds: readonly string[],
+  ) => Promise<Map<string, number>>;
   addPlaylistItem: (
     playlistId: string,
     videoId: string,
@@ -72,6 +76,8 @@ export function createYouTubeSession(
     deletePlaylist: (playlistId) => guard(deletePlaylist(token, playlistId)),
     listPlaylistVideos: (playlistId, options) =>
       guard(listPlaylistVideos(token, playlistId, options)),
+    listVideoDurations: (videoIds) =>
+      guard(listVideoDurations(token, videoIds)),
     addPlaylistItem: (playlistId, videoId) =>
       guard(addPlaylistItem(token, playlistId, videoId)),
     movePlaylistItem: (playlistId, video, newPosition) =>

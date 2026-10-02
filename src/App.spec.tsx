@@ -11,6 +11,7 @@ import {
   getMyChannel,
   listMyPlaylists,
   listPlaylistVideos,
+  listVideoDurations,
   updatePlaylist,
 } from './youtube/api';
 import { ApiError } from './youtube/types';
@@ -24,6 +25,7 @@ vi.mock('./youtube/api', () => ({
   getMyChannel: vi.fn(),
   listMyPlaylists: vi.fn(),
   listPlaylistVideos: vi.fn(),
+  listVideoDurations: vi.fn(),
   updatePlaylist: vi.fn(),
   deletePlaylist: vi.fn(),
   removePlaylistItem: vi.fn(),
@@ -69,6 +71,7 @@ beforeEach(() => {
   vi.mocked(getMyChannel).mockResolvedValue(null);
   vi.mocked(listMyPlaylists).mockResolvedValue([zupa, joga]);
   vi.mocked(listPlaylistVideos).mockResolvedValue([]);
+  vi.mocked(listVideoDurations).mockResolvedValue(new Map());
 });
 
 afterEach(() => {

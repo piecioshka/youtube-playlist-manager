@@ -268,6 +268,18 @@ export function PlaylistVideos({
                 />
               </th>
               <th
+                className="video-table__column video-table__column--duration"
+                scope="col"
+                role="columnheader"
+                aria-sort={ariaSort(sortDirection('duration'))}
+              >
+                <SortButton
+                  label={t.videoColumnDuration}
+                  direction={sortDirection('duration')}
+                  onClick={() => setSort(nextVideoSort(sort, 'duration'))}
+                />
+              </th>
+              <th
                 className="video-table__column video-table__column--actions"
                 scope="col"
                 role="columnheader"

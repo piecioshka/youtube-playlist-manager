@@ -6,11 +6,13 @@ import {
   playlistItemResourceSchema,
   playlistListResponseSchema,
   playlistResourceSchema,
+  videoListResponseSchema,
   type ChannelResource,
   type PlaylistItemResource,
   type PlaylistResource,
   type Thumbnails,
 } from './schemas';
+import { parseIsoDuration } from './duration';
 import {
   ApiError,
   type Channel,
@@ -23,6 +25,9 @@ const PLAYLISTS_URL = 'https://www.googleapis.com/youtube/v3/playlists';
 const PLAYLIST_ITEMS_URL =
   'https://www.googleapis.com/youtube/v3/playlistItems';
 const CHANNELS_URL = 'https://www.googleapis.com/youtube/v3/channels';
+const VIDEOS_URL = 'https://www.googleapis.com/youtube/v3/videos';
+// Tyle identyfikatorów mieści jedno zapytanie videos.list
+const VIDEO_IDS_PER_REQUEST = 50;
 const QUOTA_REASONS = ['quotaExceeded', 'dailyLimitExceeded'];
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE';
@@ -69,6 +74,8 @@ function toVideo(
     position: resource.snippet.position,
     thumbnailUrl: pickThumbnail(resource.snippet.thumbnails),
     videoPublishedAt: resource.contentDetails?.videoPublishedAt ?? null,
+    // Elementy playlisty nie niosą czasu trwania; dociąga go listVideoDurations
+    durationSeconds: null,
     available,
   };
 }
@@ -353,6 +360,42 @@ export async function addPlaylistItem(
     resource.snippet.resourceId.videoId ?? videoId,
     resource.snippet.videoOwnerChannelTitle ?? '',
   );
+}
+
+/*
+ * Czas trwania filmów w sekundach, po id filmu. Elementy playlisty go nie mają,
+ * więc idzie osobne zapytanie videos.list: 1 jednostka limitu na 50 filmów.
+ * Filmy bez czytelnego czasu trwania (usunięte, prywatne) w wyniku nie występują.
+ */
+export async function listVideoDurations(
+  token: string,
+  videoIds: readonly string[],
+): Promise<Map<string, number>> {
+  const ids = [...new Set(videoIds)];
+  const durations = new Map<string, number>();
+
+  for (let start = 0; start < ids.length; start += VIDEO_IDS_PER_REQUEST) {
+    const url = new URL(VIDEOS_URL);
+    url.searchParams.set('part', 'contentDetails');
+    url.searchParams.set(
+      'id',
+      ids.slice(start, start + VIDEO_IDS_PER_REQUEST).join(','),
+    );
+
+    const response = await request(token, url);
+    const page = parseResponse(
+      videoListResponseSchema,
+      await readJson(response),
+    );
+    for (const item of page.items) {
+      const seconds = parseIsoDuration(item.contentDetails?.duration ?? '');
+      if (seconds !== null) {
+        durations.set(item.id, seconds);
+      }
+    }
+  }
+
+  return durations;
 }
 
 function toCount(value: string | undefined): number {

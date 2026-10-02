@@ -33,6 +33,8 @@ export type PlaylistVideo = {
   thumbnailUrl: string | null;
   // Kiedy film opublikowano na YouTube (nie kiedy trafił na playlistę); null, gdy YouTube tego nie podaje
   videoPublishedAt: string | null;
+  // Czas trwania w sekundach; null, dopóki nie zostanie dociągnięty osobnym zapytaniem albo gdy YouTube go nie podaje
+  durationSeconds: number | null;
   // false dla usuniętego albo prywatnego filmu: zostaje na playliście, ale nie da się go obejrzeć
   available: boolean;
 };

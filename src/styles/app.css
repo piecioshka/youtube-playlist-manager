@@ -489,6 +489,7 @@ a.external-link:focus-visible .external-link__text {
 
 /* Filmy: przycisk dosunięty do prawej, jak liczby w kolumnie */
 .playlists__column--number .sort-button,
+.video-table__column--duration .sort-button,
 .video-table__column--number .sort-button {
   justify-content: flex-end;
 }
@@ -936,6 +937,12 @@ a.external-link:focus-visible .external-link__text {
   width: 124px;
 }
 
+/* Liczby dosunięte do prawej, żeby minuty i sekundy stały jedne pod drugimi */
+.video-table__column--duration {
+  width: 88px;
+  text-align: right;
+}
+
 .video-table__column--actions {
   width: 132px;
 }
@@ -1044,14 +1051,20 @@ a.external-link:focus-visible .external-link__text {
 }
 
 .video-item__cell--channel,
-.video-item__cell--published {
+.video-item__cell--published,
+.video-item__cell--duration {
   color: var(--color-muted);
   font-size: 0.875rem;
 }
 
-.video-item__cell--published {
+.video-item__cell--published,
+.video-item__cell--duration {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+
+.video-item__cell--duration {
+  text-align: right;
 }
 
 /* Krótki stały tekst, więc zawija się zamiast ucinać wielokropkiem na telefonie */
@@ -1326,10 +1339,10 @@ a.external-link:focus-visible .external-link__text {
 
   .video-item {
     display: grid;
-    grid-template-columns: auto 1.25rem 56px minmax(0, 1fr) auto auto;
+    grid-template-columns: auto 1.25rem 56px minmax(0, 1fr) auto auto auto;
     grid-template-areas:
-      'handle number thumbnail title title actions'
-      'handle number thumbnail channel published actions';
+      'handle number thumbnail title title title actions'
+      'handle number thumbnail channel duration published actions';
     gap: 2px 8px;
     align-items: center;
     padding: 8px;
@@ -1342,25 +1355,25 @@ a.external-link:focus-visible .external-link__text {
 
   /* Bez uchwytów siatka nie zostawia po nich pustej kolumny */
   .video-table--no-handles .video-item {
-    grid-template-columns: 1.25rem 56px minmax(0, 1fr) auto auto;
+    grid-template-columns: 1.25rem 56px minmax(0, 1fr) auto auto auto;
     grid-template-areas:
-      'number thumbnail title title actions'
-      'number thumbnail channel published actions';
+      'number thumbnail title title title actions'
+      'number thumbnail channel duration published actions';
   }
 
   .video-table--no-handles .video-item--confirming {
     grid-template-areas:
-      'number thumbnail title title title'
-      'number thumbnail channel published published'
-      'actions actions actions actions actions';
+      'number thumbnail title title title title'
+      'number thumbnail channel duration published published'
+      'actions actions actions actions actions actions';
   }
 
   /* Potwierdzenie usunięcia dostaje własny rząd pod filmem */
   .video-item--confirming {
     grid-template-areas:
-      'handle number thumbnail title title title'
-      'handle number thumbnail channel published published'
-      'actions actions actions actions actions actions';
+      'handle number thumbnail title title title title'
+      'handle number thumbnail channel duration published published'
+      'actions actions actions actions actions actions actions';
   }
 
   .video-item__cell {
@@ -1392,6 +1405,11 @@ a.external-link:focus-visible .external-link__text {
 
   .video-item__cell--published {
     grid-area: published;
+    font-size: 0.8125rem;
+  }
+
+  .video-item__cell--duration {
+    grid-area: duration;
     font-size: 0.8125rem;
   }
 

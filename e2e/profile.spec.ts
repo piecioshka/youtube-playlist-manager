@@ -44,6 +44,13 @@ test('opens a playlist profile from the table', async ({ page }) => {
   await expect(
     videoList(page).locator('tbody tr').first().locator('time'),
   ).toHaveText('2019-03-14');
+  // Czas trwania dochodzi osobnym zapytaniem o filmy, już po pokazaniu listy
+  await expect(
+    videoList(page)
+      .locator('tbody tr')
+      .first()
+      .locator('.video-item__cell--duration'),
+  ).toHaveText('4:13');
 });
 
 test('moves a video down with the arrow key on its handle', async ({

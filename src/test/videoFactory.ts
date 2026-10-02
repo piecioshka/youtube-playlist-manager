@@ -12,6 +12,7 @@ export function makeVideo(
     position: 0,
     thumbnailUrl: null,
     videoPublishedAt: null,
+    durationSeconds: null,
     available: true,
     ...overrides,
   };

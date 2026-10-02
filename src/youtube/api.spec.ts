@@ -7,6 +7,7 @@ import {
   getMyChannel,
   listMyPlaylists,
   listPlaylistVideos,
+  listVideoDurations,
   movePlaylistItem,
   removePlaylistItem,
   updatePlaylist,
@@ -229,6 +230,7 @@ describe('listPlaylistVideos', () => {
     position: 0,
     thumbnailUrl: 'https://i.ytimg.com/vi/v1/mqdefault.jpg',
     videoPublishedAt: null,
+    durationSeconds: null,
     available: true,
   };
 
@@ -363,6 +365,7 @@ describe('listPlaylistVideos', () => {
         position: 1,
         thumbnailUrl: 'https://i.ytimg.com/vi/v-del/mqdefault.jpg',
         videoPublishedAt: null,
+        durationSeconds: null,
         available: false,
       },
       {
@@ -373,6 +376,7 @@ describe('listPlaylistVideos', () => {
         position: 2,
         thumbnailUrl: 'https://i.ytimg.com/vi/v-priv/mqdefault.jpg',
         videoPublishedAt: null,
+        durationSeconds: null,
         available: false,
       },
       {
@@ -383,6 +387,7 @@ describe('listPlaylistVideos', () => {
         position: 3,
         thumbnailUrl: 'https://i.ytimg.com/vi/undefined/mqdefault.jpg',
         videoPublishedAt: null,
+        durationSeconds: null,
         available: false,
       },
     ]);
@@ -687,6 +692,7 @@ describe('addPlaylistItem', () => {
       position: 3,
       thumbnailUrl: 'https://i.ytimg.com/vi/x/default.jpg',
       videoPublishedAt: null,
+      durationSeconds: null,
       available: true,
     });
   });
@@ -946,5 +952,66 @@ describe('getMyChannel', () => {
     const error = await getMyChannel('t').catch((caught: unknown) => caught);
     expect(error).toBeInstanceOf(ApiError);
     expect(error).toMatchObject({ kind: 'unauthorized', status: 401 });
+  });
+});
+
+describe('listVideoDurations', () => {
+  function video(id: string, duration?: string) {
+    return {
+      kind: 'youtube#video',
+      id,
+      contentDetails: duration === undefined ? {} : { duration },
+    };
+  }
+
+  it('asks for the content details of the given videos and reads seconds', async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({ items: [video('a', 'PT4M13S'), video('b', 'PT1H')] }),
+    );
+
+    const durations = await listVideoDurations('tok-d', ['a', 'b']);
+
+    expect(durations).toEqual(
+      new Map([
+        ['a', 253],
+        ['b', 3600],
+      ]),
+    );
+    const url = calledUrl(0);
+    expect(`${url.origin}${url.pathname}`).toBe(
+      'https://www.googleapis.com/youtube/v3/videos',
+    );
+    expect(url.searchParams.get('part')).toBe('contentDetails');
+    expect(url.searchParams.get('id')).toBe('a,b');
+    expect(new Headers(calledInit(0)?.headers).get('Authorization')).toBe(
+      'Bearer tok-d',
+    );
+  });
+
+  it('asks in batches of 50 and skips repeated ids', async () => {
+    const ids = Array.from({ length: 120 }, (_, index) => `v${index}`);
+    fetchMock.mockImplementation(() =>
+      Promise.resolve(jsonResponse({ items: [] })),
+    );
+
+    await listVideoDurations('t', [...ids, 'v0', 'v1']);
+
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(calledUrl(0).searchParams.get('id')?.split(',')).toHaveLength(50);
+    expect(calledUrl(2).searchParams.get('id')?.split(',')).toHaveLength(20);
+  });
+
+  it('leaves out videos without a readable duration and asks nothing for no ids', async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        items: [video('a'), video('b', 'soon'), video('c', 'PT5S')],
+      }),
+    );
+
+    expect(await listVideoDurations('t', ['a', 'b', 'c'])).toEqual(
+      new Map([['c', 5]]),
+    );
+    expect(await listVideoDurations('t', [])).toEqual(new Map());
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });

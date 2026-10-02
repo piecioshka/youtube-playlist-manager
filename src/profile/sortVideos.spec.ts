@@ -16,6 +16,7 @@ const zebra = makeVideo({
   channelTitle: 'Beta',
   position: 0,
   videoPublishedAt: '2020-01-01T00:00:00Z',
+  durationSeconds: 600,
 });
 const cma = makeVideo({
   videoId: 'cma',
@@ -23,6 +24,7 @@ const cma = makeVideo({
   channelTitle: 'alfa',
   position: 1,
   videoPublishedAt: '2024-06-01T00:00:00Z',
+  durationSeconds: 45,
 });
 const gone = makeVideo({
   videoId: 'gone',
@@ -37,6 +39,7 @@ const cytryna = makeVideo({
   channelTitle: 'Beta',
   position: 3,
   videoPublishedAt: '2016-03-03T00:00:00Z',
+  durationSeconds: 3723,
 });
 const videos = [zebra, cma, gone, cytryna];
 
@@ -107,6 +110,23 @@ describe('sortVideos', () => {
   });
 });
 
+describe('sortVideos by duration', () => {
+  it('sorts by length and keeps videos without a known duration last', () => {
+    expect(ids({ key: 'duration', direction: 'desc' })).toEqual([
+      'cytryna',
+      'zebra',
+      'cma',
+      'gone',
+    ]);
+    expect(ids({ key: 'duration', direction: 'asc' })).toEqual([
+      'cma',
+      'zebra',
+      'cytryna',
+      'gone',
+    ]);
+  });
+});
+
 describe('nextVideoSort', () => {
   it('starts each column in its natural direction and flips on a second click', () => {
     expect(nextVideoSort(DEFAULT_VIDEO_SORT, 'title')).toEqual({
@@ -115,6 +135,10 @@ describe('nextVideoSort', () => {
     });
     expect(nextVideoSort(DEFAULT_VIDEO_SORT, 'published')).toEqual({
       key: 'published',
+      direction: 'desc',
+    });
+    expect(nextVideoSort(DEFAULT_VIDEO_SORT, 'duration')).toEqual({
+      key: 'duration',
       direction: 'desc',
     });
     expect(nextVideoSort(DEFAULT_VIDEO_SORT, 'position')).toEqual({
@@ -139,6 +163,8 @@ describe('video sort options', () => {
       'channel-desc',
       'published-desc',
       'published-asc',
+      'duration-desc',
+      'duration-asc',
     ]);
     expect(VIDEO_SORT_OPTIONS.filter(isPlaylistOrder)).toEqual([
       DEFAULT_VIDEO_SORT,

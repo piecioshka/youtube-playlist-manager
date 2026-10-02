@@ -3,6 +3,7 @@ import { useI18n } from '../i18n/LocaleProvider';
 import { formatDate } from '../playlists/format';
 import type { PlaylistVideo } from '../youtube/types';
 import { YouTubeLink } from '../youtube/YouTubeLink';
+import { formatDuration } from './formatDuration';
 import type { DropPlacement } from './reorder';
 import type { DragHandlers } from './useVideoDrag';
 
@@ -225,6 +226,10 @@ export function VideoItem({
             {published}
           </time>
         )}
+      </td>
+      <td className="video-item__cell video-item__cell--duration" role="cell">
+        {video.durationSeconds !== null &&
+          formatDuration(video.durationSeconds)}
       </td>
       <td className="video-item__cell video-item__cell--actions" role="cell">
         {confirming ? (

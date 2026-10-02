@@ -186,6 +186,8 @@ const pl = {
     'channel-desc': 'Kanał: Z-A',
     'published-desc': 'Opublikowano: od najnowszych',
     'published-asc': 'Opublikowano: od najstarszych',
+    'duration-desc': 'Długość: od najdłuższych',
+    'duration-asc': 'Długość: od najkrótszych',
   } satisfies Record<VideoSortOption, string>,
   reorderNeedsPlaylistOrder:
     'Zmiana kolejności działa w kolejności z playlisty (Nr rosnąco)',
@@ -195,6 +197,7 @@ const pl = {
   videoColumnThumbnail: 'Miniatura',
   videoColumnChannel: 'Kanał',
   videoColumnPublished: 'Opublikowano',
+  videoColumnDuration: 'Długość',
   removeVideoShort: 'Usunąć z playlisty?',
   videoPublishedTitle: 'Data publikacji na YouTube',
   moveVideo: 'Przenieś',
@@ -362,6 +365,8 @@ const en: Messages = {
     'channel-desc': 'Channel: Z-A',
     'published-desc': 'Published: newest first',
     'published-asc': 'Published: oldest first',
+    'duration-desc': 'Duration: longest first',
+    'duration-asc': 'Duration: shortest first',
   },
   reorderNeedsPlaylistOrder:
     'Reordering works in the playlist order (No. ascending)',
@@ -371,6 +376,7 @@ const en: Messages = {
   videoColumnThumbnail: 'Thumbnail',
   videoColumnChannel: 'Channel',
   videoColumnPublished: 'Published',
+  videoColumnDuration: 'Duration',
   removeVideoShort: 'Remove from playlist?',
   videoPublishedTitle: 'Published on YouTube',
   moveVideo: 'Move',

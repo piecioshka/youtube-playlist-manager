@@ -69,6 +69,79 @@ describe('usePlaylistVideos', () => {
     expect(onCountChange).toHaveBeenCalledWith(2);
   });
 
+  it('fills in the durations after the list is shown, asking only about watchable videos', async () => {
+    const durations = deferred<Map<string, number>>();
+    youtube.listVideoDurations.mockReturnValue(durations.promise);
+    const { result } = await renderLoaded([quicksort, bigO, deleted]);
+
+    expect(youtube.listVideoDurations).toHaveBeenCalledWith(['qs', 'bigo']);
+    // Lista jest gotowa od razu; czas trwania dochodzi osobnym zapytaniem
+    expect(result.current.videos.map((video) => video.durationSeconds)).toEqual(
+      [null, null, null],
+    );
+
+    await act(async () => {
+      durations.resolve(new Map([['qs', 253]]));
+      await durations.promise;
+    });
+
+    expect(result.current.videos.map((video) => video.durationSeconds)).toEqual(
+      [253, null, null],
+    );
+  });
+
+  it('keeps the list usable when the durations cannot be fetched', async () => {
+    youtube.listVideoDurations.mockRejectedValue(
+      new ApiError('quotaExceeded', 'quota', 403),
+    );
+    const { result } = await renderLoaded();
+
+    await waitFor(() =>
+      expect(youtube.listVideoDurations).toHaveBeenCalledTimes(1),
+    );
+    expect(result.current.load.status).toBe('ready');
+    expect(result.current.videos).toEqual([quicksort, bigO]);
+  });
+
+  it('keeps the durations through a move and asks for the duration of an added video', async () => {
+    youtube.listVideoDurations.mockResolvedValueOnce(
+      new Map([
+        ['qs', 253],
+        ['bigo', 600],
+      ]),
+    );
+    youtube.movePlaylistItem.mockResolvedValue(undefined);
+    const added = makeVideo({ videoId: 'new', title: 'Nowy', position: 2 });
+    youtube.addPlaylistItem.mockResolvedValue(added);
+    const { result } = await renderLoaded();
+    await waitFor(() =>
+      expect(result.current.videos[0]?.durationSeconds).toBe(253),
+    );
+
+    await act(async () => {
+      await result.current.move(0, 1);
+    });
+    expect(
+      result.current.videos.map((video) => [
+        video.title,
+        video.durationSeconds,
+      ]),
+    ).toEqual([
+      ['Big O', 600],
+      ['Quicksort', 253],
+    ]);
+
+    youtube.listVideoDurations.mockResolvedValueOnce(new Map([['new', 42]]));
+    await act(async () => {
+      await result.current.add('new');
+    });
+
+    expect(youtube.listVideoDurations).toHaveBeenLastCalledWith(['new']);
+    await waitFor(() =>
+      expect(result.current.videos[2]?.durationSeconds).toBe(42),
+    );
+  });
+
   it('explains a failed load and loads again on retry', async () => {
     youtube.listPlaylistVideos.mockRejectedValueOnce(
       new ApiError('network', 'offline'),

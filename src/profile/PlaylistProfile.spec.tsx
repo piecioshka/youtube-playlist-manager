@@ -514,6 +514,7 @@ describe('PlaylistProfile', () => {
         '',
         'Michael Sambol',
         '2016-08-11',
+        '',
         'Usuń „Quicksort”',
       ]);
       expect(
@@ -525,6 +526,7 @@ describe('PlaylistProfile', () => {
         'Tytuł',
         'Kanał',
         'Opublikowano',
+        'Długość',
         'Akcje',
       ]);
       expect(first.querySelector('time')).toHaveAttribute(
@@ -599,7 +601,13 @@ describe('PlaylistProfile', () => {
         await renderLoaded();
 
         expect(header('Nr')).toHaveAttribute('aria-sort', 'ascending');
-        for (const name of ['Nr', 'Tytuł', 'Kanał', 'Opublikowano']) {
+        for (const name of [
+          'Nr',
+          'Tytuł',
+          'Kanał',
+          'Opublikowano',
+          'Długość',
+        ]) {
           expect(header(name).querySelector('.sort-icon')).not.toBeNull();
         }
         for (const name of ['Kolejność', 'Miniatura', 'Akcje']) {
@@ -644,9 +652,10 @@ describe('PlaylistProfile', () => {
           'Tytuł',
           'Kanał',
           'Opublikowano',
+          'Długość',
           'Akcje',
         ]);
-        expect(within(item('Big O')).getAllByRole('cell')).toHaveLength(5);
+        expect(within(item('Big O')).getAllByRole('cell')).toHaveLength(6);
 
         await user.click(within(header('Nr')).getByRole('button'));
 
@@ -704,6 +713,33 @@ describe('PlaylistProfile', () => {
         ).toHaveFocus();
       });
 
+      it('shows how long each video is and sorts by it, longest first', async () => {
+        youtube.listVideoDurations.mockResolvedValue(
+          new Map([
+            ['v-qs', 253],
+            ['v-bigo', 3723],
+          ]),
+        );
+        const { user } = await renderLoaded();
+        const duration = (title: string) =>
+          item(title).querySelector('.video-item__cell--duration')?.textContent;
+
+        await waitFor(() => expect(duration('Quicksort')).toBe('4:13'));
+        expect(duration('Big O')).toBe('1:02:03');
+        // Film bez znanego czasu trwania zostawia komórkę pustą
+        expect(duration('Grafy')).toBe('');
+        expect(youtube.listVideoDurations).toHaveBeenCalledWith([
+          'v-qs',
+          'v-bigo',
+          'v-graphs',
+        ]);
+
+        await user.click(within(header('Długość')).getByRole('button'));
+
+        expect(videoTitles()).toEqual(['Big O', 'Quicksort', 'Grafy']);
+        expect(header('Długość')).toHaveAttribute('aria-sort', 'descending');
+      });
+
       it('sorts through the select that replaces the headers on a phone', async () => {
         const { user } = await renderLoaded();
         const select = screen.getByRole('combobox', { name: 'Sortowanie' });
@@ -722,6 +758,8 @@ describe('PlaylistProfile', () => {
           'Kanał: Z-A',
           'Opublikowano: od najnowszych',
           'Opublikowano: od najstarszych',
+          'Długość: od najdłuższych',
+          'Długość: od najkrótszych',
         ]);
 
         await user.selectOptions(select, 'Kolejność na playliście: od końca');

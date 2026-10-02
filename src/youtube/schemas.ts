@@ -57,6 +57,20 @@ export const playlistItemListResponseSchema = z.object({
   nextPageToken: z.string().optional(),
 });
 
+// videos.list z part=contentDetails: z całego zasobu potrzebny jest tylko czas trwania
+export const videoListResponseSchema = z.object({
+  items: z
+    .array(
+      z.object({
+        id: z.string(),
+        contentDetails: z
+          .object({ duration: z.string().optional() })
+          .optional(),
+      }),
+    )
+    .default([]),
+});
+
 export const channelResourceSchema = z.object({
   id: z.string(),
   snippet: z.object({

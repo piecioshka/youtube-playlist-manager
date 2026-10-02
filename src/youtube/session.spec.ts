@@ -7,6 +7,7 @@ import {
   getMyChannel,
   listMyPlaylists,
   listPlaylistVideos,
+  listVideoDurations,
   movePlaylistItem,
   removePlaylistItem,
   updatePlaylist,
@@ -20,6 +21,7 @@ vi.mock('./api', () => ({
   getMyChannel: vi.fn(),
   listMyPlaylists: vi.fn(),
   listPlaylistVideos: vi.fn(),
+  listVideoDurations: vi.fn(),
   movePlaylistItem: vi.fn(),
   removePlaylistItem: vi.fn(),
   updatePlaylist: vi.fn(),
@@ -49,6 +51,11 @@ describe('createYouTubeSession', () => {
     await session.updatePlaylist(playlist, { title: 'Rosół' });
     await session.deletePlaylist('PL1');
     await session.listPlaylistVideos('PL1', { includeUnavailable: true });
+    vi.mocked(listVideoDurations).mockResolvedValue(new Map([['v1', 60]]));
+    expect(await session.listVideoDurations(['v1'])).toEqual(
+      new Map([['v1', 60]]),
+    );
+    expect(listVideoDurations).toHaveBeenCalledWith('tok', ['v1']);
     await session.addPlaylistItem('PL1', 'v1');
     await session.movePlaylistItem('PL1', video, 2);
     await session.removePlaylistItem('item-v1');

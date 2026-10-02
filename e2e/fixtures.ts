@@ -107,6 +107,8 @@ export type FakeVideo = {
   channelTitle: string;
   // Data publikacji filmu na YouTube; data dodania do playlisty jest celowo inna
   publishedAt?: string;
+  // Czas trwania w ISO 8601, tak jak zwraca go videos.list
+  duration?: string;
 };
 
 const ADDED_TO_PLAYLIST_AT = '2025-01-02T03:04:05Z';
@@ -146,6 +148,7 @@ const SEED_VIDEOS: Record<string, FakeVideo[]> = {
       title: 'Quicksort in 4 minutes',
       channelTitle: 'Michael Sambol',
       publishedAt: '2019-03-14T15:00:00Z',
+      duration: 'PT4M13S',
     },
     {
       itemId: 'item-bigo',
@@ -268,6 +271,37 @@ export class FakeYouTube {
       'https://www.googleapis.com/youtube/v3/playlistItems**',
       (route) => this.handleItems(route),
     );
+    await page.route(
+      'https://www.googleapis.com/youtube/v3/videos**',
+      (route) => this.handleVideos(route),
+    );
+  }
+
+  // videos.list: czasy trwania filmów o podanych id; nieznane id po prostu nie wracają
+  private async handleVideos(route: Route): Promise<void> {
+    const request = route.request();
+    if (request.method() === 'OPTIONS') {
+      await route.fulfill({ status: 204, headers: CORS_HEADERS });
+      return;
+    }
+    const url = new URL(request.url());
+    this.requests.push({ method: request.method(), url, body: null });
+    const ids = (url.searchParams.get('id') ?? '').split(',');
+    const known = Object.values(this.videos)
+      .flat()
+      .filter((video) => ids.includes(video.videoId));
+    await route.fulfill({
+      headers: CORS_HEADERS,
+      json: {
+        kind: 'youtube#videoListResponse',
+        items: known.map((video) => ({
+          kind: 'youtube#video',
+          id: video.videoId,
+          contentDetails:
+            video.duration === undefined ? {} : { duration: video.duration },
+        })),
+      },
+    });
   }
 
   private async handleChannels(route: Route): Promise<void> {

@@ -67,6 +67,10 @@ export function usePlaylistVideos({
   const [itemError, setItemError] = useState<ItemError>(null);
   const [progress, setProgress] = useState<Progress>(null);
   const [bulkError, setBulkError] = useState<string | null>(null);
+  // Czasy trwania żyją osobno od listy: dochodzą później i operacje na liście ich nie nadpisują
+  const [durations, setDurations] = useState<ReadonlyMap<string, number>>(
+    new Map(),
+  );
   const pendingRef = useRef(false);
 
   const loaded = useEffectEvent((list: PlaylistVideo[]) => {
@@ -87,6 +91,22 @@ export function usePlaylistVideos({
         setVideos(list);
         setLoad({ status: 'ready' });
         loaded(list);
+        // Elementy playlisty nie mają czasu trwania, więc po pokazaniu listy idzie po niego osobne zapytanie
+        const watchable = list
+          .filter((video) => video.available)
+          .map((video) => video.videoId);
+        if (watchable.length > 0) {
+          youtube.listVideoDurations(watchable).then(
+            (found) => {
+              if (!cancelled) {
+                setDurations(found);
+              }
+            },
+            () => {
+              // Czas trwania to dodatek: bez niego lista działa, a kolumna zostaje pusta
+            },
+          );
+        }
       },
       (error: unknown) => {
         if (!cancelled) {
@@ -182,6 +202,13 @@ export function usePlaylistVideos({
     try {
       const added = await youtube.addPlaylistItem(playlistId, videoId);
       commit([...videos, added]);
+      // Bez czekania: film już jest na liście, czas trwania dojdzie za chwilę
+      youtube.listVideoDurations([added.videoId]).then(
+        (found) => setDurations((current) => new Map([...current, ...found])),
+        () => {
+          // Jak przy wczytaniu listy: brak czasu trwania niczego nie psuje
+        },
+      );
     } catch (error) {
       // 404 przy dodawaniu to zwykle zły ID filmu; komunikat o playliście tylko przy playlistNotFound
       const missingVideo =
@@ -230,7 +257,12 @@ export function usePlaylistVideos({
 
   return {
     load,
-    videos,
+    videos: videos.map((video) => {
+      const seconds = durations.get(video.videoId);
+      return seconds === undefined
+        ? video
+        : { ...video, durationSeconds: seconds };
+    }),
     pending,
     itemError,
     progress,

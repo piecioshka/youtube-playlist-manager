@@ -12,6 +12,10 @@ export function makeFakeYouTube(): FakeYouTube {
     updatePlaylist: vi.fn<YouTubeSession['updatePlaylist']>(),
     deletePlaylist: vi.fn<YouTubeSession['deletePlaylist']>(),
     listPlaylistVideos: vi.fn<YouTubeSession['listPlaylistVideos']>(),
+    // Czasy trwania to dodatek do listy filmów, więc domyślnie YouTube nie zna żadnego
+    listVideoDurations: vi
+      .fn<YouTubeSession['listVideoDurations']>()
+      .mockResolvedValue(new Map()),
     addPlaylistItem: vi.fn<YouTubeSession['addPlaylistItem']>(),
     movePlaylistItem: vi.fn<YouTubeSession['movePlaylistItem']>(),
     removePlaylistItem: vi.fn<YouTubeSession['removePlaylistItem']>(),
