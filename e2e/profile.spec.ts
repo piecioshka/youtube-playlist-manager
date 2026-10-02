@@ -121,6 +121,64 @@ test.describe('drag and drop', () => {
   });
 });
 
+test.describe('touch drag and drop', () => {
+  test.use({
+    viewport: { width: 390, height: 844 },
+    hasTouch: true,
+    isMobile: true,
+  });
+
+  test('drags the first video below the last one with a finger', async ({
+    page,
+    youtube,
+  }) => {
+    await openAlgorithms(page);
+    // Lista na środku okna: przy krawędzi przeciąganie przewijałoby stronę
+    await videoList(page).evaluate((list) =>
+      list.scrollIntoView({ block: 'center' }),
+    );
+    const items = videoList(page).getByRole('listitem');
+    const handle = await items
+      .first()
+      .locator('.video-item__handle')
+      .boundingBox();
+    const last = await items.last().boundingBox();
+    if (handle === null || last === null) {
+      throw new Error('The video list has no boxes');
+    }
+    const x = handle.x + handle.width / 2;
+    const startY = handle.y + handle.height / 2;
+    const endY = last.y + last.height - 4;
+
+    // Playwright nie ma przeciągania palcem, więc dotyk idzie wprost przez protokół przeglądarki
+    const session = await page.context().newCDPSession(page);
+    await session.send('Input.dispatchTouchEvent', {
+      type: 'touchStart',
+      touchPoints: [{ x, y: startY }],
+    });
+    for (let step = 1; step <= 6; step += 1) {
+      await session.send('Input.dispatchTouchEvent', {
+        type: 'touchMove',
+        touchPoints: [{ x, y: startY + ((endY - startY) * step) / 6 }],
+      });
+    }
+    await expect(items.last()).toHaveClass(/video-item--drop-after/);
+    await session.send('Input.dispatchTouchEvent', {
+      type: 'touchEnd',
+      touchPoints: [],
+    });
+
+    await expect
+      .poll(() => videoTitles(page))
+      .toEqual([ALGO_VIDEOS[1], ALGO_VIDEOS[2], ALGO_VIDEOS[0]]);
+    expect(youtube.videos['PL-algo']?.map((video) => video.title)).toEqual([
+      ALGO_VIDEOS[1],
+      ALGO_VIDEOS[2],
+      ALGO_VIDEOS[0],
+    ]);
+  });
+});
+
 test('removes a video after confirmation and shows the new count in the table', async ({
   page,
   youtube,

@@ -1,12 +1,6 @@
-import {
-  createEvent,
-  fireEvent,
-  screen,
-  waitFor,
-  within,
-} from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { makeFakeYouTube, type FakeYouTube } from '../test/fakeYouTube';
 import { makePlaylist } from '../test/playlistFactory';
 import { renderWithYouTube } from '../test/renderWithYouTube';
@@ -37,14 +31,8 @@ const graphs = makeVideo({
 });
 const videos = [quicksort, bigO, graphs];
 
-function dataTransfer() {
-  return {
-    effectAllowed: 'uninitialized',
-    dropEffect: 'none',
-    setData: vi.fn(),
-    setDragImage: vi.fn(),
-  };
-}
+const POINTER_ID = 7;
+const setPointerCapture = vi.fn<(pointerId: number) => void>();
 
 async function renderVideos(list: PlaylistVideo[] = videos) {
   youtube.listPlaylistVideos.mockResolvedValue(list);
@@ -85,51 +73,53 @@ function handle(title: string): HTMLElement {
   return found;
 }
 
-// Element zajmuje 0-100 px w pionie, więc środek to 50
-function mockRect(element: HTMLElement) {
-  element.getBoundingClientRect = () => new DOMRect(0, 0, 300, 100);
+// jsdom nie liczy układu: wiersze stoją jeden pod drugim, każdy ma 100 px wysokości
+function layOutRows() {
+  screen.getAllByRole('listitem').forEach((row, index) => {
+    row.getBoundingClientRect = () => new DOMRect(0, index * 100, 300, 100);
+  });
 }
 
-// jsdom nie ma DragEvent, więc clientY trzeba dopisać do zdarzenia ręcznie
-function fireDrag(
-  type: 'dragOver' | 'drop',
-  title: string,
-  clientY: number,
-  transfer = dataTransfer(),
-): boolean {
-  const target = item(title);
-  mockRect(target);
-  const event = createEvent[type](target, { dataTransfer: transfer });
-  Object.defineProperty(event, 'clientY', { value: clientY });
-  return fireEvent(target, event);
+// Zwraca false, gdy ktoś wywołał preventDefault
+function grab(title: string, button = 0): boolean {
+  layOutRows();
+  return fireEvent.pointerDown(handle(title), {
+    pointerId: POINTER_ID,
+    button,
+    clientY: 0,
+  });
 }
 
-function dragOver(title: string, clientY: number) {
-  fireDrag('dragOver', title, clientY);
+// Uchwyt przechwytuje wskaźnik, więc kolejne zdarzenia trafiają do niego, a nie do wiersza pod palcem
+function dragTo(title: string, clientY: number) {
+  fireEvent.pointerMove(handle(title), { pointerId: POINTER_ID, clientY });
 }
 
-function dropOn(title: string, clientY: number) {
-  fireDrag('drop', title, clientY);
+function release(title: string, clientY: number) {
+  fireEvent.pointerUp(handle(title), { pointerId: POINTER_ID, clientY });
 }
 
 beforeEach(() => {
   youtube = makeFakeYouTube();
+  setPointerCapture.mockClear();
+  // jsdom nie ma przechwytywania wskaźnika ani przewijania okna
+  Element.prototype.setPointerCapture = setPointerCapture;
+  vi.spyOn(window, 'scrollBy').mockImplementation(() => undefined);
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
 });
 
 describe('drag and drop reordering', () => {
-  it('starts a drag from the handle with move data and the row as the image', async () => {
+  it('starts a drag from the handle and captures the pointer', async () => {
     await renderVideos();
-    const transfer = dataTransfer();
 
-    fireEvent.dragStart(handle('Quicksort'), { dataTransfer: transfer });
+    const notPrevented = grab('Quicksort');
 
-    expect(transfer.effectAllowed).toBe('move');
-    expect(transfer.setData).toHaveBeenCalledWith('text/plain', 'item-qs');
-    expect(transfer.setDragImage).toHaveBeenCalledWith(
-      item('Quicksort'),
-      16,
-      16,
-    );
+    // Bez preventDefault mysz zaznaczałaby tekst pod kursorem
+    expect(notPrevented).toBe(false);
+    expect(setPointerCapture).toHaveBeenCalledWith(POINTER_ID);
     expect(item('Quicksort')).toHaveClass('video-item--dragging');
   });
 
@@ -137,9 +127,9 @@ describe('drag and drop reordering', () => {
     youtube.movePlaylistItem.mockResolvedValue(undefined);
     await renderVideos();
 
-    fireEvent.dragStart(handle('Quicksort'), { dataTransfer: dataTransfer() });
-    dragOver('Grafy', 80);
-    dropOn('Grafy', 80);
+    grab('Quicksort');
+    dragTo('Quicksort', 280);
+    release('Quicksort', 280);
 
     expect(titles()).toEqual(['Big O', 'Grafy', 'Quicksort']);
     expect(youtube.movePlaylistItem).toHaveBeenCalledTimes(1);
@@ -158,9 +148,9 @@ describe('drag and drop reordering', () => {
     youtube.movePlaylistItem.mockResolvedValue(undefined);
     await renderVideos();
 
-    fireEvent.dragStart(handle('Quicksort'), { dataTransfer: dataTransfer() });
-    dragOver('Grafy', 20);
-    dropOn('Grafy', 20);
+    grab('Quicksort');
+    dragTo('Quicksort', 220);
+    release('Quicksort', 220);
 
     expect(titles()).toEqual(['Big O', 'Quicksort', 'Grafy']);
     expect(youtube.movePlaylistItem).toHaveBeenCalledWith(
@@ -173,22 +163,23 @@ describe('drag and drop reordering', () => {
   it('does nothing when dropped on itself', async () => {
     await renderVideos();
 
-    fireEvent.dragStart(handle('Big O'), { dataTransfer: dataTransfer() });
-    dragOver('Big O', 20);
+    grab('Big O');
+    dragTo('Big O', 120);
     expect(item('Big O')).not.toHaveClass('video-item--drop-before');
-    dropOn('Big O', 20);
+    release('Big O', 120);
 
     expect(titles()).toEqual(['Quicksort', 'Big O', 'Grafy']);
     expect(youtube.movePlaylistItem).not.toHaveBeenCalled();
+    expect(item('Big O')).not.toHaveClass('video-item--dragging');
   });
 
   it('does nothing when the drop would not change the order', async () => {
     await renderVideos();
 
-    fireEvent.dragStart(handle('Quicksort'), { dataTransfer: dataTransfer() });
-    dragOver('Big O', 20);
+    grab('Quicksort');
+    dragTo('Quicksort', 120);
     expect(item('Big O')).not.toHaveClass('video-item--drop-before');
-    dropOn('Big O', 20);
+    release('Quicksort', 120);
 
     expect(titles()).toEqual(['Quicksort', 'Big O', 'Grafy']);
     expect(youtube.movePlaylistItem).not.toHaveBeenCalled();
@@ -200,9 +191,9 @@ describe('drag and drop reordering', () => {
     );
     await renderVideos();
 
-    fireEvent.dragStart(handle('Quicksort'), { dataTransfer: dataTransfer() });
-    dragOver('Grafy', 80);
-    dropOn('Grafy', 80);
+    grab('Quicksort');
+    dragTo('Quicksort', 280);
+    release('Quicksort', 280);
 
     expect(
       await within(item('Quicksort')).findByRole('alert'),
@@ -211,43 +202,66 @@ describe('drag and drop reordering', () => {
     expect(screen.queryByText(/^Przeniesiono/)).not.toBeInTheDocument();
   });
 
-  it('shows the drop indicator on dragover and clears it on dragend', async () => {
+  it('shows the drop indicator while moving and clears it when the drag is cancelled', async () => {
     await renderVideos();
 
-    fireEvent.dragStart(handle('Quicksort'), { dataTransfer: dataTransfer() });
-    dragOver('Grafy', 80);
+    grab('Quicksort');
+    dragTo('Quicksort', 280);
     expect(item('Grafy')).toHaveClass('video-item--drop-after');
-    dragOver('Grafy', 20);
+    dragTo('Quicksort', 220);
     expect(item('Grafy')).toHaveClass('video-item--drop-before');
     expect(item('Grafy')).not.toHaveClass('video-item--drop-after');
 
-    fireEvent.dragEnd(handle('Quicksort'));
+    fireEvent.pointerCancel(handle('Quicksort'), { pointerId: POINTER_ID });
 
     expect(item('Grafy')).not.toHaveClass('video-item--drop-before');
     expect(item('Quicksort')).not.toHaveClass('video-item--dragging');
+    expect(youtube.movePlaylistItem).not.toHaveBeenCalled();
   });
 
-  it('clears the indicator when the pointer leaves the list', async () => {
+  it('clears the indicator and drops nothing when the pointer leaves the list', async () => {
     await renderVideos();
 
-    fireEvent.dragStart(handle('Quicksort'), { dataTransfer: dataTransfer() });
-    dragOver('Grafy', 80);
-    fireEvent.dragLeave(screen.getByRole('list', { name: /^Filmy/ }));
+    grab('Quicksort');
+    dragTo('Quicksort', 280);
+    dragTo('Quicksort', 400);
 
     expect(item('Grafy')).not.toHaveClass('video-item--drop-after');
+
+    release('Quicksort', 400);
+
+    expect(titles()).toEqual(['Quicksort', 'Big O', 'Grafy']);
+    expect(youtube.movePlaylistItem).not.toHaveBeenCalled();
   });
 
-  it('allows the drop only while a video is being dragged', async () => {
+  it('ignores a move without a grab and a grab with the secondary button', async () => {
     await renderVideos();
-    // fireEvent zwraca false, gdy ktoś wywołał preventDefault
-    expect(fireDrag('dragOver', 'Grafy', 80)).toBe(true);
+    layOutRows();
 
-    fireEvent.dragStart(handle('Quicksort'), { dataTransfer: dataTransfer() });
+    dragTo('Quicksort', 280);
+    expect(item('Grafy')).not.toHaveClass('video-item--drop-after');
 
-    expect(fireDrag('dragOver', 'Grafy', 80)).toBe(false);
+    grab('Quicksort', 2);
+    expect(item('Quicksort')).not.toHaveClass('video-item--dragging');
+    expect(setPointerCapture).not.toHaveBeenCalled();
   });
 
-  it('makes the handles draggable and disables them while an item is pending', async () => {
+  it('scrolls the page when the pointer nears the edge of the window', async () => {
+    await renderVideos();
+
+    grab('Quicksort');
+    dragTo('Quicksort', 10);
+    expect(window.scrollBy).toHaveBeenLastCalledWith(0, -14);
+
+    dragTo('Quicksort', window.innerHeight - 10);
+    expect(window.scrollBy).toHaveBeenLastCalledWith(0, 14);
+
+    vi.mocked(window.scrollBy).mockClear();
+    dragTo('Quicksort', window.innerHeight / 2);
+    expect(window.scrollBy).not.toHaveBeenCalled();
+  });
+
+  it('disables the handles while an item is pending', async () => {
     let finish: () => void = () => {};
     youtube.movePlaylistItem.mockImplementation(
       () =>
@@ -256,7 +270,7 @@ describe('drag and drop reordering', () => {
         }),
     );
     const { user } = await renderVideos();
-    expect(handle('Quicksort')).toHaveAttribute('draggable', 'true');
+    expect(handle('Grafy')).not.toHaveClass('video-item__handle--disabled');
 
     await user.click(
       within(item('Quicksort')).getByRole('button', {
@@ -264,18 +278,22 @@ describe('drag and drop reordering', () => {
       }),
     );
 
-    expect(handle('Grafy')).toHaveAttribute('draggable', 'false');
     expect(handle('Grafy')).toHaveClass('video-item__handle--disabled');
+    grab('Grafy');
+    expect(item('Grafy')).not.toHaveClass('video-item--dragging');
+
     finish();
     await waitFor(() =>
-      expect(handle('Grafy')).toHaveAttribute('draggable', 'true'),
+      expect(handle('Grafy')).not.toHaveClass('video-item__handle--disabled'),
     );
   });
 
   it('disables the handle of a single video', async () => {
     await renderVideos([quicksort]);
 
-    expect(handle('Quicksort')).toHaveAttribute('draggable', 'false');
+    expect(handle('Quicksort')).toHaveClass('video-item__handle--disabled');
+    grab('Quicksort');
+    expect(item('Quicksort')).not.toHaveClass('video-item--dragging');
   });
 
   it('keeps the handle out of the accessibility tree', async () => {

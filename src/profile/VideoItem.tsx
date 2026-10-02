@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState, type DragEvent } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useI18n } from '../i18n/LocaleProvider';
 import type { PlaylistVideo } from '../youtube/types';
 import type { DropPlacement } from './reorder';
+import type { DragHandlers } from './useVideoDrag';
 
 function classNames(...names: (string | false)[]): string {
   return names.filter(Boolean).join(' ');
@@ -20,19 +21,13 @@ type VideoItemProps = {
   // Inna operacja na filmach trwa, więc przyciski czekają
   locked: boolean;
   error: string | null;
-  // Uchwyt można złapać (lista ma kilka filmów i nic nie trwa)
-  canDrag: boolean;
+  // Zdarzenia uchwytu; null, gdy filmu nie da się teraz złapać
+  dragHandlers: DragHandlers | null;
   // Ten film jest właśnie przeciągany
   dragging: boolean;
-  // Jakiś film jest przeciągany, więc wiersz przyjmuje upuszczenie
-  dragActive: boolean;
   dropIndicator: DropPlacement | null;
   // Sąsiedni film został usunięty, więc fokus przechodzi na przycisk usuwania tego filmu
   focusRemove: boolean;
-  onDragStart: () => void;
-  onDragOver: (placement: DropPlacement) => void;
-  onDrop: (placement: DropPlacement) => void;
-  onDragEnd: () => void;
   onMove: (direction: 'up' | 'down') => void;
   // true, gdy film zniknął z playlisty
   onRemove: () => Promise<boolean>;
@@ -47,15 +42,10 @@ export function VideoItem({
   pending,
   locked,
   error,
-  canDrag,
+  dragHandlers,
   dragging,
-  dragActive,
   dropIndicator,
   focusRemove,
-  onDragStart,
-  onDragOver,
-  onDrop,
-  onDragEnd,
   onMove,
   onRemove,
 }: VideoItemProps) {
@@ -67,7 +57,6 @@ export function VideoItem({
   const removeRef = useRef<HTMLButtonElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
   const disabled = pending || locked;
-  const itemRef = useRef<HTMLLIElement>(null);
 
   /*
    * Przyciski są wyłączone na czas żądania, więc gubią fokus; oddajemy go po
@@ -103,43 +92,6 @@ export function VideoItem({
     onMove(direction);
   }
 
-  // Górna połowa wiersza to „przed”, dolna „za”
-  function placementAt(clientY: number): DropPlacement {
-    const rect = itemRef.current?.getBoundingClientRect();
-    return rect !== undefined && clientY < rect.top + rect.height / 2
-      ? 'before'
-      : 'after';
-  }
-
-  function handleDragStart(event: DragEvent<HTMLSpanElement>) {
-    const { dataTransfer } = event;
-    dataTransfer.effectAllowed = 'move';
-    // Firefox nie zaczyna przeciągania bez danych
-    dataTransfer.setData('text/plain', video.itemId);
-    if (itemRef.current && typeof dataTransfer.setDragImage === 'function') {
-      dataTransfer.setDragImage(itemRef.current, 16, 16);
-    }
-    onDragStart();
-  }
-
-  function handleDragOver(event: DragEvent<HTMLLIElement>) {
-    if (!dragActive) {
-      return;
-    }
-    // Bez preventDefault przeglądarka nie pozwoli upuścić
-    event.preventDefault();
-    event.dataTransfer.dropEffect = 'move';
-    onDragOver(placementAt(event.clientY));
-  }
-
-  function handleDrop(event: DragEvent<HTMLLIElement>) {
-    if (!dragActive) {
-      return;
-    }
-    event.preventDefault();
-    onDrop(placementAt(event.clientY));
-  }
-
   function startConfirm() {
     focusTargetRef.current = 'cancel';
     setConfirming(true);
@@ -164,27 +116,22 @@ export function VideoItem({
 
   return (
     <li
-      ref={itemRef}
       className={classNames(
         'video-item',
         !video.available && 'video-item--unavailable',
         dragging && 'video-item--dragging',
         dropIndicator !== null && `video-item--drop-${dropIndicator}`,
       )}
-      onDragOver={handleDragOver}
-      onDrop={handleDrop}
     >
       <span
         className={
-          canDrag
-            ? 'video-item__handle'
-            : 'video-item__handle video-item__handle--disabled'
+          dragHandlers === null
+            ? 'video-item__handle video-item__handle--disabled'
+            : 'video-item__handle'
         }
-        draggable={canDrag}
         aria-hidden="true"
         title={t.dragToReorder}
-        onDragStart={handleDragStart}
-        onDragEnd={onDragEnd}
+        {...dragHandlers}
       >
         <svg width="12" height="16" viewBox="0 0 12 16" aria-hidden="true">
           <circle cx="3" cy="3" r="1.5" />

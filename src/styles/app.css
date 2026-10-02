@@ -781,7 +781,7 @@ body {
 /* Kolumny: uchwyt, numer, miniatura, tytuł z kanałem (reszta miejsca), przyciski */
 .video-item {
   display: grid;
-  grid-template-columns: 20px 2rem 64px minmax(0, 1fr) auto;
+  grid-template-columns: auto 2rem 64px minmax(0, 1fr) auto;
   gap: 4px 12px;
   align-items: center;
   padding: 8px 12px;
@@ -801,10 +801,22 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  align-self: stretch;
   width: 20px;
   color: var(--color-muted);
   cursor: grab;
+  /* Palec na uchwycie przeciąga film, a nie przewija stronę ani nie zaznacza tekstu */
   touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Pod palcem uchwyt jest szerszy, żeby dało się w niego trafić */
+@media (pointer: coarse) {
+  .video-item__handle {
+    width: 32px;
+  }
 }
 
 .video-item__handle:active {
@@ -1110,7 +1122,7 @@ body {
 
   /* Wiersz filmu mieści się w jednym rzędzie: przyciski to ikony, a strzałki stoją jedna nad drugą */
   .video-item {
-    grid-template-columns: 20px 1.25rem 56px minmax(0, 1fr) auto;
+    grid-template-columns: auto 1.25rem 56px minmax(0, 1fr) auto;
     gap: 4px 8px;
     padding: 8px;
   }
@@ -1249,22 +1261,5 @@ body {
   .playlist-row:has(+ .playlist-videos) {
     padding-bottom: 6px;
     border-bottom: 0;
-  }
-}
-
-/* Bez myszy uchwyt jest zbędny: na dotyku zostają przyciski */
-@media (hover: none) {
-  .video-item__handle {
-    display: none;
-  }
-
-  .video-item {
-    grid-template-columns: 2rem 64px minmax(0, 1fr) auto;
-  }
-}
-
-@media (hover: none) and (max-width: 640px) {
-  .video-item {
-    grid-template-columns: 1.25rem 56px minmax(0, 1fr) auto;
   }
 }
