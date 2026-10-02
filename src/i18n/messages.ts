@@ -202,7 +202,6 @@ const pl = {
     'Przeciągnij albo użyj strzałek w górę i w dół, aby zmienić kolejność',
   videoMoved: (title: string, position: number) =>
     `Przeniesiono „${title}” na pozycję ${position}.`,
-  removeVideo: 'Usuń z playlisty',
   removeVideoQuestion: (title: string) => `Usunąć film „${title}” z playlisty?`,
   remove: 'Usuń',
   working: 'Pracuję...',
@@ -377,7 +376,6 @@ const en: Messages = {
   moveVideo: 'Move',
   dragToReorder: 'Drag, or use the up and down arrow keys, to reorder',
   videoMoved: (title, position) => `Moved "${title}" to position ${position}.`,
-  removeVideo: 'Remove from playlist',
   removeVideoQuestion: (title) => `Remove video "${title}" from the playlist?`,
   remove: 'Remove',
   working: 'Working...',

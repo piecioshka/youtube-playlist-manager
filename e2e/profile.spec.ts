@@ -195,7 +195,7 @@ test('removes a video after confirmation and shows the new count in the table', 
   await openAlgorithms(page);
   const last = videoList(page).locator('tbody tr').last();
 
-  await last.getByRole('button', { name: /^Usuń z playlisty/ }).click();
+  await last.getByRole('button', { name: /^Usuń „/ }).click();
   await expect(
     last.getByRole('group', {
       name: "Usunąć film „Dijkstra's algorithm explained” z playlisty?",
@@ -231,14 +231,14 @@ test('stays at the removed video instead of jumping up to the heading', async ({
 
   await items
     .last()
-    .getByRole('button', { name: /^Usuń z playlisty/ })
+    .getByRole('button', { name: /^Usuń „/ })
     .click();
   await expect(heading).not.toBeInViewport();
   await items.last().getByRole('button', { name: 'Usuń', exact: true }).click();
 
   await expect(items).toHaveCount(3);
   await expect(
-    items.last().getByRole('button', { name: /^Usuń z playlisty/ }),
+    items.last().getByRole('button', { name: /^Usuń „/ }),
   ).toBeFocused();
   await expect(heading).not.toBeInViewport();
 });
@@ -504,7 +504,7 @@ test('lays the profile out for a phone', async ({ page }) => {
   const item = videoList(page).locator('tbody tr').first();
   const text = await item.locator('.video-item__cell--title').boundingBox();
   const remove = item.getByRole('button', {
-    name: 'Usuń z playlisty „Quicksort in 4 minutes”',
+    name: 'Usuń „Quicksort in 4 minutes”',
   });
   const removeBox = await remove.boundingBox();
   if (text === null || removeBox === null) {
@@ -537,7 +537,7 @@ for (const width of [1280, 375]) {
 
     const link = await item.locator('.video-item__link').boundingBox();
     const remove = await item
-      .getByRole('button', { name: /^Usuń z playlisty/ })
+      .getByRole('button', { name: /^Usuń „/ })
       .boundingBox();
     if (link === null || remove === null) {
       throw new Error('The video row has no box');
@@ -628,7 +628,7 @@ test('has no accessibility violations on the profile', async ({ page }) => {
   // Z otwartym panelem edycji, żeby formularz też został sprawdzony
   await page.getByRole('button', { name: 'Edytuj playlistę' }).click();
   await page
-    .getByRole('button', { name: /^Usuń z playlisty/ })
+    .getByRole('button', { name: /^Usuń „/ })
     .first()
     .click();
 

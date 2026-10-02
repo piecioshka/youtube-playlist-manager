@@ -498,7 +498,7 @@ describe('PlaylistProfile', () => {
         '',
         'Michael Sambol',
         '2016-08-11',
-        'Usuń z playlisty „Quicksort”',
+        'Usuń „Quicksort”',
       ]);
       expect(
         screen.getAllByRole('columnheader').map((header) => header.textContent),
@@ -712,7 +712,7 @@ describe('PlaylistProfile', () => {
         // W widoku posortowanym po tytule za „Big O” stoi „Grafy”
         await user.click(
           within(item('Big O')).getByRole('button', {
-            name: 'Usuń z playlisty „Big O”',
+            name: 'Usuń „Big O”',
           }),
         );
         await user.click(
@@ -722,7 +722,7 @@ describe('PlaylistProfile', () => {
         await waitFor(() =>
           expect(
             within(item('Grafy')).getByRole('button', {
-              name: 'Usuń z playlisty „Grafy”',
+              name: 'Usuń „Grafy”',
             }),
           ).toHaveFocus(),
         );
@@ -837,7 +837,7 @@ describe('PlaylistProfile', () => {
 
       await user.click(
         within(item('Big O')).getByRole('button', {
-          name: 'Usuń z playlisty „Big O”',
+          name: 'Usuń „Big O”',
         }),
       );
       const group = screen.getByRole('group', {
@@ -863,7 +863,7 @@ describe('PlaylistProfile', () => {
       await waitFor(() =>
         expect(
           within(item('Grafy')).getByRole('button', {
-            name: 'Usuń z playlisty „Grafy”',
+            name: 'Usuń „Grafy”',
           }),
         ).toHaveFocus(),
       );
@@ -875,7 +875,7 @@ describe('PlaylistProfile', () => {
 
       await user.click(
         within(item('Grafy')).getByRole('button', {
-          name: 'Usuń z playlisty „Grafy”',
+          name: 'Usuń „Grafy”',
         }),
       );
       await user.click(
@@ -885,7 +885,7 @@ describe('PlaylistProfile', () => {
       await waitFor(() =>
         expect(
           within(item('Big O')).getByRole('button', {
-            name: 'Usuń z playlisty „Big O”',
+            name: 'Usuń „Big O”',
           }),
         ).toHaveFocus(),
       );
@@ -898,7 +898,7 @@ describe('PlaylistProfile', () => {
 
       await user.click(
         within(item('Quicksort')).getByRole('button', {
-          name: 'Usuń z playlisty „Quicksort”',
+          name: 'Usuń „Quicksort”',
         }),
       );
       await user.click(
@@ -917,7 +917,7 @@ describe('PlaylistProfile', () => {
 
       await user.click(
         within(item('Big O')).getByRole('button', {
-          name: 'Usuń z playlisty „Big O”',
+          name: 'Usuń „Big O”',
         }),
       );
       await user.click(
@@ -926,7 +926,7 @@ describe('PlaylistProfile', () => {
 
       expect(
         within(item('Big O')).getByRole('button', {
-          name: 'Usuń z playlisty „Big O”',
+          name: 'Usuń „Big O”',
         }),
       ).toHaveFocus();
       expect(youtube.removePlaylistItem).not.toHaveBeenCalled();
@@ -940,7 +940,7 @@ describe('PlaylistProfile', () => {
 
       await user.click(
         within(item('Big O')).getByRole('button', {
-          name: 'Usuń z playlisty „Big O”',
+          name: 'Usuń „Big O”',
         }),
       );
       await user.click(
@@ -1026,7 +1026,7 @@ describe('PlaylistProfile', () => {
 
       await user.click(
         screen.getByRole('button', {
-          name: 'Usuń z playlisty „niedostępny nr 2”',
+          name: 'Usuń „niedostępny nr 2”',
         }),
       );
       await user.click(
@@ -1183,7 +1183,7 @@ describe('PlaylistProfile', () => {
       ).toBeInTheDocument();
       expect(
         screen.getByRole('button', {
-          name: 'Remove from playlist "unavailable #2"',
+          name: 'Remove "unavailable #2"',
         }),
       ).toBeInTheDocument();
     });

@@ -283,7 +283,8 @@ export function VideoItem({
                   strokeLinecap="round"
                 />
               </svg>
-              <span className="video-item__button-label">{t.removeVideo}</span>{' '}
+              {/* Krótko: wiersz i ukryty tytuł filmu mówią, co i skąd znika */}
+              <span className="video-item__button-label">{t.remove}</span>{' '}
               {target}
             </button>
           </div>
