@@ -4,6 +4,7 @@ import {
   LONG_TITLE,
   playlistRows,
   playlistTitles,
+  SEED_CHANNEL,
   signIn,
   test,
 } from './fixtures';
@@ -222,4 +223,29 @@ test('switches the interface to English and remembers it after reload', async ({
     'en',
   );
   await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+});
+
+test('shows the channel details after sign-in', async ({ page }) => {
+  await signIn(page);
+
+  const account = page.getByRole('region', { name: 'Twój kanał' });
+  await expect(account).toContainText(SEED_CHANNEL.title);
+  await expect(account).toContainText(SEED_CHANNEL.handle);
+  const stat = (label: string) =>
+    account.locator('.account__stat', { hasText: label }).locator('dd');
+  await expect(stat('Subskrypcje')).toHaveText(/^1\s234$/);
+  await expect(stat('Filmy')).toHaveText('56');
+  await expect(stat('Wyświetlenia')).toHaveText(/^7\s890\s123$/);
+  await expect(stat('Playlisty')).toHaveText('4');
+  await expect(stat('Kanał od')).toHaveText('2012-03-04');
+
+  await expect(
+    page.getByRole('link', { name: SEED_CHANNEL.title }),
+  ).toHaveAttribute(
+    'href',
+    `https://www.youtube.com/channel/${SEED_CHANNEL.id}`,
+  );
+
+  const results = await new AxeBuilder({ page }).analyze();
+  expect(results.violations).toEqual([]);
 });

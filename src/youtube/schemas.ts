@@ -53,6 +53,29 @@ export const playlistItemListResponseSchema = z.object({
   nextPageToken: z.string().optional(),
 });
 
+export const channelResourceSchema = z.object({
+  id: z.string(),
+  snippet: z.object({
+    title: z.string(),
+    customUrl: z.string().optional(),
+    publishedAt: z.string(),
+    thumbnails: thumbnailsSchema,
+  }),
+  // API zwraca liczniki jako napisy
+  statistics: z.object({
+    viewCount: z.string(),
+    videoCount: z.string(),
+    subscriberCount: z.string().optional(),
+    hiddenSubscriberCount: z.boolean().optional(),
+  }),
+});
+
+export type ChannelResource = z.infer<typeof channelResourceSchema>;
+
+export const channelListResponseSchema = z.object({
+  items: z.array(channelResourceSchema).default([]),
+});
+
 export const apiErrorResponseSchema = z.object({
   error: z.object({
     message: z.string().default(''),

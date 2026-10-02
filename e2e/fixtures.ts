@@ -48,6 +48,16 @@ window.google = {
 };
 `;
 
+export const SEED_CHANNEL = {
+  id: 'UC-e2e',
+  title: 'Kanał testowy',
+  handle: '@kanaltestowy',
+  subscribers: '1234',
+  videos: '56',
+  views: '7890123',
+  publishedAt: '2012-03-04T10:00:00Z',
+};
+
 // Poprawny format ID, ale takiego filmu „nie ma” na YouTube
 export const MISSING_VIDEO_ID = '00000000000';
 
@@ -232,6 +242,10 @@ export class FakeYouTube {
       route.fulfill({ contentType: 'text/javascript', body: GIS_STUB }),
     );
     await page.route(
+      'https://www.googleapis.com/youtube/v3/channels**',
+      (route) => this.handleChannels(route),
+    );
+    await page.route(
       'https://www.googleapis.com/youtube/v3/playlists**',
       (route) => this.handle(route),
     );
@@ -239,6 +253,37 @@ export class FakeYouTube {
       'https://www.googleapis.com/youtube/v3/playlistItems**',
       (route) => this.handleItems(route),
     );
+  }
+
+  private async handleChannels(route: Route): Promise<void> {
+    if (route.request().method() === 'OPTIONS') {
+      await route.fulfill({ status: 204, headers: CORS_HEADERS });
+      return;
+    }
+    await route.fulfill({
+      headers: CORS_HEADERS,
+      json: {
+        kind: 'youtube#channelListResponse',
+        items: [
+          {
+            kind: 'youtube#channel',
+            id: SEED_CHANNEL.id,
+            snippet: {
+              title: SEED_CHANNEL.title,
+              customUrl: SEED_CHANNEL.handle,
+              publishedAt: SEED_CHANNEL.publishedAt,
+              thumbnails: {},
+            },
+            statistics: {
+              viewCount: SEED_CHANNEL.views,
+              videoCount: SEED_CHANNEL.videos,
+              subscriberCount: SEED_CHANNEL.subscribers,
+              hiddenSubscriberCount: false,
+            },
+          },
+        ],
+      },
+    });
   }
 
   private async handleItems(route: Route): Promise<void> {

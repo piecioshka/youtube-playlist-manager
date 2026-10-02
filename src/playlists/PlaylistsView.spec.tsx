@@ -1,6 +1,7 @@
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { ChannelState } from '../account/useChannel';
 import { useI18n } from '../i18n/LocaleProvider';
 import type { Locale } from '../i18n/messages';
 import { useVideoIndex } from '../search/useVideoIndex';
@@ -88,8 +89,16 @@ function rowOf(title: string): HTMLElement {
   return row;
 }
 
+const NO_CHANNEL: ChannelState = { status: 'unavailable', channel: null };
+
 // Lista i indeks filmów żyją w AuthenticatedApp; tutaj ten sam układ w miniaturze
-function Harness({ onUnauthorized }: { onUnauthorized: () => void }) {
+function Harness({
+  onUnauthorized,
+  channel = NO_CHANNEL,
+}: {
+  onUnauthorized: () => void;
+  channel?: ChannelState;
+}) {
   const { t } = useI18n();
   const list = usePlaylists({ token: 'tok', onUnauthorized, t });
   const index = useVideoIndex({
@@ -97,12 +106,15 @@ function Harness({ onUnauthorized }: { onUnauthorized: () => void }) {
     playlists: list.playlists,
     onUnauthorized,
   });
-  return <PlaylistsView list={list} index={index} />;
+  return <PlaylistsView list={list} index={index} channel={channel} />;
 }
 
-function renderView(locale: Locale = 'pl') {
+function renderView(locale: Locale = 'pl', channel?: ChannelState) {
   const onUnauthorized = vi.fn();
-  renderWithI18n(<Harness onUnauthorized={onUnauthorized} />, locale);
+  renderWithI18n(
+    <Harness onUnauthorized={onUnauthorized} channel={channel} />,
+    locale,
+  );
   return { onUnauthorized, user: userEvent.setup() };
 }
 
@@ -116,6 +128,38 @@ beforeEach(() => {
 });
 
 describe('PlaylistsView', () => {
+  it('shows the account section with the number of loaded playlists', async () => {
+    vi.mocked(listMyPlaylists).mockResolvedValue(playlists);
+    renderView('pl', {
+      status: 'ready',
+      channel: {
+        id: 'UC-me',
+        title: 'Kanał testowy',
+        handle: null,
+        thumbnailUrl: null,
+        publishedAt: '2012-03-04T10:00:00Z',
+        subscriberCount: 5,
+        videoCount: 6,
+        viewCount: 7,
+      },
+    });
+    const section = screen.getByRole('region', { name: 'Twój kanał' });
+    expect(within(section).queryByText('Playlisty')).not.toBeInTheDocument();
+    await screen.findByText('Zupa');
+    expect(
+      within(section).getByText('Playlisty').nextSibling,
+    ).toHaveTextContent('3');
+  });
+
+  it('renders no account section when the channel is unavailable', async () => {
+    vi.mocked(listMyPlaylists).mockResolvedValue(playlists);
+    renderView();
+    await screen.findByText('Zupa');
+    expect(
+      screen.queryByRole('region', { name: 'Twój kanał' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('loads playlists and shows them newest first', async () => {
     vi.mocked(listMyPlaylists).mockResolvedValue(playlists);
     renderView();

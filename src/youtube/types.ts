@@ -11,6 +11,18 @@ export type Playlist = {
   thumbnailUrl: string | null;
 };
 
+export type Channel = {
+  id: string;
+  title: string;
+  handle: string | null;
+  thumbnailUrl: string | null;
+  publishedAt: string;
+  // null, gdy kanał ukrywa liczbę subskrypcji
+  subscriberCount: number | null;
+  videoCount: number;
+  viewCount: number;
+};
+
 // `itemId` to id elementu playlisty (playlistItem), potrzebny do usuwania i przesuwania
 export type PlaylistVideo = {
   itemId: string;

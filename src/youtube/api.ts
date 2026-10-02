@@ -1,16 +1,19 @@
 import type { z } from 'zod';
 import {
   apiErrorResponseSchema,
+  channelListResponseSchema,
   playlistItemListResponseSchema,
   playlistItemResourceSchema,
   playlistListResponseSchema,
   playlistResourceSchema,
+  type ChannelResource,
   type PlaylistItemResource,
   type PlaylistResource,
   type Thumbnails,
 } from './schemas';
 import {
   ApiError,
+  type Channel,
   type Playlist,
   type PlaylistVideo,
   type PrivacyStatus,
@@ -19,6 +22,7 @@ import {
 const PLAYLISTS_URL = 'https://www.googleapis.com/youtube/v3/playlists';
 const PLAYLIST_ITEMS_URL =
   'https://www.googleapis.com/youtube/v3/playlistItems';
+const CHANNELS_URL = 'https://www.googleapis.com/youtube/v3/channels';
 const QUOTA_REASONS = ['quotaExceeded', 'dailyLimitExceeded'];
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE';
@@ -370,4 +374,45 @@ export async function addPlaylistItem(
     resource.snippet.resourceId.videoId ?? videoId,
     resource.snippet.videoOwnerChannelTitle ?? '',
   );
+}
+
+function toCount(value: string | undefined): number {
+  const count = Number(value);
+  return Number.isFinite(count) ? count : 0;
+}
+
+function toChannel(resource: ChannelResource): Channel {
+  const { snippet, statistics } = resource;
+  const hidden =
+    statistics.hiddenSubscriberCount === true ||
+    statistics.subscriberCount === undefined;
+  return {
+    id: resource.id,
+    title: snippet.title,
+    handle: snippet.customUrl?.startsWith('@') ? snippet.customUrl : null,
+    // Awatar ma być mały, więc najpierw najmniejszy rozmiar
+    thumbnailUrl:
+      snippet.thumbnails?.default?.url ??
+      snippet.thumbnails?.medium?.url ??
+      snippet.thumbnails?.high?.url ??
+      null,
+    publishedAt: snippet.publishedAt,
+    subscriberCount: hidden ? null : toCount(statistics.subscriberCount),
+    videoCount: toCount(statistics.videoCount),
+    viewCount: toCount(statistics.viewCount),
+  };
+}
+
+// Konto Google bez kanału YouTube zwraca pustą listę
+export async function getMyChannel(token: string): Promise<Channel | null> {
+  const url = new URL(CHANNELS_URL);
+  url.searchParams.set('part', 'snippet,statistics');
+  url.searchParams.set('mine', 'true');
+
+  const response = await request(token, url);
+  const [resource] = parseResponse(
+    channelListResponseSchema,
+    await readJson(response),
+  ).items;
+  return resource === undefined ? null : toChannel(resource);
 }

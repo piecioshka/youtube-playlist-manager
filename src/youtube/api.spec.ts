@@ -4,6 +4,7 @@ import { makeVideo } from '../test/videoFactory';
 import {
   addPlaylistItem,
   deletePlaylist,
+  getMyChannel,
   getPlaylist,
   listMyPlaylists,
   listPlaylistVideos,
@@ -843,5 +844,150 @@ describe('API errors', () => {
       kind: 'network',
       status: null,
     });
+  });
+});
+
+describe('getMyChannel', () => {
+  function channelResource(overrides: Record<string, unknown> = {}) {
+    return {
+      kind: 'youtube#channel',
+      id: 'UC-me',
+      snippet: {
+        title: 'Mój kanał',
+        customUrl: '@mojkanal',
+        publishedAt: '2012-03-04T10:00:00Z',
+        thumbnails: {
+          default: { url: 'https://yt3.ggpht.com/default.jpg' },
+          medium: { url: 'https://yt3.ggpht.com/medium.jpg' },
+          high: { url: 'https://yt3.ggpht.com/high.jpg' },
+        },
+      },
+      statistics: {
+        viewCount: '7890123',
+        videoCount: '56',
+        subscriberCount: '1234',
+        hiddenSubscriberCount: false,
+      },
+      ...overrides,
+    };
+  }
+
+  it('requests the signed-in channel with the bearer token', async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({ items: [channelResource()] }),
+    );
+
+    await getMyChannel('token-123');
+
+    const url = calledUrl(0);
+    expect(`${url.origin}${url.pathname}`).toBe(
+      'https://www.googleapis.com/youtube/v3/channels',
+    );
+    expect(url.searchParams.get('part')).toBe('snippet,statistics');
+    expect(url.searchParams.get('mine')).toBe('true');
+    expect(calledInit(0)?.headers).toEqual({
+      Authorization: 'Bearer token-123',
+    });
+  });
+
+  it('maps string counters to numbers, the handle and the default thumbnail', async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({ items: [channelResource()] }),
+    );
+
+    expect(await getMyChannel('t')).toEqual({
+      id: 'UC-me',
+      title: 'Mój kanał',
+      handle: '@mojkanal',
+      thumbnailUrl: 'https://yt3.ggpht.com/default.jpg',
+      publishedAt: '2012-03-04T10:00:00Z',
+      subscriberCount: 1234,
+      videoCount: 56,
+      viewCount: 7890123,
+    });
+  });
+
+  it('returns null subscribers when the channel hides them', async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        items: [
+          channelResource({
+            statistics: {
+              viewCount: '1',
+              videoCount: '2',
+              subscriberCount: '99',
+              hiddenSubscriberCount: true,
+            },
+          }),
+        ],
+      }),
+    );
+    expect((await getMyChannel('t'))?.subscriberCount).toBeNull();
+  });
+
+  it('returns null subscribers when the field is missing', async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        items: [
+          channelResource({ statistics: { viewCount: '1', videoCount: '2' } }),
+        ],
+      }),
+    );
+    expect((await getMyChannel('t'))?.subscriberCount).toBeNull();
+  });
+
+  it('treats a custom URL without @ as no handle and falls back through thumbnails', async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        items: [
+          channelResource({
+            snippet: {
+              title: 'K',
+              customUrl: 'mojkanal',
+              publishedAt: '2012-03-04T10:00:00Z',
+              thumbnails: { high: { url: 'https://yt3.ggpht.com/high.jpg' } },
+            },
+          }),
+        ],
+      }),
+    );
+    const channel = await getMyChannel('t');
+    expect(channel?.handle).toBeNull();
+    expect(channel?.thumbnailUrl).toBe('https://yt3.ggpht.com/high.jpg');
+  });
+
+  it('returns null thumbnail when there are none and 0 for broken counters', async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        items: [
+          channelResource({
+            snippet: { title: 'K', publishedAt: '2012-03-04T10:00:00Z' },
+            statistics: { viewCount: 'abc', videoCount: '' },
+          }),
+        ],
+      }),
+    );
+    const channel = await getMyChannel('t');
+    expect(channel?.thumbnailUrl).toBeNull();
+    expect(channel?.handle).toBeNull();
+    expect(channel?.viewCount).toBe(0);
+    expect(channel?.videoCount).toBe(0);
+  });
+
+  it('returns null for an account without a channel', async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse({}));
+    expect(await getMyChannel('t')).toBeNull();
+  });
+
+  it('maps API errors to ApiError', async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse(
+        { error: { message: 'Invalid', errors: [{ reason: 'authError' }] } },
+        401,
+      ),
+    );
+    const error = await getMyChannel('t').catch((caught: unknown) => caught);
+    expect(error).toBeInstanceOf(ApiError);
+    expect(error).toMatchObject({ kind: 'unauthorized', status: 401 });
   });
 });

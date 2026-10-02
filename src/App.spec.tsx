@@ -8,6 +8,7 @@ import { makePlaylist } from './test/playlistFactory';
 import { renderWithI18n } from './test/renderWithI18n';
 import {
   deletePlaylist,
+  getMyChannel,
   listMyPlaylists,
   listPlaylistVideos,
 } from './youtube/api';
@@ -19,6 +20,7 @@ vi.mock('./config', () => ({
 }));
 vi.mock('./auth/useGoogleAuth', () => ({ useGoogleAuth: vi.fn() }));
 vi.mock('./youtube/api', () => ({
+  getMyChannel: vi.fn(),
   listMyPlaylists: vi.fn(),
   listPlaylistVideos: vi.fn(),
   getPlaylist: vi.fn(),
@@ -65,6 +67,7 @@ beforeEach(() => {
   window.location.hash = '';
   vi.mocked(getGoogleClientId).mockReturnValue('client-1');
   vi.mocked(useGoogleAuth).mockReturnValue(auth());
+  vi.mocked(getMyChannel).mockResolvedValue(null);
   vi.mocked(listMyPlaylists).mockResolvedValue([zupa, joga]);
   vi.mocked(listPlaylistVideos).mockResolvedValue([]);
 });
@@ -356,6 +359,34 @@ describe('App', () => {
     );
     renderWithI18n(<App />, 'en');
     expect(screen.getByRole('button', { name: 'Sign out' })).toBeVisible();
+  });
+
+  it('shows the channel chip in the header and the account section on the list', async () => {
+    vi.mocked(useGoogleAuth).mockReturnValue(
+      auth({ status: 'signedIn', token: 'tok-1' }),
+    );
+    vi.mocked(getMyChannel).mockResolvedValue({
+      id: 'UC-me',
+      title: 'Kanał testowy',
+      handle: '@kanaltestowy',
+      thumbnailUrl: null,
+      publishedAt: '2012-03-04T10:00:00Z',
+      subscriberCount: 1234,
+      videoCount: 56,
+      viewCount: 7890123,
+    });
+    renderWithI18n(<App />);
+
+    const chip = await screen.findByRole('link', { name: 'Kanał testowy' });
+    expect(chip).toHaveAttribute(
+      'href',
+      'https://www.youtube.com/channel/UC-me',
+    );
+    expect(chip.closest('header')).not.toBeNull();
+    expect(
+      await screen.findByRole('region', { name: 'Twój kanał' }),
+    ).toBeVisible();
+    expect(getMyChannel).toHaveBeenCalledWith('tok-1');
   });
 
   it('explains a missing client id in English', () => {

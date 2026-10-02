@@ -1,4 +1,6 @@
 import { useCallback, useState, type ReactNode } from 'react';
+import { AccountChip } from './account/AccountChip';
+import { useChannel, type ChannelState } from './account/useChannel';
 import { LoginScreen } from './auth/LoginScreen';
 import { useGoogleAuth } from './auth/useGoogleAuth';
 import { getGoogleClientId } from './config';
@@ -79,11 +81,12 @@ function Layout({ actions, children }: LayoutProps) {
 
 type SignedInAppProps = {
   token: string;
+  channel: ChannelState;
   onUnauthorized: () => void;
 };
 
 // Lista playlist i indeks filmów są wspólne dla tabeli i profilu, więc przejście między nimi nic nie wczytuje od nowa
-function SignedInApp({ token, onUnauthorized }: SignedInAppProps) {
+function SignedInApp({ token, channel, onUnauthorized }: SignedInAppProps) {
   const { t } = useI18n();
   const { route, navigate } = useRoute();
   const list = usePlaylists({ token, onUnauthorized, t });
@@ -118,11 +121,44 @@ function SignedInApp({ token, onUnauthorized }: SignedInAppProps) {
       />
     );
   }
-  return <PlaylistsView list={list} index={index} />;
+  return <PlaylistsView list={list} index={index} channel={channel} />;
+}
+
+function SignedInLayout({
+  token,
+  onSignOut,
+  onUnauthorized,
+}: {
+  token: string;
+  onSignOut: () => void;
+  onUnauthorized: () => void;
+}) {
+  const { t } = useI18n();
+  const channel = useChannel({ token, onUnauthorized });
+
+  return (
+    <Layout
+      actions={
+        <>
+          {channel.channel !== null && (
+            <AccountChip channel={channel.channel} />
+          )}
+          <button type="button" className="button" onClick={onSignOut}>
+            {t.signOut}
+          </button>
+        </>
+      }
+    >
+      <SignedInApp
+        token={token}
+        channel={channel}
+        onUnauthorized={onUnauthorized}
+      />
+    </Layout>
+  );
 }
 
 function AuthenticatedApp({ clientId }: { clientId: string }) {
-  const { t } = useI18n();
   const { status, token, message, signIn, signOut, retry } =
     useGoogleAuth(clientId);
   const handleUnauthorized = useCallback(
@@ -132,15 +168,11 @@ function AuthenticatedApp({ clientId }: { clientId: string }) {
 
   if (status === 'signedIn' && token !== null) {
     return (
-      <Layout
-        actions={
-          <button type="button" className="button" onClick={() => signOut()}>
-            {t.signOut}
-          </button>
-        }
-      >
-        <SignedInApp token={token} onUnauthorized={handleUnauthorized} />
-      </Layout>
+      <SignedInLayout
+        token={token}
+        onSignOut={() => signOut()}
+        onUnauthorized={handleUnauthorized}
+      />
     );
   }
 

@@ -1,4 +1,6 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
+import { AccountSection } from '../account/AccountSection';
+import type { ChannelState } from '../account/useChannel';
 import { useI18n } from '../i18n/LocaleProvider';
 import type { Messages } from '../i18n/messages';
 import { normalizeText } from '../search/normalize';
@@ -42,6 +44,7 @@ const SORTABLE_COLUMNS: readonly SortableColumn[] = [
 type PlaylistsViewProps = {
   list: PlaylistsState;
   index: VideoIndex;
+  channel: ChannelState;
 };
 
 const MIN_QUERY_LENGTH = 2;
@@ -70,7 +73,7 @@ function noticeText(notice: Notice, t: Messages): string {
     : t.apiError.notFound;
 }
 
-export function PlaylistsView({ list, index }: PlaylistsViewProps) {
+export function PlaylistsView({ list, index, channel }: PlaylistsViewProps) {
   const { t } = useI18n();
   const { loadState, playlists, notice } = list;
   const [sort, setSort] = useState<SortState>(readSort);
@@ -131,129 +134,139 @@ export function PlaylistsView({ list, index }: PlaylistsViewProps) {
         : t.playlistsHeadingFiltered(results.length, playlists.length);
 
   return (
-    <section className="playlists" aria-labelledby="playlists-heading">
-      <div className="playlists__header">
-        <h2
-          id="playlists-heading"
-          ref={headingRef}
-          className="playlists__heading"
-          tabIndex={-1}
-        >
-          {heading}
-        </h2>
-      </div>
-      {loadState.status === 'ready' && playlists.length > 0 && (
-        <SearchField
-          value={query}
-          status={indexStatus(index, t)}
-          onChange={setQuery}
-          onFocus={index.start}
-        />
-      )}
-      {loadState.status === 'ready' && playlists.length > 0 && (
-        <VisibilityFilter
-          value={visibility}
-          counts={visibleCounts}
-          onChange={handleVisibility}
-        />
-      )}
-      <p className="playlists__notice" role="status">
-        {noticeText(notice, t)}
-      </p>
-      {loadState.status === 'loading' && (
-        <p className="playlists__state">{t.loadingPlaylists}</p>
-      )}
-      {loadState.status === 'error' && (
-        <div className="playlists__state notice notice--error" role="alert">
-          <p className="playlists__error-text">
-            {loadErrorMessage(loadState.error, t)}
-          </p>
-          <button type="button" className="button" onClick={list.retry}>
-            {t.retry}
-          </button>
+    <>
+      <AccountSection
+        state={channel}
+        playlistCount={loadState.status === 'ready' ? playlists.length : null}
+      />
+      <section className="playlists" aria-labelledby="playlists-heading">
+        <div className="playlists__header">
+          <h2
+            id="playlists-heading"
+            ref={headingRef}
+            className="playlists__heading"
+            tabIndex={-1}
+          >
+            {heading}
+          </h2>
         </div>
-      )}
-      {loadState.status === 'ready' && playlists.length === 0 && (
-        <p className="playlists__state">{t.noPlaylists}</p>
-      )}
-      {loadState.status === 'ready' &&
-        playlists.length > 0 &&
-        results.length === 0 && (
-          <p className="playlists__state">
-            {searching
-              ? t.noResults(query.trim())
-              : t.noPlaylistsWithVisibility}
-          </p>
+        {loadState.status === 'ready' && playlists.length > 0 && (
+          <SearchField
+            value={query}
+            status={indexStatus(index, t)}
+            onChange={setQuery}
+            onFocus={index.start}
+          />
         )}
-      {loadState.status === 'ready' && results.length > 0 && (
-        // Jawne role: na telefonie wiersze dostają display: grid, co w części przeglądarek gubi semantykę tabeli
-        <table
-          className="playlists__table"
-          role="table"
-          aria-labelledby="playlists-heading"
-        >
-          <thead className="playlists__head" role="rowgroup">
-            <tr role="row">
-              {SORTABLE_COLUMNS.map((column) => {
-                const active = sort.key === column.key;
-                return (
-                  <th
-                    key={column.key}
-                    className={
-                      column.numeric
-                        ? 'playlists__column playlists__column--number'
-                        : 'playlists__column'
-                    }
-                    scope="col"
-                    role="columnheader"
-                    aria-sort={
-                      active
-                        ? sort.direction === 'asc'
-                          ? 'ascending'
-                          : 'descending'
-                        : undefined
-                    }
-                  >
-                    <button
-                      type="button"
-                      className="playlists__sort-button"
-                      onClick={() => handleSort(column.key)}
+        {loadState.status === 'ready' && playlists.length > 0 && (
+          <VisibilityFilter
+            value={visibility}
+            counts={visibleCounts}
+            onChange={handleVisibility}
+          />
+        )}
+        <p className="playlists__notice" role="status">
+          {noticeText(notice, t)}
+        </p>
+        {loadState.status === 'loading' && (
+          <p className="playlists__state">{t.loadingPlaylists}</p>
+        )}
+        {loadState.status === 'error' && (
+          <div className="playlists__state notice notice--error" role="alert">
+            <p className="playlists__error-text">
+              {loadErrorMessage(loadState.error, t)}
+            </p>
+            <button type="button" className="button" onClick={list.retry}>
+              {t.retry}
+            </button>
+          </div>
+        )}
+        {loadState.status === 'ready' && playlists.length === 0 && (
+          <p className="playlists__state">{t.noPlaylists}</p>
+        )}
+        {loadState.status === 'ready' &&
+          playlists.length > 0 &&
+          results.length === 0 && (
+            <p className="playlists__state">
+              {searching
+                ? t.noResults(query.trim())
+                : t.noPlaylistsWithVisibility}
+            </p>
+          )}
+        {loadState.status === 'ready' && results.length > 0 && (
+          // Jawne role: na telefonie wiersze dostają display: grid, co w części przeglądarek gubi semantykę tabeli
+          <table
+            className="playlists__table"
+            role="table"
+            aria-labelledby="playlists-heading"
+          >
+            <thead className="playlists__head" role="rowgroup">
+              <tr role="row">
+                {SORTABLE_COLUMNS.map((column) => {
+                  const active = sort.key === column.key;
+                  return (
+                    <th
+                      key={column.key}
+                      className={
+                        column.numeric
+                          ? 'playlists__column playlists__column--number'
+                          : 'playlists__column'
+                      }
+                      scope="col"
+                      role="columnheader"
+                      aria-sort={
+                        active
+                          ? sort.direction === 'asc'
+                            ? 'ascending'
+                            : 'descending'
+                          : undefined
+                      }
                     >
-                      {t[column.label]}
-                      <span
-                        className="playlists__sort-indicator"
-                        aria-hidden="true"
+                      <button
+                        type="button"
+                        className="playlists__sort-button"
+                        onClick={() => handleSort(column.key)}
                       >
-                        {active ? (sort.direction === 'asc' ? '▲' : '▼') : ''}
-                      </span>
-                    </button>
-                  </th>
-                );
-              })}
-              <th className="playlists__column" scope="col" role="columnheader">
-                <span className="visually-hidden">{t.columnActions}</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody role="rowgroup">
-            {results.map(({ playlist, matchingVideos }) => (
-              <Fragment key={playlist.id}>
-                <PlaylistRow
-                  playlist={playlist}
-                  onRename={list.handleRename}
-                  onDelete={list.handleDelete}
-                />
-                {matchingVideos.length > 0 && (
-                  <PlaylistVideosRow
+                        {t[column.label]}
+                        <span
+                          className="playlists__sort-indicator"
+                          aria-hidden="true"
+                        >
+                          {active ? (sort.direction === 'asc' ? '▲' : '▼') : ''}
+                        </span>
+                      </button>
+                    </th>
+                  );
+                })}
+                <th
+                  className="playlists__column"
+                  scope="col"
+                  role="columnheader"
+                >
+                  <span className="visually-hidden">{t.columnActions}</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody role="rowgroup">
+              {results.map(({ playlist, matchingVideos }) => (
+                <Fragment key={playlist.id}>
+                  <PlaylistRow
                     playlist={playlist}
-                    videos={matchingVideos}
+                    onRename={list.handleRename}
+                    onDelete={list.handleDelete}
                   />
-                )}
-              </Fragment>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </section>
+                  {matchingVideos.length > 0 && (
+                    <PlaylistVideosRow
+                      playlist={playlist}
+                      videos={matchingVideos}
+                    />
+                  )}
+                </Fragment>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </section>
+    </>
   );
 }
