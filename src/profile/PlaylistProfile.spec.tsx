@@ -385,6 +385,21 @@ describe('PlaylistProfile', () => {
   });
 
   describe('delete', () => {
+    it('offers Delete playlist next to Edit in the profile header', async () => {
+      await renderLoaded();
+      const edit = screen.getByRole('button', { name: 'Edytuj' });
+      const remove = screen.getByRole('button', { name: 'Usuń playlistę' });
+
+      expect(remove.closest('.profile__actions')).toBe(
+        edit.closest('.profile__actions'),
+      );
+      expect(remove.closest('.profile__actions')).not.toBeNull();
+      // Edycja stoi przed usuwaniem
+      expect(
+        edit.compareDocumentPosition(remove) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    });
+
     it('deletes after confirmation and goes back to the list', async () => {
       const { user, onDelete, onNavigate } = await renderLoaded();
 

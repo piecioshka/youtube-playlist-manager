@@ -4,13 +4,14 @@ import type { Playlist } from '../youtube/types';
 
 type FocusTarget = 'delete' | 'cancel';
 
-type DangerZoneProps = {
+type DeletePlaylistProps = {
   playlist: Playlist;
   // Odrzuca Error z gotowym komunikatem dla użytkownika
   onDelete: () => Promise<void>;
 };
 
-export function DangerZone({ playlist, onDelete }: DangerZoneProps) {
+// Usuwanie playlisty z potwierdzeniem w miejscu; stoi w nagłówku profilu obok „Edytuj”
+export function DeletePlaylist({ playlist, onDelete }: DeletePlaylistProps) {
   const { t } = useI18n();
   const [confirming, setConfirming] = useState(false);
   const [pending, setPending] = useState(false);
@@ -51,7 +52,7 @@ export function DangerZone({ playlist, onDelete }: DangerZoneProps) {
   }
 
   return (
-    <div className="profile__danger">
+    <div className="profile__delete">
       {confirming ? (
         <div
           className="profile__confirm"
@@ -61,7 +62,7 @@ export function DangerZone({ playlist, onDelete }: DangerZoneProps) {
           <span className="profile__question">{t.confirmDeleteQuestion}</span>
           <button
             type="button"
-            className="button button--danger"
+            className="button button--danger button--small"
             onClick={handleConfirm}
             disabled={pending}
           >
@@ -70,7 +71,7 @@ export function DangerZone({ playlist, onDelete }: DangerZoneProps) {
           <button
             ref={cancelRef}
             type="button"
-            className="button"
+            className="button button--small"
             onClick={() => switchTo(false, 'delete')}
             disabled={pending}
           >
@@ -81,7 +82,7 @@ export function DangerZone({ playlist, onDelete }: DangerZoneProps) {
         <button
           ref={deleteRef}
           type="button"
-          className="button button--danger"
+          className="button button--danger button--small"
           onClick={() => switchTo(true, 'cancel')}
         >
           {t.deletePlaylist}

@@ -376,6 +376,26 @@ test('deletes the playlist from its profile and returns to the table', async ({
   );
 });
 
+test('keeps Delete playlist in one row with Edit under the playlist details', async ({
+  page,
+}) => {
+  await openAlgorithms(page);
+
+  const edit = await page.getByRole('button', { name: 'Edytuj' }).boundingBox();
+  const remove = await page
+    .getByRole('button', { name: 'Usuń playlistę' })
+    .boundingBox();
+  const table = await videoList(page).boundingBox();
+  if (edit === null || remove === null || table === null) {
+    throw new Error('The profile header has no boxes');
+  }
+  expect(Math.abs(remove.y - edit.y)).toBeLessThan(2);
+  expect(remove.x).toBeGreaterThan(edit.x + edit.width);
+  expect(remove.height).toBe(edit.height);
+  // Wcześniej przycisk stał pod listą filmów, na samym dole strony
+  expect(remove.y).toBeLessThan(table.y);
+});
+
 test('goes to the playlist table when the app title is clicked', async ({
   page,
 }) => {

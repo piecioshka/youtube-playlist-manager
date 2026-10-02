@@ -3,7 +3,7 @@ import { PlaylistGoneError } from '../playlists/usePlaylists';
 import type { Route } from '../routing/route';
 import type { PlaylistChanges } from '../youtube/api';
 import type { Playlist } from '../youtube/types';
-import { DangerZone } from './DangerZone';
+import { DeletePlaylist } from './DeletePlaylist';
 import { PlaylistForm } from './PlaylistForm';
 import { PlaylistVideos } from './PlaylistVideos';
 import type { ProfileVideoIndex } from './usePlaylistVideos';
@@ -63,6 +63,7 @@ export function PlaylistProfile({
         editing={editing}
         editorId={editorId}
         onToggleEdit={() => setEditing((open) => !open)}
+        actions={<DeletePlaylist playlist={playlist} onDelete={remove} />}
       />
       {editing && (
         <PlaylistForm
@@ -78,7 +79,6 @@ export function PlaylistProfile({
         videoIndex={videoIndex}
         onCountChange={(count) => onCountChange(playlist.id, count)}
       />
-      <DangerZone playlist={playlist} onDelete={remove} />
     </div>
   );
 }

@@ -805,12 +805,12 @@ a.external-link:focus-visible .external-link__text {
   font-size: 0.875rem;
 }
 
-.profile__danger {
-  display: grid;
+/* Usuwanie stoi w rzędzie akcji; potwierdzenie i błąd zawijają się w tym samym rzędzie */
+.profile__delete {
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
-  justify-items: start;
-  padding-top: 16px;
-  border-top: 1px solid var(--color-border);
+  align-items: center;
 }
 
 .profile__confirm {

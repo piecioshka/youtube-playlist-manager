@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { useI18n } from '../i18n/LocaleProvider';
 import { formatDate } from '../playlists/format';
 import { routeToHash } from '../routing/route';
@@ -11,6 +11,8 @@ type ProfileHeaderProps = {
   editing: boolean;
   editorId: string;
   onToggleEdit: () => void;
+  // Pozostałe akcje na playliście, w tym samym rzędzie za „Edytuj”
+  actions: ReactNode;
 };
 
 export function ProfileHeader({
@@ -18,6 +20,7 @@ export function ProfileHeader({
   editing,
   editorId,
   onToggleEdit,
+  actions,
 }: ProfileHeaderProps) {
   const { t } = useI18n();
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -85,6 +88,7 @@ export function ProfileHeader({
           >
             {t.editPlaylist}
           </button>
+          {actions}
         </div>
       </div>
     </section>
