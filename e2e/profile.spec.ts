@@ -310,7 +310,7 @@ test('explains a video that does not exist on YouTube', async ({
 test('saves the description and visibility', async ({ page, youtube }) => {
   await openAlgorithms(page);
 
-  await page.getByRole('button', { name: 'Edytuj' }).click();
+  await page.getByRole('button', { name: 'Edytuj playlistę' }).click();
   await page.getByRole('textbox', { name: 'Opis' }).fill('Kurs algorytmów');
   await page
     .getByRole('combobox', { name: 'Widoczność' })
@@ -345,7 +345,7 @@ test('goes back to the list when the saved playlist no longer exists', async ({
   await openAlgorithms(page);
 
   youtube.failNextRequestWith(404);
-  await page.getByRole('button', { name: 'Edytuj' }).click();
+  await page.getByRole('button', { name: 'Edytuj playlistę' }).click();
   await page.getByRole('textbox', { name: 'Opis' }).fill('Nowy opis');
   await page.getByRole('button', { name: 'Zapisz' }).click();
 
@@ -381,7 +381,9 @@ test('keeps Delete playlist in one row with Edit under the playlist details', as
 }) => {
   await openAlgorithms(page);
 
-  const edit = await page.getByRole('button', { name: 'Edytuj' }).boundingBox();
+  const edit = await page
+    .getByRole('button', { name: 'Edytuj playlistę' })
+    .boundingBox();
   const remove = await page
     .getByRole('button', { name: 'Usuń playlistę' })
     .boundingBox();
@@ -624,7 +626,7 @@ test('marks every link to YouTube on the profile', async ({ page }) => {
 test('has no accessibility violations on the profile', async ({ page }) => {
   await openAlgorithms(page);
   // Z otwartym panelem edycji, żeby formularz też został sprawdzony
-  await page.getByRole('button', { name: 'Edytuj' }).click();
+  await page.getByRole('button', { name: 'Edytuj playlistę' }).click();
   await page
     .getByRole('button', { name: /^Usuń z playlisty/ })
     .first()

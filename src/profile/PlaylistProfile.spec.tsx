@@ -94,7 +94,9 @@ function renderProfile(options: RenderOptions = {}) {
 // Panel edycji jest schowany, dopóki ktoś nie kliknie „Edytuj”
 async function renderEditing(options: RenderOptions = {}) {
   const rendered = await renderLoaded(options);
-  await rendered.user.click(screen.getByRole('button', { name: 'Edytuj' }));
+  await rendered.user.click(
+    screen.getByRole('button', { name: 'Edytuj playlistę' }),
+  );
   return rendered;
 }
 
@@ -188,8 +190,10 @@ describe('PlaylistProfile', () => {
   describe('edit form', () => {
     it('stays hidden until Edit is clicked and hides again on a second click', async () => {
       const { user } = await renderLoaded();
-      const toggle = screen.getByRole('button', { name: 'Edytuj' });
+      const toggle = screen.getByRole('button', { name: 'Edytuj playlistę' });
 
+      // Własny kolor odróżnia edycję od czerwonego usuwania obok
+      expect(toggle).toHaveClass('button--edit');
       expect(toggle).toHaveAttribute('aria-expanded', 'false');
       expect(
         screen.queryByRole('form', { name: 'Ustawienia playlisty' }),
@@ -214,8 +218,12 @@ describe('PlaylistProfile', () => {
       const { user } = await renderEditing();
 
       await user.type(screen.getByRole('textbox', { name: 'Opis' }), ' szkic');
-      await user.click(screen.getByRole('button', { name: 'Edytuj' }));
-      await user.click(screen.getByRole('button', { name: 'Edytuj' }));
+      await user.click(
+        screen.getByRole('button', { name: 'Edytuj playlistę' }),
+      );
+      await user.click(
+        screen.getByRole('button', { name: 'Edytuj playlistę' }),
+      );
 
       expect(screen.getByRole('textbox', { name: 'Opis' })).toHaveValue(
         'Wykłady',
@@ -387,7 +395,7 @@ describe('PlaylistProfile', () => {
   describe('delete', () => {
     it('offers Delete playlist next to Edit in the profile header', async () => {
       await renderLoaded();
-      const edit = screen.getByRole('button', { name: 'Edytuj' });
+      const edit = screen.getByRole('button', { name: 'Edytuj playlistę' });
       const remove = screen.getByRole('button', { name: 'Usuń playlistę' });
 
       expect(remove.closest('.profile__actions')).toBe(
@@ -1287,7 +1295,9 @@ describe('PlaylistProfile', () => {
       screen.getByRole('link', { name: 'All playlists' }),
     ).toBeInTheDocument();
     expect(meta()).toHaveTextContent('3 videos · Unlisted · 2023-03-05');
-    await userEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Edit playlist' }),
+    );
     expect(screen.getByRole('textbox', { name: 'Title' })).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'Move "Quicksort"' }),

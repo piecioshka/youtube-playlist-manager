@@ -80,7 +80,7 @@ export function ProfileHeader({
           </YouTubeLink>
           <button
             type="button"
-            className="button button--small"
+            className="button button--small button--edit"
             aria-expanded={editing}
             // Schowanego panelu nie ma w DOM, więc nie ma na co wskazywać
             aria-controls={editing ? editorId : undefined}

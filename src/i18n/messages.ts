@@ -176,7 +176,7 @@ const pl = {
   loadingVideos: 'Wczytywanie filmów...',
   playlistEmpty: 'Ta playlista jest pusta.',
   videoTarget: (title: string) => `„${title}”`,
-  editPlaylist: 'Edytuj',
+  editPlaylist: 'Edytuj playlistę',
   videoSortOptions: {
     'position-asc': 'Kolejność na playliście',
     'position-desc': 'Kolejność na playliście: od końca',
@@ -353,7 +353,7 @@ const en: Messages = {
   loadingVideos: 'Loading videos...',
   playlistEmpty: 'This playlist is empty.',
   videoTarget: (title) => `"${title}"`,
-  editPlaylist: 'Edit',
+  editPlaylist: 'Edit playlist',
   videoSortOptions: {
     'position-asc': 'Playlist order',
     'position-desc': 'Playlist order: reversed',

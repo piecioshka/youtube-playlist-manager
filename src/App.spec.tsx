@@ -232,7 +232,7 @@ describe('App', () => {
     renderWithI18n(<App />);
     await screen.findByRole('heading', { level: 2, name: 'Zupa' });
 
-    await user.click(screen.getByRole('button', { name: 'Edytuj' }));
+    await user.click(screen.getByRole('button', { name: 'Edytuj playlistę' }));
     await user.type(screen.getByRole('textbox', { name: 'Opis' }), '!');
     await user.click(screen.getByRole('button', { name: 'Zapisz' }));
 
