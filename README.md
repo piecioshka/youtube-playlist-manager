@@ -19,7 +19,7 @@ The hosted app only works for Google accounts added as test users of its OAuth c
 - 🔤 Sort alphabetically or newest first _(your choice is remembered)_
 - ✏️ Rename a playlist inline _(the description stays untouched)_
 - 🗑️ Delete a playlist after an inline confirmation
-- 🔒 No backend _(the access token lives only in the browser's memory)_
+- 🔒 No backend _(the access token stays in the current browser tab only)_
 
 ## Contributing 🤝
 

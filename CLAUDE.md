@@ -4,7 +4,7 @@
 
 ## What this is
 
-Static React SPA that signs in to a YouTube account with Google Identity Services and lists, sorts, renames and deletes the user's playlists through YouTube Data API v3. There is no backend: the access token lives only in React state.
+Static React SPA that signs in to a YouTube account with Google Identity Services and lists, sorts, renames and deletes the user's playlists through YouTube Data API v3. There is no backend: the access token is kept in `sessionStorage` of the current tab only.
 
 ## Layout
 

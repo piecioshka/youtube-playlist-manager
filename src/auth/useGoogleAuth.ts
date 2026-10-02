@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { z } from 'zod';
 import { YOUTUBE_SCOPE } from '../config';
 import { loadGis } from './loadGis';
 
@@ -18,9 +19,55 @@ const POPUP_FAILED = 'Nie udało się otworzyć okna logowania Google.';
 const SCRIPT_FAILED =
   'Nie udało się wczytać logowania Google. Sprawdź połączenie.';
 
+const SESSION_KEY = 'youtube-playlist-manager.session';
+// Zapas na różnicę zegarów i opóźnienie żądania
+const SAFETY_MARGIN_MS = 60_000;
+const DEFAULT_LIFETIME_SECONDS = 3600;
+
+const sessionSchema = z.object({
+  token: z.string().min(1),
+  expiresAt: z.number(),
+});
+
+function clearSession(): void {
+  try {
+    sessionStorage.removeItem(SESSION_KEY);
+  } catch {
+    // Zablokowany storage nie może psuć logowania
+  }
+}
+
+function saveSession(token: string, expiresAt: number): void {
+  try {
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify({ token, expiresAt }));
+  } catch {
+    // Zablokowany storage nie może psuć logowania
+  }
+}
+
+function readSession(): string | null {
+  try {
+    const raw = sessionStorage.getItem(SESSION_KEY);
+    if (raw === null) {
+      return null;
+    }
+    const parsed = sessionSchema.safeParse(JSON.parse(raw));
+    if (parsed.success && parsed.data.expiresAt > Date.now()) {
+      return parsed.data.token;
+    }
+    clearSession();
+  } catch {
+    clearSession();
+  }
+  return null;
+}
+
 export function useGoogleAuth(clientId: string): GoogleAuth {
-  const [status, setStatus] = useState<AuthStatus>('loading');
-  const [token, setToken] = useState<string | null>(null);
+  const [restoredToken] = useState(readSession);
+  const [status, setStatus] = useState<AuthStatus>(
+    restoredToken === null ? 'loading' : 'signedIn',
+  );
+  const [token, setToken] = useState<string | null>(restoredToken);
   const [message, setMessage] = useState<string | null>(null);
   const [loadAttempt, setLoadAttempt] = useState(0);
   const tokenClientRef = useRef<google.accounts.oauth2.TokenClient | null>(
@@ -43,6 +90,12 @@ export function useGoogleAuth(clientId: string): GoogleAuth {
               setMessage(SIGN_IN_FAILED);
               return;
             }
+            const lifetimeSeconds =
+              Number(response.expires_in) || DEFAULT_LIFETIME_SECONDS;
+            saveSession(
+              response.access_token,
+              Date.now() + lifetimeSeconds * 1000 - SAFETY_MARGIN_MS,
+            );
             setToken(response.access_token);
             setMessage(null);
             setStatus('signedIn');
@@ -54,7 +107,9 @@ export function useGoogleAuth(clientId: string): GoogleAuth {
             }
           },
         });
-        setStatus('signedOut');
+        setStatus((current) =>
+          current === 'signedIn' ? current : 'signedOut',
+        );
       },
       () => {
         if (cancelled) {
@@ -84,9 +139,14 @@ export function useGoogleAuth(clientId: string): GoogleAuth {
   const signOut = useCallback(
     (reason?: string) => {
       // Wygasły token nie wymaga unieważnienia, ręczne wylogowanie tak
-      if (token !== null && reason === undefined) {
+      if (
+        token !== null &&
+        reason === undefined &&
+        typeof google !== 'undefined'
+      ) {
         google.accounts.oauth2.revoke(token, () => undefined);
       }
+      clearSession();
       setToken(null);
       setStatus('signedOut');
       setMessage(reason ?? null);

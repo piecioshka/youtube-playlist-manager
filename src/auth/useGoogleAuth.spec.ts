@@ -45,7 +45,14 @@ async function renderSignedOut() {
   return hook;
 }
 
+const SESSION_KEY = 'youtube-playlist-manager.session';
+
+function storeSession(token: string, expiresAt: number) {
+  sessionStorage.setItem(SESSION_KEY, JSON.stringify({ token, expiresAt }));
+}
+
 beforeEach(() => {
+  sessionStorage.clear();
   tokenConfig = null;
   requestAccessToken.mockReset();
   revoke.mockReset();
@@ -66,6 +73,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
 
@@ -180,5 +188,111 @@ describe('useGoogleAuth', () => {
     expect(result.current.message).toBeNull();
     await waitFor(() => expect(result.current.status).toBe('signedOut'));
     expect(loadGis).toHaveBeenCalledTimes(2);
+  });
+
+  describe('session persistence', () => {
+    it('saves the session on sign-in with a one-minute safety margin', async () => {
+      const { result } = await renderSignedOut();
+      const before = Date.now();
+
+      act(() => config().callback(tokenResponse('tok-1')));
+
+      const stored = JSON.parse(sessionStorage.getItem(SESSION_KEY) ?? 'null');
+      expect(stored.token).toBe('tok-1');
+      expect(stored.expiresAt).toBeGreaterThanOrEqual(
+        before + 3599 * 1000 - 60_000,
+      );
+      expect(stored.expiresAt).toBeLessThanOrEqual(
+        Date.now() + 3599 * 1000 - 60_000,
+      );
+      expect(result.current.status).toBe('signedIn');
+    });
+
+    it('restores a valid session before GIS loads and keeps it after', async () => {
+      storeSession('tok-stored', Date.now() + 600_000);
+      vi.mocked(loadGis).mockReturnValue(new Promise(() => undefined));
+
+      const pending = renderHook(() => useGoogleAuth('client-1'));
+      expect(pending.result.current).toMatchObject({
+        status: 'signedIn',
+        token: 'tok-stored',
+      });
+      pending.unmount();
+
+      vi.mocked(loadGis).mockResolvedValue(undefined);
+      const { result } = renderHook(() => useGoogleAuth('client-1'));
+      await waitFor(() => expect(tokenConfig).not.toBeNull());
+      expect(result.current).toMatchObject({
+        status: 'signedIn',
+        token: 'tok-stored',
+      });
+    });
+
+    it('ignores and removes an expired session', async () => {
+      storeSession('tok-old', Date.now() - 1000);
+
+      const { result } = renderHook(() => useGoogleAuth('client-1'));
+      expect(result.current.status).toBe('loading');
+      expect(result.current.token).toBeNull();
+      expect(sessionStorage.getItem(SESSION_KEY)).toBeNull();
+      await waitFor(() => expect(result.current.status).toBe('signedOut'));
+    });
+
+    it('ignores malformed JSON', async () => {
+      sessionStorage.setItem(SESSION_KEY, '{nope');
+
+      const { result } = renderHook(() => useGoogleAuth('client-1'));
+      expect(result.current.token).toBeNull();
+      await waitFor(() => expect(result.current.status).toBe('signedOut'));
+    });
+
+    it('ignores a session of the wrong shape and removes it', async () => {
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify({ token: 5 }));
+
+      const { result } = renderHook(() => useGoogleAuth('client-1'));
+      expect(result.current.token).toBeNull();
+      expect(sessionStorage.getItem(SESSION_KEY)).toBeNull();
+      await waitFor(() => expect(result.current.status).toBe('signedOut'));
+    });
+
+    it('signOut() removes the stored session', async () => {
+      const { result } = await renderSignedOut();
+      act(() => config().callback(tokenResponse('tok-1')));
+
+      act(() => result.current.signOut());
+
+      expect(sessionStorage.getItem(SESSION_KEY)).toBeNull();
+    });
+
+    it('signOut(reason) removes the stored session', async () => {
+      const { result } = await renderSignedOut();
+      act(() => config().callback(tokenResponse('tok-1')));
+
+      act(() => result.current.signOut('Sesja wygasła, zaloguj się ponownie.'));
+
+      expect(sessionStorage.getItem(SESSION_KEY)).toBeNull();
+    });
+
+    it('still signs in when sessionStorage throws', async () => {
+      vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+        throw new Error('blocked');
+      });
+      vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+        throw new Error('blocked');
+      });
+      vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => {
+        throw new Error('blocked');
+      });
+
+      const { result } = await renderSignedOut();
+      act(() => config().callback(tokenResponse('tok-1')));
+      expect(result.current).toMatchObject({
+        status: 'signedIn',
+        token: 'tok-1',
+      });
+
+      act(() => result.current.signOut('koniec'));
+      expect(result.current.status).toBe('signedOut');
+    });
   });
 });

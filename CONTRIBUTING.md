@@ -45,7 +45,7 @@ npm run format        # Prettier over the whole repository
 ## Architecture
 
 - Static SPA (Vite + React + TypeScript), no backend.
-- Sign-in: Google Identity Services token client (`src/auth/useGoogleAuth.ts`). The access token stays in React state and expires after about an hour; any `401` from the API brings back the sign-in screen.
+- Sign-in: Google Identity Services token client (`src/auth/useGoogleAuth.ts`). The token is kept in `sessionStorage` for the current tab, so a refresh keeps the session, while closing the tab or expiry (~1 h) ends it; any `401` from the API brings back the sign-in screen.
 - API: `src/youtube/api.ts` calls YouTube Data API v3 with `fetch` and validates responses with zod (`src/youtube/schemas.ts`). Errors are `ApiError` with a `kind`; `src/youtube/errorMessage.ts` turns them into Polish UI copy.
 - Rename uses `PUT playlists?part=snippet`. The request carries the current description and default language, because the API replaces the whole snippet.
 - UI: `src/playlists/PlaylistsView.tsx` (loading, sorting, list state) and `src/playlists/PlaylistRow.tsx` (inline rename and delete confirmation).
