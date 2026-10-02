@@ -85,7 +85,7 @@ type SignedInAppProps = {
 // Lista playlist i indeks filmów są wspólne dla tabeli i profilu, więc przejście między nimi nic nie wczytuje od nowa
 function SignedInApp({ token, onUnauthorized }: SignedInAppProps) {
   const { t } = useI18n();
-  const { route } = useRoute();
+  const { route, navigate } = useRoute();
   const list = usePlaylists({ token, onUnauthorized, t });
   const index = useVideoIndex({
     token,
@@ -105,8 +105,16 @@ function SignedInApp({ token, onUnauthorized }: SignedInAppProps) {
   if (route.name === 'playlist') {
     return (
       <PlaylistProfile
+        key={route.id}
+        token={token}
+        playlistId={route.id}
         playlist={list.playlists.find((item) => item.id === route.id)}
         listStatus={list.loadState.status}
+        videoIndex={index}
+        onUnauthorized={onUnauthorized}
+        onUpdated={list.replacePlaylist}
+        onDeleted={list.markDeleted}
+        onNavigate={navigate}
       />
     );
   }

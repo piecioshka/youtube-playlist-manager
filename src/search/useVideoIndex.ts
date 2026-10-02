@@ -12,7 +12,10 @@ type IndexState = {
   videosByPlaylist: ReadonlyMap<string, PlaylistVideo[]>;
 };
 
-export type VideoIndex = IndexState & { start: () => void };
+export type VideoIndex = IndexState & {
+  start: () => void;
+  replaceVideos: (playlistId: string, videos: PlaylistVideo[]) => void;
+};
 
 type UseVideoIndexOptions = {
   token: string;
@@ -120,5 +123,22 @@ export function useVideoIndex({
     }
   }, []);
 
-  return useMemo(() => ({ ...state, start }), [state, start]);
+  // Profil playlisty po zmianie filmów podmienia jej wpis, żeby wyszukiwanie i powrót na profil nie pokazały starej listy
+  const replaceVideos = useCallback(
+    (playlistId: string, videos: PlaylistVideo[]) => {
+      setState((current) => ({
+        ...current,
+        videosByPlaylist: new Map(current.videosByPlaylist).set(
+          playlistId,
+          videos,
+        ),
+      }));
+    },
+    [],
+  );
+
+  return useMemo(
+    () => ({ ...state, start, replaceVideos }),
+    [state, start, replaceVideos],
+  );
 }

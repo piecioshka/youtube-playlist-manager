@@ -195,7 +195,7 @@ describe('App', () => {
     ).toBeInTheDocument();
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: '← Wszystkie playlisty' }),
+      screen.getByRole('link', { name: 'Wszystkie playlisty' }),
     ).toHaveAttribute('href', '#/');
     // Lista playlist jest wspólna dla obu widoków i nie wczytuje się drugi raz
     expect(listMyPlaylists).toHaveBeenCalledTimes(1);

@@ -117,6 +117,38 @@ describe('messages', () => {
     expect(messages.en.moreMatchingVideos(count)).toBe(expected);
   });
 
+  it.each([
+    [0, '0 filmów'],
+    [1, '1 film'],
+    [2, '2 filmy'],
+    [4, '4 filmy'],
+    [5, '5 filmów'],
+    [12, '12 filmów'],
+    [22, '22 filmy'],
+    [25, '25 filmów'],
+  ])('Polish: %i videos -> %s', (count, expected) => {
+    expect(messages.pl.videoCount(count)).toBe(expected);
+  });
+
+  it('counts videos in English', () => {
+    expect(messages.en.videoCount(1)).toBe('1 video');
+    expect(messages.en.videoCount(3)).toBe('3 videos');
+  });
+
+  it('labels the profile videos heading', () => {
+    expect(messages.pl.videosHeading(3)).toBe('Filmy (3)');
+    expect(messages.en.videosHeading(3)).toBe('Videos (3)');
+  });
+
+  it('asks before removing a video', () => {
+    expect(messages.pl.removeVideoQuestion('Rain')).toBe(
+      'Usunąć film „Rain” z playlisty?',
+    );
+    expect(messages.en.removeVideoQuestion('Rain')).toBe(
+      'Remove video "Rain" from the playlist?',
+    );
+  });
+
   it('pluralizes the failed playlists count in English', () => {
     expect(messages.en.indexFailed(1)).toBe(
       'Could not fetch videos from 1 playlist.',

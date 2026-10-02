@@ -16,17 +16,26 @@ export const LOCALE_NAMES: Record<Locale, string> = {
 export type AuthMessage =
   'signInFailed' | 'popupFailed' | 'scriptFailed' | 'sessionExpired';
 
-// 1 pasujący film, 2-4 pasujące filmy (poza 12-14), reszta pasujących filmów
-function polishMoreVideos(count: number): string {
+// Polska odmiana: 1 film, 2-4 filmy (poza 12-14, także 22-24 itd.), reszta filmów
+function polishPlural(
+  count: number,
+  one: string,
+  few: string,
+  many: string,
+): string {
   const lastDigit = count % 10;
   const lastTwo = count % 100;
   if (count === 1) {
-    return 'i jeszcze 1 pasujący film';
+    return one;
   }
   if (lastDigit >= 2 && lastDigit <= 4 && (lastTwo < 12 || lastTwo > 14)) {
-    return `i jeszcze ${count} pasujące filmy`;
+    return few;
   }
-  return `i jeszcze ${count} pasujących filmów`;
+  return many;
+}
+
+function polishMoreVideos(count: number): string {
+  return `i jeszcze ${count} ${polishPlural(count, 'pasujący film', 'pasujące filmy', 'pasujących filmów')}`;
 }
 
 function englishPlural(count: number, one: string, many: string): string {
@@ -131,6 +140,32 @@ const pl = {
   titleTooLong: (max: number) => `Nazwa może mieć najwyżej ${max} znaków.`,
 
   allPlaylists: 'Wszystkie playlisty',
+  openOnYouTube: 'Otwórz na YouTube',
+  playlistNotFound: 'Nie znaleziono playlisty.',
+  videoCount: (count: number) =>
+    `${count} ${polishPlural(count, 'film', 'filmy', 'filmów')}`,
+  playlistSettings: 'Ustawienia playlisty',
+  titleLabel: 'Nazwa',
+  descriptionLabel: 'Opis',
+  visibilityLabel: 'Widoczność',
+  reset: 'Przywróć',
+  playlistSaved: 'Zapisano zmiany.',
+  deletePlaylist: 'Usuń playlistę',
+  videosHeading: (count: number) => `Filmy (${count})`,
+  loadingVideos: 'Wczytywanie filmów...',
+  playlistEmpty: 'Ta playlista jest pusta.',
+  videoTarget: (title: string) => `„${title}”`,
+  moveUp: 'W górę',
+  moveDown: 'W dół',
+  removeVideo: 'Usuń z playlisty',
+  removeVideoQuestion: (title: string) => `Usunąć film „${title}” z playlisty?`,
+  remove: 'Usuń',
+  working: 'Pracuję...',
+  addVideoLabel: 'Dodaj film',
+  addVideoPlaceholder: 'Link do filmu albo jego ID',
+  addVideo: 'Dodaj',
+  invalidVideo: 'To nie wygląda na link do filmu z YouTube.',
+  videoAdded: 'Dodano film.',
 };
 
 export type Messages = typeof pl;
@@ -232,6 +267,31 @@ const en: Messages = {
   titleTooLong: (max) => `The name can have at most ${max} characters.`,
 
   allPlaylists: 'All playlists',
+  openOnYouTube: 'Open on YouTube',
+  playlistNotFound: 'Playlist not found.',
+  videoCount: (count) => `${count} ${englishPlural(count, 'video', 'videos')}`,
+  playlistSettings: 'Playlist settings',
+  titleLabel: 'Title',
+  descriptionLabel: 'Description',
+  visibilityLabel: 'Visibility',
+  reset: 'Reset',
+  playlistSaved: 'Changes saved.',
+  deletePlaylist: 'Delete playlist',
+  videosHeading: (count) => `Videos (${count})`,
+  loadingVideos: 'Loading videos...',
+  playlistEmpty: 'This playlist is empty.',
+  videoTarget: (title) => `"${title}"`,
+  moveUp: 'Move up',
+  moveDown: 'Move down',
+  removeVideo: 'Remove from playlist',
+  removeVideoQuestion: (title) => `Remove video "${title}" from the playlist?`,
+  remove: 'Remove',
+  working: 'Working...',
+  addVideoLabel: 'Add a video',
+  addVideoPlaceholder: 'Video link or ID',
+  addVideo: 'Add',
+  invalidVideo: 'This does not look like a YouTube video link.',
+  videoAdded: 'Video added.',
 };
 
 export const messages: Record<Locale, Messages> = { pl, en };

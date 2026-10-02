@@ -175,4 +175,18 @@ describe('useVideoIndex', () => {
 
     expect(listPlaylistVideos).toHaveBeenCalledTimes(4);
   });
+
+  it('takes the videos of a playlist changed on its profile', async () => {
+    vi.mocked(listPlaylistVideos).mockResolvedValue([video]);
+    const { result } = renderIndex(makePlaylists(2));
+    act(() => result.current.start());
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+
+    const changed = [makeVideo({ videoId: 'v9' })];
+    act(() => result.current.replaceVideos('PL1', changed));
+
+    expect(result.current.videosByPlaylist.get('PL1')).toEqual(changed);
+    expect(result.current.videosByPlaylist.get('PL0')).toEqual([video]);
+    expect(result.current).toMatchObject({ status: 'ready', done: 2 });
+  });
 });
