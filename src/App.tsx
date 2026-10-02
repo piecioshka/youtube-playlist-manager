@@ -28,6 +28,41 @@ function Layout({ actions, children }: LayoutProps) {
         {actions}
       </header>
       <main className="app__main">{children}</main>
+      <footer className="app__footer">
+        <p className="app__footer-line">
+          Aplikacja nie ma serwera: Twoje playlisty i sesja zostają w tej karcie
+          przeglądarki.
+        </p>
+        <p className="app__footer-line">
+          Działa z{' '}
+          <a
+            className="app__footer-link"
+            href="https://www.youtube.com"
+            target="_blank"
+            rel="noreferrer"
+          >
+            YouTube
+          </a>{' '}
+          · Autor:{' '}
+          <a
+            className="app__footer-link"
+            href="https://piecioshka.pl/"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Piotr Kowalski
+          </a>{' '}
+          ·{' '}
+          <a
+            className="app__footer-link"
+            href="https://piecioshka.mit-license.org"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Licencja MIT
+          </a>
+        </p>
+      </footer>
     </div>
   );
 }

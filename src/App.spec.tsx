@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App';
@@ -63,6 +63,28 @@ describe('App', () => {
     expect(logo).not.toBeNull();
     expect(logo).toHaveAttribute('alt', '');
     expect(logo?.getAttribute('src')).toMatch(/favicon\.svg$/);
+  });
+
+  it('renders a centered footer with attribution links on the login screen', () => {
+    render(<App />);
+    const footer = screen.getByRole('contentinfo');
+    expect(footer).toHaveTextContent(
+      'Aplikacja nie ma serwera: Twoje playlisty i sesja zostają w tej karcie przeglądarki.',
+    );
+    expect(footer).toHaveTextContent(
+      'Działa z YouTube · Autor: Piotr Kowalski · Licencja MIT',
+    );
+    const links = [
+      ['YouTube', 'https://www.youtube.com'],
+      ['Piotr Kowalski', 'https://piecioshka.pl/'],
+      ['Licencja MIT', 'https://piecioshka.mit-license.org'],
+    ];
+    for (const [name, href] of links) {
+      const link = within(footer).getByRole('link', { name });
+      expect(link).toHaveAttribute('href', href);
+      expect(link).toHaveAttribute('target', '_blank');
+      expect(link).toHaveAttribute('rel', 'noreferrer');
+    }
   });
 
   it('explains a missing client id', () => {
