@@ -56,6 +56,15 @@ describe('App', () => {
     ).toBeInTheDocument();
   });
 
+  it('shows the app icon as a decorative image inside the title', () => {
+    render(<App />);
+    const heading = screen.getByRole('heading', { level: 1 });
+    const logo = heading.querySelector('img');
+    expect(logo).not.toBeNull();
+    expect(logo).toHaveAttribute('alt', '');
+    expect(logo?.getAttribute('src')).toMatch(/favicon\.svg$/);
+  });
+
   it('explains a missing client id', () => {
     vi.mocked(getGoogleClientId).mockReturnValue(null);
     render(<App />);

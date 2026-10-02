@@ -59,8 +59,17 @@ body {
 }
 
 .app__title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   margin: 0;
   font-size: 1.5rem;
+}
+
+.app__logo {
+  flex: none;
+  width: 28px;
+  height: 28px;
 }
 
 .button {

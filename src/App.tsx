@@ -15,7 +15,16 @@ function Layout({ actions, children }: LayoutProps) {
   return (
     <div className="app">
       <header className="app__header">
-        <h1 className="app__title">YouTube Playlist Manager</h1>
+        <h1 className="app__title">
+          <img
+            className="app__logo"
+            src={`${import.meta.env.BASE_URL}favicon.svg`}
+            alt=""
+            width={28}
+            height={28}
+          />
+          YouTube Playlist Manager
+        </h1>
         {actions}
       </header>
       <main className="app__main">{children}</main>
