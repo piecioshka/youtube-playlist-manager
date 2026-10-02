@@ -188,7 +188,8 @@ const pl = {
     'published-asc': 'Opublikowano: od najstarszych',
   } satisfies Record<VideoSortOption, string>,
   reorderNeedsPlaylistOrder:
-    'Zmiana kolejności działa przy sortowaniu według numeru',
+    'Zmiana kolejności działa w kolejności z playlisty (Nr rosnąco)',
+  clearSorting: 'Wyczyść sortowanie',
   videoColumnOrder: 'Kolejność',
   videoColumnNumber: 'Nr',
   videoColumnThumbnail: 'Miniatura',
@@ -363,7 +364,9 @@ const en: Messages = {
     'published-desc': 'Published: newest first',
     'published-asc': 'Published: oldest first',
   },
-  reorderNeedsPlaylistOrder: 'Reordering works when sorted by number',
+  reorderNeedsPlaylistOrder:
+    'Reordering works in the playlist order (No. ascending)',
+  clearSorting: 'Clear sorting',
   videoColumnOrder: 'Order',
   videoColumnNumber: 'No.',
   videoColumnThumbnail: 'Thumbnail',

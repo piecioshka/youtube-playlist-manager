@@ -856,6 +856,11 @@ a.external-link:focus-visible .external-link__text {
   font-size: 0.9375rem;
 }
 
+/* Przycisk nie rozciąga się na całą szerokość siatki nad tabelą */
+.video-table__clear {
+  justify-self: start;
+}
+
 .video-table__column {
   padding: 8px 12px;
   border-bottom: 1px solid var(--color-border);
@@ -1290,6 +1295,21 @@ a.external-link:focus-visible .external-link__text {
 
   .video-item:last-child {
     border-bottom: 0;
+  }
+
+  /* Bez uchwytów siatka nie zostawia po nich pustej kolumny */
+  .video-table--no-handles .video-item {
+    grid-template-columns: 1.25rem 56px minmax(0, 1fr) auto auto;
+    grid-template-areas:
+      'number thumbnail title title actions'
+      'number thumbnail channel published actions';
+  }
+
+  .video-table--no-handles .video-item--confirming {
+    grid-template-areas:
+      'number thumbnail title title title'
+      'number thumbnail channel published published'
+      'actions actions actions actions actions';
   }
 
   /* Potwierdzenie usunięcia dostaje własny rząd pod filmem */

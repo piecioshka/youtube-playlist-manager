@@ -46,6 +46,8 @@ export function PlaylistVideos({
    * a numer filmu to jego miejsce na playliście, nie w posortowanej tabeli.
    */
   const playlistOrder = isPlaylistOrder(sort);
+  // Uchwyty mają sens tylko przy sortowaniu po numerze; przy innych kolumnach znikają razem ze swoją kolumną
+  const showHandles = sort.key === 'position';
   const rows = playlistOrder ? videos : sortVideos(videos, sort);
   const numbers = new Map(
     videos.map((video, index) => [video.itemId, index + 1]),
@@ -111,6 +113,12 @@ export function PlaylistVideos({
   // Uchwyt można złapać, gdy tabela pokazuje kolejność z playlisty, ma kilka filmów i nic nie trwa
   const canDrag = playlistOrder && videos.length > 1 && pending === null;
 
+  function clearSorting() {
+    setSort(DEFAULT_VIDEO_SORT);
+    // Przycisk znika razem z sortowaniem; preventScroll, żeby strona nie skoczyła do nagłówka
+    headingRef.current?.focus({ preventScroll: true });
+  }
+
   function sortDirection(key: VideoSortKey) {
     return sort.key === key ? sort.direction : null;
   }
@@ -170,22 +178,35 @@ export function PlaylistVideos({
           }}
         />
       )}
+      {load.status === 'ready' && videos.length > 0 && !playlistOrder && (
+        <button
+          type="button"
+          className="button button--small video-table__clear"
+          onClick={clearSorting}
+        >
+          {t.clearSorting}
+        </button>
+      )}
       {load.status === 'ready' && videos.length > 0 && (
         // Jawne role: na telefonie wiersze dostają display: grid, co w części przeglądarek gubi semantykę tabeli
         <table
-          className="video-table"
+          className={
+            showHandles ? 'video-table' : 'video-table video-table--no-handles'
+          }
           role="table"
           aria-labelledby="profile-videos"
         >
           <thead className="video-table__head" role="rowgroup">
             <tr role="row">
-              <th
-                className="video-table__column video-table__column--handle"
-                scope="col"
-                role="columnheader"
-              >
-                <span className="visually-hidden">{t.videoColumnOrder}</span>
-              </th>
+              {showHandles && (
+                <th
+                  className="video-table__column video-table__column--handle"
+                  scope="col"
+                  role="columnheader"
+                >
+                  <span className="visually-hidden">{t.videoColumnOrder}</span>
+                </th>
+              )}
               <th
                 className="video-table__column video-table__column--number"
                 scope="col"
@@ -273,6 +294,7 @@ export function PlaylistVideos({
                       ? itemError.message
                       : null
                   }
+                  showHandle={showHandles}
                   dragHandlers={canDrag ? handlers(video.itemId) : null}
                   handleTitle={
                     playlistOrder

@@ -564,11 +564,11 @@ describe('PlaylistProfile', () => {
         return found;
       }
 
+      // Komórka z numerem ma własną klasę: kolumna uchwytów znika przy sortowaniu po innej kolumnie
       function numbers(): string[] {
-        return screen
-          .getAllByRole('row')
-          .slice(1)
-          .map((row) => within(row).getAllByRole('cell')[1]?.textContent ?? '');
+        return [...document.querySelectorAll('.video-item__cell--number')].map(
+          (cell) => cell.textContent ?? '',
+        );
       }
 
       it('starts in the playlist order with a sort icon on every sortable column', async () => {
@@ -602,19 +602,27 @@ describe('PlaylistProfile', () => {
         expect(header('Tytuł')).toHaveAttribute('aria-sort', 'descending');
       });
 
-      it('allows reordering only in the playlist order', async () => {
+      it('removes the drag handles while the table is sorted by another column', async () => {
         youtube.movePlaylistItem.mockResolvedValue(undefined);
         const { user } = await renderLoaded();
 
         await user.click(within(header('Tytuł')).getByRole('button'));
 
-        expect(handleOf('Big O')).toHaveAttribute('aria-disabled', 'true');
-        expect(handleOf('Big O')).toHaveAttribute(
-          'title',
-          'Zmiana kolejności działa przy sortowaniu według numeru',
-        );
-        await pressOnHandle(user, 'Big O', 'ArrowDown');
-        expect(youtube.movePlaylistItem).not.toHaveBeenCalled();
+        // Bez kolejności z playlisty przenoszenie nie ma sensu, więc uchwytów i ich kolumny nie ma wcale
+        expect(
+          screen.queryByRole('button', { name: /^Przenieś/ }),
+        ).not.toBeInTheDocument();
+        expect(
+          screen.getAllByRole('columnheader').map((item) => item.textContent),
+        ).toEqual([
+          'Nr',
+          'Miniatura',
+          'Tytuł',
+          'Kanał',
+          'Opublikowano',
+          'Akcje',
+        ]);
+        expect(within(item('Big O')).getAllByRole('cell')).toHaveLength(5);
 
         await user.click(within(header('Nr')).getByRole('button'));
 
@@ -622,6 +630,44 @@ describe('PlaylistProfile', () => {
         expect(handleOf('Big O')).not.toHaveAttribute('aria-disabled');
         await pressOnHandle(user, 'Big O', 'ArrowDown');
         expect(youtube.movePlaylistItem).toHaveBeenCalledTimes(1);
+      });
+
+      it('keeps the handles but switches them off in the reversed playlist order', async () => {
+        const { user } = await renderLoaded();
+
+        await user.click(within(header('Nr')).getByRole('button'));
+
+        expect(header('Nr')).toHaveAttribute('aria-sort', 'descending');
+        expect(handleOf('Big O')).toHaveAttribute('aria-disabled', 'true');
+        expect(handleOf('Big O')).toHaveAttribute(
+          'title',
+          'Zmiana kolejności działa w kolejności z playlisty (Nr rosnąco)',
+        );
+        await pressOnHandle(user, 'Big O', 'ArrowDown');
+        expect(youtube.movePlaylistItem).not.toHaveBeenCalled();
+      });
+
+      it('offers Clear sorting only while sorted and goes back to the playlist order', async () => {
+        const { user } = await renderLoaded();
+        expect(
+          screen.queryByRole('button', { name: 'Wyczyść sortowanie' }),
+        ).not.toBeInTheDocument();
+
+        await user.click(within(header('Kanał')).getByRole('button'));
+        await user.click(
+          screen.getByRole('button', { name: 'Wyczyść sortowanie' }),
+        );
+
+        expect(videoTitles()).toEqual(['Quicksort', 'Big O', 'Grafy']);
+        expect(header('Nr')).toHaveAttribute('aria-sort', 'ascending');
+        expect(handleOf('Big O')).not.toHaveAttribute('aria-disabled');
+        expect(
+          screen.queryByRole('button', { name: 'Wyczyść sortowanie' }),
+        ).not.toBeInTheDocument();
+        // Przycisk zniknął, więc fokus przechodzi na nagłówek listy filmów
+        expect(
+          screen.getByRole('heading', { level: 3, name: 'Filmy (3)' }),
+        ).toHaveFocus();
       });
 
       it('sorts through the select that replaces the headers on a phone', async () => {

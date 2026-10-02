@@ -23,6 +23,8 @@ type VideoItemProps = {
   // Inna operacja na filmach trwa, więc przyciski czekają
   locked: boolean;
   error: string | null;
+  // false, gdy tabela jest posortowana po innej kolumnie niż numer: uchwytu wtedy nie ma wcale
+  showHandle: boolean;
   // Zdarzenia uchwytu; null, gdy filmu nie da się teraz przenieść
   dragHandlers: DragHandlers | null;
   // Podpowiedź uchwytu: jak przenosić albo dlaczego teraz się nie da
@@ -46,6 +48,7 @@ export function VideoItem({
   pending,
   locked,
   error,
+  showHandle,
   dragHandlers,
   handleTitle,
   dragging,
@@ -142,32 +145,34 @@ export function VideoItem({
       )}
       role="row"
     >
-      <td className="video-item__cell video-item__cell--handle" role="cell">
-        <button
-          ref={handleRef}
-          type="button"
-          className={
-            dragHandlers === null
-              ? 'video-item__handle video-item__handle--disabled'
-              : 'video-item__handle'
-          }
-          aria-label={`${t.moveVideo} ${t.videoTarget(name)}`}
-          // aria-disabled zamiast disabled: uchwyt nie gubi fokusa na czas żądania
-          aria-disabled={dragHandlers === null ? true : undefined}
-          title={handleTitle}
-          onKeyDown={handleKeyDown}
-          {...dragHandlers}
-        >
-          <svg width="12" height="16" viewBox="0 0 12 16" aria-hidden="true">
-            <circle cx="3" cy="3" r="1.5" />
-            <circle cx="9" cy="3" r="1.5" />
-            <circle cx="3" cy="8" r="1.5" />
-            <circle cx="9" cy="8" r="1.5" />
-            <circle cx="3" cy="13" r="1.5" />
-            <circle cx="9" cy="13" r="1.5" />
-          </svg>
-        </button>
-      </td>
+      {showHandle && (
+        <td className="video-item__cell video-item__cell--handle" role="cell">
+          <button
+            ref={handleRef}
+            type="button"
+            className={
+              dragHandlers === null
+                ? 'video-item__handle video-item__handle--disabled'
+                : 'video-item__handle'
+            }
+            aria-label={`${t.moveVideo} ${t.videoTarget(name)}`}
+            // aria-disabled zamiast disabled: uchwyt nie gubi fokusa na czas żądania
+            aria-disabled={dragHandlers === null ? true : undefined}
+            title={handleTitle}
+            onKeyDown={handleKeyDown}
+            {...dragHandlers}
+          >
+            <svg width="12" height="16" viewBox="0 0 12 16" aria-hidden="true">
+              <circle cx="3" cy="3" r="1.5" />
+              <circle cx="9" cy="3" r="1.5" />
+              <circle cx="3" cy="8" r="1.5" />
+              <circle cx="9" cy="8" r="1.5" />
+              <circle cx="3" cy="13" r="1.5" />
+              <circle cx="9" cy="13" r="1.5" />
+            </svg>
+          </button>
+        </td>
+      )}
       <td className="video-item__cell video-item__cell--number" role="cell">
         {number}
       </td>

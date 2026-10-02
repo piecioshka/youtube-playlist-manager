@@ -555,7 +555,7 @@ for (const width of [1280, 375]) {
   });
 }
 
-test('sorts the videos by a column and blocks reordering until the playlist order is back', async ({
+test('sorts the videos by a column, hides the drag handles and clears the sorting', async ({
   page,
 }) => {
   await openAlgorithms(page);
@@ -575,9 +575,9 @@ test('sorts the videos by a column and blocks reordering until the playlist orde
   const handle = page.getByRole('button', {
     name: 'Przenieś „Quicksort in 4 minutes”',
   });
-  await expect(handle).toHaveAttribute('aria-disabled', 'true');
+  await expect(handle).toHaveCount(0);
 
-  await numberHeader.getByRole('button').click();
+  await page.getByRole('button', { name: 'Wyczyść sortowanie' }).click();
 
   expect(await videoTitles(page)).toEqual(ALGO_VIDEOS);
   await expect(handle).not.toHaveAttribute('aria-disabled');
