@@ -7,7 +7,7 @@ import {
   movePlaylistItem,
   removePlaylistItem,
 } from '../youtube/api';
-import type { Playlist, PlaylistVideo } from '../youtube/types';
+import { ApiError, type Playlist, type PlaylistVideo } from '../youtube/types';
 import { AddVideoForm } from './AddVideoForm';
 import { reportError } from './errors';
 import { VideoItem } from './VideoItem';
@@ -173,9 +173,15 @@ export function PlaylistVideos({
       commit([...videos, added]);
       onUpdated({ ...playlist, itemCount: playlist.itemCount + 1 });
     } catch (error) {
-      throw new Error(reportError(error, t, onUnauthorized), {
-        cause: error,
-      });
+      // 404 przy dodawaniu to zwykle zły ID filmu; komunikat o playliście tylko przy playlistNotFound
+      const missingVideo =
+        error instanceof ApiError &&
+        error.kind === 'notFound' &&
+        error.reason !== 'playlistNotFound';
+      throw new Error(
+        missingVideo ? t.videoNotFound : reportError(error, t, onUnauthorized),
+        { cause: error },
+      );
     } finally {
       finish();
     }

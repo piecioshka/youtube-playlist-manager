@@ -1,6 +1,12 @@
 import AxeBuilder from '@axe-core/playwright';
 import type { Page } from '@playwright/test';
-import { expect, playlistRows, signIn, test } from './fixtures';
+import {
+  expect,
+  MISSING_VIDEO_ID,
+  playlistRows,
+  signIn,
+  test,
+} from './fixtures';
 
 function videoList(page: Page) {
   return page.getByRole('list', { name: /^Filmy/ });
@@ -134,6 +140,26 @@ test('rejects text that is not a YouTube video', async ({ page, youtube }) => {
   );
   expect(youtube.requests.some((request) => request.method === 'POST')).toBe(
     false,
+  );
+});
+
+test('explains a video that does not exist on YouTube', async ({
+  page,
+  youtube,
+}) => {
+  await openAlgorithms(page);
+
+  await page
+    .getByRole('textbox', { name: 'Dodaj film' })
+    .fill(MISSING_VIDEO_ID);
+  await page.getByRole('button', { name: 'Dodaj', exact: true }).click();
+
+  await expect(page.getByRole('alert')).toHaveText(
+    'Nie znaleziono takiego filmu na YouTube.',
+  );
+  expect(await videoTitles(page)).toEqual(ALGO_VIDEOS);
+  expect(youtube.requests.some((request) => request.method === 'POST')).toBe(
+    true,
   );
 });
 

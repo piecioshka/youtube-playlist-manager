@@ -48,6 +48,9 @@ window.google = {
 };
 `;
 
+// Poprawny format ID, ale takiego filmu „nie ma” na YouTube
+export const MISSING_VIDEO_ID = '00000000000';
+
 export const LONG_TITLE =
   'Superdlugatytulowanazwaplaylistybezzadnychspacji'.repeat(3);
 
@@ -298,6 +301,10 @@ export class FakeYouTube {
         return;
       }
       const { playlistId, resourceId } = parsed.data.snippet;
+      if (resourceId.videoId === MISSING_VIDEO_ID) {
+        await this.fail(route, 404, 'videoNotFound');
+        return;
+      }
       this.addedCount += 1;
       const added: FakeVideo = {
         itemId: `item-added-${this.addedCount}`,

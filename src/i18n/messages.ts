@@ -166,6 +166,7 @@ const pl = {
   addVideo: 'Dodaj',
   invalidVideo: 'To nie wygląda na link do filmu z YouTube.',
   videoAdded: 'Dodano film.',
+  videoNotFound: 'Nie znaleziono takiego filmu na YouTube.',
 };
 
 export type Messages = typeof pl;
@@ -292,6 +293,7 @@ const en: Messages = {
   addVideo: 'Add',
   invalidVideo: 'This does not look like a YouTube video link.',
   videoAdded: 'Video added.',
+  videoNotFound: 'No such video on YouTube.',
 };
 
 export const messages: Record<Locale, Messages> = { pl, en };

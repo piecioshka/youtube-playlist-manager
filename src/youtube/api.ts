@@ -99,17 +99,24 @@ async function toApiError(response: Response): Promise<ApiError> {
     ? parsed.data.error.errors.map((item) => item.reason)
     : [];
 
+  const reason = reasons[0] ?? null;
+
   if (response.status === 401) {
-    return new ApiError('unauthorized', message, 401);
+    return new ApiError('unauthorized', message, 401, reason);
   }
   if (response.status === 403) {
-    const isQuota = reasons.some((reason) => QUOTA_REASONS.includes(reason));
-    return new ApiError(isQuota ? 'quotaExceeded' : 'forbidden', message, 403);
+    const isQuota = reasons.some((item) => QUOTA_REASONS.includes(item));
+    return new ApiError(
+      isQuota ? 'quotaExceeded' : 'forbidden',
+      message,
+      403,
+      reason,
+    );
   }
   if (response.status === 404) {
-    return new ApiError('notFound', message, 404);
+    return new ApiError('notFound', message, 404, reason);
   }
-  return new ApiError('unknown', message, response.status);
+  return new ApiError('unknown', message, response.status, reason);
 }
 
 async function request(

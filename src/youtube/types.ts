@@ -32,15 +32,19 @@ export type ApiErrorKind =
 export class ApiError extends Error {
   readonly kind: ApiErrorKind;
   readonly status: number | null;
+  // Pierwszy `error.errors[].reason` z odpowiedzi API, np. `videoNotFound`
+  readonly reason: string | null;
 
   constructor(
     kind: ApiErrorKind,
     message: string,
     status: number | null = null,
+    reason: string | null = null,
   ) {
     super(message);
     this.name = 'ApiError';
     this.kind = kind;
     this.status = status;
+    this.reason = reason;
   }
 }

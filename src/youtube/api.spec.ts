@@ -732,7 +732,33 @@ describe('API errors', () => {
     );
 
     expect(error).toBeInstanceOf(ApiError);
-    expect(error).toMatchObject({ kind, status });
+    expect(error).toMatchObject({ kind, status, reason });
+  });
+
+  it('keeps the first reason from the API body', async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse(
+        {
+          error: {
+            code: 404,
+            message: 'Video not found.',
+            errors: [{ reason: 'videoNotFound' }, { reason: 'other' }],
+          },
+        },
+        404,
+      ),
+    );
+
+    const error = await addPlaylistItem('t', 'PL-x', '00000000000').catch(
+      (caught: unknown) => caught,
+    );
+
+    expect(error).toBeInstanceOf(ApiError);
+    expect(error).toMatchObject({
+      kind: 'notFound',
+      status: 404,
+      reason: 'videoNotFound',
+    });
   });
 
   it('maps a non-JSON error body', async () => {
@@ -740,6 +766,14 @@ describe('API errors', () => {
     await expect(deletePlaylist('t', 'X')).rejects.toMatchObject({
       kind: 'unknown',
       status: 502,
+      reason: null,
+    });
+  });
+
+  it('keeps ApiError backward compatible without a reason', () => {
+    expect(new ApiError('network', 'offline')).toMatchObject({
+      status: null,
+      reason: null,
     });
   });
 

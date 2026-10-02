@@ -709,6 +709,47 @@ describe('PlaylistProfile', () => {
       expect(field).toHaveAttribute('aria-invalid', 'true');
       expect(addPlaylistItem).not.toHaveBeenCalled();
     });
+
+    it.each([
+      ['videoNotFound', 'Nie znaleziono takiego filmu na YouTube.'],
+      // Inny powód 404 przy dodawaniu to też najpewniej brakujący film
+      [null, 'Nie znaleziono takiego filmu na YouTube.'],
+      ['playlistNotFound', 'Tej playlisty już nie ma.'],
+    ])('explains a 404 with reason %s', async (reason, message) => {
+      vi.mocked(addPlaylistItem).mockRejectedValue(
+        new ApiError('notFound', 'Not found', 404, reason),
+      );
+      const { user, onUpdated } = await renderLoaded();
+
+      await user.type(
+        screen.getByRole('textbox', { name: 'Dodaj film' }),
+        '00000000000',
+      );
+      await user.click(screen.getByRole('button', { name: 'Dodaj' }));
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(message);
+      expect(videoTitles()).toEqual(['Quicksort', 'Big O', 'Grafy']);
+      expect(onUpdated).not.toHaveBeenCalled();
+    });
+
+    it('explains a missing video in English', async () => {
+      vi.mocked(addPlaylistItem).mockRejectedValue(
+        new ApiError('notFound', 'Not found', 404, 'videoNotFound'),
+      );
+      const user = userEvent.setup();
+      renderProfile({ locale: 'en' });
+      await screen.findByRole('list', { name: /^Videos/ });
+
+      await user.type(
+        screen.getByRole('textbox', { name: 'Add a video' }),
+        '00000000000',
+      );
+      await user.click(screen.getByRole('button', { name: 'Add' }));
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'No such video on YouTube.',
+      );
+    });
   });
 
   it.each([
