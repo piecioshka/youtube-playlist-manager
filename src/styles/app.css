@@ -180,7 +180,7 @@ a.external-link:focus-visible .external-link__text {
   text-decoration: none;
 }
 
-/* stretch: lista języków, ikona motywu i Wyloguj mają tę samą wysokość */
+/* stretch: listy języków i motywów oraz Wyloguj mają tę samą wysokość */
 .app__actions {
   display: flex;
   gap: 8px;
@@ -1366,8 +1366,10 @@ a.external-link:focus-visible .external-link__text {
     height: 24px;
   }
 
-  /* Kontrolki schodzą pod tytuł i trzymają się prawej krawędzi */
+  /* Kontrolki schodzą pod tytuł, trzymają się prawej krawędzi i łamią się, gdy nie mieszczą się w rzędzie */
   .app__actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
     margin-left: auto;
   }
 
