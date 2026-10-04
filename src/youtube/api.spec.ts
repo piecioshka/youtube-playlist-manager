@@ -808,6 +808,40 @@ describe('API errors', () => {
       status: null,
     });
   });
+
+  it('gives up on a request that never answers', async () => {
+    vi.useFakeTimers();
+    try {
+      // Jak prawdziwy fetch: wisi, dopóki sygnał go nie przerwie
+      fetchMock.mockImplementationOnce(
+        (_url, init) =>
+          new Promise((_resolve, reject) => {
+            init?.signal?.addEventListener('abort', () =>
+              reject(new DOMException('Aborted', 'AbortError')),
+            );
+          }),
+      );
+      const pending = expect(listMyPlaylists('t')).rejects.toMatchObject({
+        kind: 'network',
+        status: null,
+      });
+      await vi.advanceTimersByTimeAsync(30_000);
+      await pending;
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('stops the timeout clock once the response arrives', async () => {
+    vi.useFakeTimers();
+    try {
+      fetchMock.mockResolvedValueOnce(jsonResponse({ items: [] }));
+      await listMyPlaylists('t');
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
 
 describe('getMyChannel', () => {

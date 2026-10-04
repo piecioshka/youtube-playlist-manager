@@ -28,6 +28,7 @@ const CHANNELS_URL = 'https://www.googleapis.com/youtube/v3/channels';
 const VIDEOS_URL = 'https://www.googleapis.com/youtube/v3/videos';
 // Tyle identyfikatorów mieści jedno zapytanie videos.list
 const VIDEO_IDS_PER_REQUEST = 50;
+const REQUEST_TIMEOUT_MS = 30_000;
 const QUOTA_REASONS = ['quotaExceeded', 'dailyLimitExceeded'];
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE';
@@ -159,15 +160,22 @@ async function request(
     headers['Content-Type'] = 'application/json';
   }
 
+  // Bez limitu czasu zawieszone połączenie trzymałoby wskaźnik ładowania bez końca
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
   let response: Response;
   try {
     response = await fetch(url.toString(), {
       method,
       headers,
       body: body === undefined ? undefined : JSON.stringify(body),
+      signal: controller.signal,
     });
   } catch {
     throw new ApiError('network', 'Network request failed');
+  } finally {
+    clearTimeout(timer);
   }
 
   if (!response.ok) {
