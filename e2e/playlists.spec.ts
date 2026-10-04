@@ -368,3 +368,18 @@ test('shows the channel details after sign-in', async ({ page }) => {
   const results = await new AxeBuilder({ page }).analyze();
   expect(results.violations).toEqual([]);
 });
+
+test('ships a content security policy that covers the inline theme script', async ({
+  page,
+}) => {
+  await page.goto('/');
+  const policy = await page
+    .locator('meta[http-equiv="Content-Security-Policy"]')
+    .getAttribute('content');
+
+  expect(policy).toContain("default-src 'self'");
+  expect(policy).toMatch(/script-src 'self' 'sha256-[A-Za-z0-9+/=]+' /);
+  expect(policy).not.toContain('unsafe');
+  // Skrypt motywu przeszedł przez politykę: atrybut jest ustawiony przed startem Reacta
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+});

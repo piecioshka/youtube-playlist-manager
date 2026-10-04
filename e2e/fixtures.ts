@@ -570,13 +570,30 @@ export class FakeYouTube {
   }
 }
 
-export const test = base.extend<{ youtube: FakeYouTube }>({
+export const test = base.extend<{
+  youtube: FakeYouTube;
+  cspViolations: string[];
+}>({
   // auto: testy, które nie czytają `youtube`, i tak potrzebują zastąpionego Google
   youtube: [
     async ({ page }, use) => {
       const youtube = new FakeYouTube();
       await youtube.install(page);
       await use(youtube);
+    },
+    { auto: true },
+  ],
+  // auto: każdy test pada, gdy strona złamie własną politykę CSP (zablokowany skrypt, styl, obrazek, żądanie)
+  cspViolations: [
+    async ({ page }, use) => {
+      const violations: string[] = [];
+      page.on('console', (message) => {
+        if (message.text().includes('Content Security Policy')) {
+          violations.push(message.text());
+        }
+      });
+      await use(violations);
+      expect(violations).toEqual([]);
     },
     { auto: true },
   ],
