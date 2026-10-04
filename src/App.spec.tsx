@@ -315,19 +315,19 @@ describe('App', () => {
     ).toBeInTheDocument();
   });
 
-  it('switches between the dark and the light theme', async () => {
+  it('follows the system theme until another one is chosen', async () => {
     localStorage.clear();
     renderWithI18n(<App />);
-    const toggle = screen.getByRole('button', { name: 'Ciemny motyw' });
+    const select = screen.getByRole('combobox', { name: 'Motyw' });
 
-    expect(toggle).toHaveAttribute('aria-pressed', 'true');
+    // jsdom nie zna preferencji systemu, więc tryb systemowy daje ciemny
+    expect(select).toHaveValue('system');
     expect(document.documentElement.dataset.theme).toBe('dark');
 
-    await userEvent.click(toggle);
-    expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    await userEvent.selectOptions(select, 'Jasny');
     expect(document.documentElement.dataset.theme).toBe('light');
 
-    await userEvent.click(toggle);
+    await userEvent.selectOptions(select, 'Ciemny');
     expect(document.documentElement.dataset.theme).toBe('dark');
   });
 
@@ -336,9 +336,7 @@ describe('App', () => {
       auth({ status: 'signedIn', token: 'tok-1' }),
     );
     renderWithI18n(<App />);
-    expect(
-      screen.getByRole('button', { name: 'Ciemny motyw' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Motyw' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Wyloguj' })).toBeInTheDocument();
   });
 
@@ -379,7 +377,7 @@ describe('App', () => {
     expect(screen.getByRole('combobox', { name: 'Language' })).toHaveValue(
       'en',
     );
-    expect(screen.getByRole('button', { name: 'Dark theme' })).toBeVisible();
+    expect(screen.getByRole('combobox', { name: 'Theme' })).toBeVisible();
     expect(localStorage.getItem('youtube-playlist-manager.locale')).toBe('en');
     expect(document.documentElement.lang).toBe('en');
   });

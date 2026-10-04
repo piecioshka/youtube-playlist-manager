@@ -13,9 +13,8 @@ import { ProfileUnavailable } from './profile/ProfileUnavailable';
 import { routeToHash } from './routing/route';
 import { useRoute } from './routing/useRoute';
 import { useVideoIndex } from './search/useVideoIndex';
-import { ThemeToggle } from './theme/ThemeToggle';
+import { ThemeSelect } from './theme/ThemeSelect';
 import { YouTubeLink } from './youtube/YouTubeLink';
-import { useTheme } from './theme/useTheme';
 import { createYouTubeSession } from './youtube/session';
 import { YouTubeProvider } from './youtube/YouTubeProvider';
 
@@ -25,7 +24,6 @@ type LayoutProps = {
 };
 
 function Layout({ actions, children }: LayoutProps) {
-  const { theme, toggle } = useTheme();
   const { t } = useI18n();
 
   return (
@@ -46,7 +44,7 @@ function Layout({ actions, children }: LayoutProps) {
         </h1>
         <div className="app__actions">
           <LanguageSelect />
-          <ThemeToggle theme={theme} label={t.themeDark} onToggle={toggle} />
+          <ThemeSelect />
           {actions}
         </div>
       </header>

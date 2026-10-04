@@ -10,7 +10,7 @@ Static React SPA that signs in to a YouTube account with Google Identity Service
 
 - `src/youtube/` YouTube session (`session.ts`, `YouTubeProvider` with `useYouTube()`) over the fetch-level `api.ts`, zod schemas, `ApiError`, user-facing error messages
 - `src/i18n/` UI strings in Polish and English (`messages.ts`), `LocaleProvider` with `useI18n()`
-- `src/theme/` light/dark theme switch (dark by default)
+- `src/theme/` theme switch: system (default), light, dark
 - `src/auth/` Google Identity Services loader, `useGoogleAuth`, `LoginScreen`
 - `src/account/` the signed-in channel: `useChannel`, header chip, account section
 - `src/playlists/` the playlist list (`usePlaylists`: load, update, delete, notice), sorting, filtering, `PlaylistsView`, `PlaylistRow`

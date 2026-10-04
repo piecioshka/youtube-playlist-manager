@@ -734,7 +734,7 @@ test('has no accessibility violations on the profile', async ({ page }) => {
   const dark = await new AxeBuilder({ page }).analyze();
   expect(dark.violations).toEqual([]);
 
-  await page.getByRole('button', { name: 'Ciemny motyw' }).click();
+  await page.getByRole('combobox', { name: 'Motyw' }).selectOption('light');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   const light = await new AxeBuilder({ page }).analyze();
   expect(light.violations).toEqual([]);

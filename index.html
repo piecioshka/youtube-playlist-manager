@@ -8,6 +8,7 @@
       content="Przeglądaj, sortuj, zmieniaj nazwy i usuwaj swoje playlisty na YouTube."
     />
     <meta name="apple-mobile-web-app-title" content="Playlists" />
+    <meta name="theme-color" content="#121214" />
     <link
       rel="canonical"
       href="https://piecioshka.github.io/youtube-playlist-manager/"
@@ -36,19 +37,23 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <title>YouTube Playlist Manager</title>
     <script>
-      // Motyw przed pierwszym malowaniem, żeby jasny nie mignął przed startem Reacta
+      // Motyw przed pierwszym malowaniem, żeby zły nie mignął przed startem Reacta
       (function () {
-        var theme = 'dark';
+        var stored = null;
         try {
-          if (
-            localStorage.getItem('youtube-playlist-manager.theme') === 'light'
-          ) {
-            theme = 'light';
-          }
+          stored = localStorage.getItem('youtube-playlist-manager.theme');
         } catch (error) {
-          // Zablokowany storage: zostaje domyślny ciemny
+          // Zablokowany storage: motyw idzie za systemem
         }
-        document.documentElement.dataset.theme = theme;
+        var light =
+          stored === 'light' ||
+          (stored !== 'dark' &&
+            window.matchMedia('(prefers-color-scheme: light)').matches);
+        document.documentElement.dataset.theme = light ? 'light' : 'dark';
+        // Kolory tła z app.css, te same co w src/theme/theme.ts
+        document
+          .querySelector('meta[name="theme-color"]')
+          .setAttribute('content', light ? '#f7f7f8' : '#121214');
       })();
     </script>
   </head>

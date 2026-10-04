@@ -1,6 +1,7 @@
 import type { VisibilityFilter } from '../playlists/filterPlaylists';
 import type { SortOption } from '../playlists/sortPlaylists';
 import type { VideoSortOption } from '../profile/sortVideos';
+import type { ThemePreference } from '../theme/theme';
 import type { ApiErrorKind, PrivacyStatus } from '../youtube/types';
 
 export type Locale = 'pl' | 'en';
@@ -47,7 +48,12 @@ function englishPlural(count: number, one: string, many: string): string {
 const pl = {
   appTitle: 'YouTube Playlist Manager',
   languageLabel: 'Język',
-  themeDark: 'Ciemny motyw',
+  themeLabel: 'Motyw',
+  themeOptions: {
+    system: 'Systemowy',
+    light: 'Jasny',
+    dark: 'Ciemny',
+  } satisfies Record<ThemePreference, string>,
   signOut: 'Wyloguj',
   accountLabel: 'Twój kanał',
   openChannel: 'Otwórz kanał na YouTube',
@@ -230,7 +236,12 @@ export type Messages = typeof pl;
 const en: Messages = {
   appTitle: 'YouTube Playlist Manager',
   languageLabel: 'Language',
-  themeDark: 'Dark theme',
+  themeLabel: 'Theme',
+  themeOptions: {
+    system: 'System',
+    light: 'Light',
+    dark: 'Dark',
+  },
   signOut: 'Sign out',
   accountLabel: 'Your channel',
   openChannel: 'Open the channel on YouTube',

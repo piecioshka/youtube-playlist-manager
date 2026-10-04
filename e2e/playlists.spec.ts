@@ -283,33 +283,40 @@ test('has no accessibility violations on the playlist screen', async ({
   expect(dark.violations).toEqual([]);
 
   // Kolory statusów widoczności muszą mieć kontrast także w jasnym motywie
-  await page.getByRole('button', { name: 'Ciemny motyw' }).click();
+  await page.getByRole('combobox', { name: 'Motyw' }).selectOption('light');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   const light = await new AxeBuilder({ page }).analyze();
   expect(light.violations).toEqual([]);
 });
 
-test('starts dark and remembers the light theme after reload', async ({
+test('follows the system theme and remembers a chosen one after reload', async ({
   page,
 }) => {
   await signIn(page);
   const html = page.locator('html');
+  const select = page.getByRole('combobox', { name: 'Motyw' });
+  const chrome = page.locator('meta[name="theme-color"]');
+  await expect(select).toHaveValue('system');
+  await expect(html).toHaveAttribute('data-theme', 'dark');
+  await expect(chrome).toHaveAttribute('content', '#121214');
+
+  // Zmiana w systemie dochodzi bez przeładowania
+  await page.emulateMedia({ colorScheme: 'light' });
+  await expect(html).toHaveAttribute('data-theme', 'light');
+  await expect(chrome).toHaveAttribute('content', '#f7f7f8');
+
+  await select.selectOption('dark');
   await expect(html).toHaveAttribute('data-theme', 'dark');
 
-  const toggle = page.getByRole('button', { name: 'Ciemny motyw' });
-  await expect(toggle).toHaveAttribute('aria-pressed', 'true');
-  await toggle.click();
-  await expect(html).toHaveAttribute('data-theme', 'light');
-  await expect(toggle).toHaveAttribute('aria-pressed', 'false');
-
   await page.reload();
-  await expect(html).toHaveAttribute('data-theme', 'light');
-  await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+  await expect(select).toHaveValue('dark');
+  await expect(html).toHaveAttribute('data-theme', 'dark');
+  await expect(chrome).toHaveAttribute('content', '#121214');
 });
 
 test('has no accessibility violations in the light theme', async ({ page }) => {
   await signIn(page);
-  await page.getByRole('button', { name: 'Ciemny motyw' }).click();
+  await page.getByRole('combobox', { name: 'Motyw' }).selectOption('light');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
 
   const results = await new AxeBuilder({ page }).analyze();

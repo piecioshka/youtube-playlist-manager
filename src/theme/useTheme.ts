@@ -1,23 +1,35 @@
 import { useCallback, useEffect, useState } from 'react';
-import { applyTheme, readTheme, writeTheme, type Theme } from './theme';
+import {
+  applyTheme,
+  readPreference,
+  resolveTheme,
+  watchSystemTheme,
+  writePreference,
+  type ThemePreference,
+} from './theme';
 
 export type ThemeControls = {
-  theme: Theme;
-  toggle: () => void;
+  preference: ThemePreference;
+  setPreference: (preference: ThemePreference) => void;
 };
 
 export function useTheme(): ThemeControls {
-  const [theme, setTheme] = useState<Theme>(readTheme);
+  const [preference, setPreferenceState] =
+    useState<ThemePreference>(readPreference);
 
   useEffect(() => {
-    applyTheme(theme);
-  }, [theme]);
+    applyTheme(resolveTheme(preference));
+    if (preference !== 'system') {
+      return undefined;
+    }
+    // Zmiana motywu w systemie ma dojść bez przeładowania strony
+    return watchSystemTheme(() => applyTheme(resolveTheme('system')));
+  }, [preference]);
 
-  const toggle = useCallback(() => {
-    const next = theme === 'dark' ? 'light' : 'dark';
-    writeTheme(next);
-    setTheme(next);
-  }, [theme]);
+  const setPreference = useCallback((next: ThemePreference) => {
+    writePreference(next);
+    setPreferenceState(next);
+  }, []);
 
-  return { theme, toggle };
+  return { preference, setPreference };
 }

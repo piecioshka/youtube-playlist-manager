@@ -3,7 +3,7 @@
   --font: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 }
 
-/* Motyw wybiera przełącznik w nagłówku, domyślnie ciemny (atrybut ustawia skrypt w index.html) */
+/* Motyw idzie za systemem albo za wyborem z nagłówka; atrybut ustawia skrypt w index.html, bez niego zostaje ciemny */
 :root,
 :root[data-theme='dark'] {
   color-scheme: dark;
@@ -232,10 +232,6 @@ a.external-link:focus-visible .external-link__text {
 
 .select:hover {
   border-color: var(--color-muted);
-}
-
-.theme-toggle__icon {
-  display: block;
 }
 
 .button:disabled {
