@@ -3,6 +3,7 @@
 <!-- prettier-ignore-start -->
 
 [![github-ci](https://github.com/piecioshka/youtube-playlist-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/piecioshka/youtube-playlist-manager/actions/workflows/ci.yml)
+[![github-pages](https://github.com/piecioshka/youtube-playlist-manager/actions/workflows/pages.yml/badge.svg)](https://github.com/piecioshka/youtube-playlist-manager/actions/workflows/pages.yml)
 ![typescript](https://img.shields.io/badge/built%20with-TypeScript-3178c6.svg)
 
 <!-- prettier-ignore-end -->
@@ -22,9 +23,11 @@ The hosted app only works for Google accounts added as test users of its OAuth c
 - ✏️ Rename a playlist inline _(the description stays untouched)_
 - 🗑️ Delete a playlist after an inline confirmation
 - 🗂️ Playlist page _(edit description and visibility, reorder videos by drag and drop, remove and add videos, clean out deleted and private ones)_
-- 🌗 Dark and light theme _(follows the system by default)_
+- 🌗 System, light and dark theme _(follows your system until you pick one, your choice is remembered)_
+- 📱 Works on a phone _(tables turn into cards, videos reorder under a finger)_
+- ♿ Keyboard and screen reader friendly _(checked with axe in both themes)_
 - 🌍 Polish and English interface _(Polish by default)_
-- 🔒 No backend _(the access token stays in the current browser tab only)_
+- 🔒 No backend _(the access token stays in the current browser tab only, and a content security policy admits only Google sign-in and the YouTube API)_
 
 ## Contributing 🤝
 

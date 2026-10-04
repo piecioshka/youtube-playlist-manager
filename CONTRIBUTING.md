@@ -56,16 +56,20 @@ npm run format        # Prettier over the whole repository
 - Search: `src/search/` filters by playlist titles and by the titles and channels of the videos inside. Video titles come from `playlistItems`, fetched lazily the first time the search field gets focus (at most 4 playlists at once), and stay in memory only. Indexing costs 1 quota unit per 50 videos of every playlist.
 - Languages: `src/i18n/messages.ts` holds every UI string in Polish (`pl`, the default) and English (`en`). The `Messages` type comes from the `pl` object and `en` is typed with it, so to add a string you add the key to `pl` and TypeScript makes you add it to `en`. Strings with parameters are functions (English plurals included). `LocaleProvider` keeps the chosen language in `localStorage`, sets `<html lang>` and gives components `useI18n()`; code outside components (`errorMessage`) takes the messages as an argument, and `useGoogleAuth` returns message keys that the sign-in screen translates.
 - Theme: `src/theme/` keeps the choice (`system`, `light` or `dark`) in `localStorage`, follows the system by default and sets the resolved `data-theme` and the `theme-color` meta on `<html>`; `src/styles/app.css` defines the color tokens per theme. A small inline script in `index.html` sets the attribute before React mounts, so the page never flashes the wrong theme.
+- Security: the production build carries a Content Security Policy as a `<meta>` tag, because GitHub Pages cannot set headers. `vite-plugin-csp.ts` injects it at build time with the hash of the inline theme script, and admits only own code, Google Identity Services, the YouTube Data API and the image hosts of thumbnails and avatars. A new origin has to be added there. The dev server runs without the policy. `src/zodConfig.ts` switches Zod to `jitless` and must stay the first import of `src/main.tsx`, otherwise Zod probes `new Function` and trips the policy.
+- Failures: every request to YouTube gives up after 30 seconds and surfaces as a network error (`src/youtube/api.ts`). `src/errors/ErrorBoundary.tsx` wraps the app, so an exception while rendering shows a message with a reload button instead of a blank page.
 - Quota: YouTube Data API allows 10 000 units a day. A list page costs 1 unit (playlists and `playlistItems` alike), the durations on a playlist page cost 1 unit per 50 videos (`videos.list`), a playlist update or delete 50, and so does every `playlistItems.insert`, `playlistItems.update` (a move) and `playlistItems.delete` (50 each).
 
 ## Tests
 
 - Unit and component tests sit next to the code (`src/**/*.spec.ts(x)`). They replace YouTube with a fake session (`makeFakeYouTube()` passed through `renderWithYouTube` or `youTubeWrapper` from `src/test/`); only `api.spec.ts` works at the `fetch` level.
+- ESLint checks JSX accessibility with `eslint-plugin-jsx-a11y`; the E2E tests run axe on both pages in both themes.
+- Every E2E test fails when the page breaks its own Content Security Policy (the auto fixture `cspViolations` in `e2e/fixtures.ts`). Google sign-in is stubbed there, so after a change to the policy sign in once on the deployed site and check the console.
 - E2E tests (`e2e/`) never reach Google: Playwright serves a stub instead of `https://accounts.google.com/gsi/client` and answers `https://www.googleapis.com/youtube/v3/playlists` and `playlistItems` (list, insert, update, delete) from in-memory data (`e2e/fixtures.ts`). A finger drag is sent through the Chrome DevTools Protocol (`Input.dispatchTouchEvent`), because Playwright's touchscreen can only tap.
 
 ## Deployment
 
-`.github/workflows/pages.yml` builds with `BASE_PATH` from `actions/configure-pages` and publishes `dist/` to GitHub Pages on every push to `main`. Enable it once with **Settings > Pages > Source: GitHub Actions**.
+`.github/workflows/pages.yml` runs on every push to `main`: format check, lint, typecheck, unit tests and E2E tests first, then a build with `BASE_PATH` from `actions/configure-pages`, published from `dist/` to GitHub Pages. A commit that fails any of the checks is not deployed. Enable it once with **Settings > Pages > Source: GitHub Actions**.
 
 ## Conventions
 
