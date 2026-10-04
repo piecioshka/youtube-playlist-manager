@@ -58,6 +58,8 @@ const pl = {
   statCreated: 'Kanał od',
   thousandsSeparator: '\u00a0',
   retry: 'Spróbuj ponownie',
+  renderError: 'Coś poszło nie tak i nie da się wyświetlić strony.',
+  reloadPage: 'Odśwież stronę',
   loading: 'Wczytywanie...',
   genericError: 'Coś poszło nie tak.',
 
@@ -239,6 +241,8 @@ const en: Messages = {
   statCreated: 'Channel since',
   thousandsSeparator: ',',
   retry: 'Try again',
+  renderError: 'Something went wrong and the page cannot be shown.',
+  reloadPage: 'Reload the page',
   loading: 'Loading...',
   genericError: 'Something went wrong.',
 

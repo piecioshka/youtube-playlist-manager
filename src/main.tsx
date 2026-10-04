@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
+import { ErrorBoundary } from './errors/ErrorBoundary';
 import { LocaleProvider } from './i18n/LocaleProvider';
 import './styles/app.css';
 
@@ -13,7 +14,9 @@ if (!rootElement) {
 createRoot(rootElement).render(
   <StrictMode>
     <LocaleProvider>
-      <App />
+      <ErrorBoundary onReload={() => window.location.reload()}>
+        <App />
+      </ErrorBoundary>
     </LocaleProvider>
   </StrictMode>,
 );
