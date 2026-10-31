@@ -4,7 +4,8 @@ import { useChannel, type ChannelState } from './account/useChannel';
 import { LoginScreen } from './auth/LoginScreen';
 import { useGoogleAuth } from './auth/useGoogleAuth';
 import { getGoogleClientId } from './config';
-import { LanguageSelect } from './i18n/LanguageSelect';
+import { GitHubLink } from './GitHubLink';
+import { LanguageToggle } from './i18n/LanguageToggle';
 import { useI18n } from './i18n/LocaleProvider';
 import { PlaylistsView } from './playlists/PlaylistsView';
 import { usePlaylists } from './playlists/usePlaylists';
@@ -13,10 +14,29 @@ import { ProfileUnavailable } from './profile/ProfileUnavailable';
 import { routeToHash } from './routing/route';
 import { useRoute } from './routing/useRoute';
 import { useVideoIndex } from './search/useVideoIndex';
-import { ThemeSelect } from './theme/ThemeSelect';
+import { ThemeToggle } from './theme/ThemeToggle';
 import { YouTubeLink } from './youtube/YouTubeLink';
 import { createYouTubeSession } from './youtube/session';
 import { YouTubeProvider } from './youtube/YouTubeProvider';
+
+// lucide `log-out`
+function SignOutIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="m16 17 5-5-5-5M21 12H9M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+    </svg>
+  );
+}
 
 type LayoutProps = {
   actions?: ReactNode;
@@ -39,13 +59,15 @@ function Layout({ actions, children }: LayoutProps) {
               width={28}
               height={28}
             />
-            {t.appTitle}
+            <span className="app__title-text">{t.appTitle}</span>
           </a>
         </h1>
+        {/* Account actions first, then the same trio as every app: language, theme, GitHub */}
         <div className="app__actions">
-          <LanguageSelect />
-          <ThemeSelect />
           {actions}
+          <LanguageToggle />
+          <ThemeToggle />
+          <GitHubLink />
         </div>
       </header>
       <main className="app__main">{children}</main>
@@ -142,8 +164,14 @@ function SignedInLayout({ onSignOut }: { onSignOut: () => void }) {
           {channel.channel !== null && (
             <AccountChip channel={channel.channel} />
           )}
-          <button type="button" className="button" onClick={onSignOut}>
-            {t.signOut}
+          <button
+            type="button"
+            className="button app__sign-out"
+            title={t.signOut}
+            onClick={onSignOut}
+          >
+            <SignOutIcon />
+            <span className="app__sign-out-text">{t.signOut}</span>
           </button>
         </>
       }

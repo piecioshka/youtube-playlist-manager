@@ -283,7 +283,7 @@ test('has no accessibility violations on the playlist screen', async ({
   expect(dark.violations).toEqual([]);
 
   // Kolory statusów widoczności muszą mieć kontrast także w jasnym motywie
-  await page.getByRole('combobox', { name: 'Motyw' }).selectOption('light');
+  await page.getByRole('button', { name: 'Przełącz motyw' }).click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   const light = await new AxeBuilder({ page }).analyze();
   expect(light.violations).toEqual([]);
@@ -294,9 +294,8 @@ test('follows the system theme and remembers a chosen one after reload', async (
 }) => {
   await signIn(page);
   const html = page.locator('html');
-  const select = page.getByRole('combobox', { name: 'Motyw' });
+  const toggle = page.getByRole('button', { name: 'Przełącz motyw' });
   const chrome = page.locator('meta[name="theme-color"]');
-  await expect(select).toHaveValue('system');
   await expect(html).toHaveAttribute('data-theme', 'dark');
   await expect(chrome).toHaveAttribute('content', '#121214');
 
@@ -305,18 +304,17 @@ test('follows the system theme and remembers a chosen one after reload', async (
   await expect(html).toHaveAttribute('data-theme', 'light');
   await expect(chrome).toHaveAttribute('content', '#f7f7f8');
 
-  await select.selectOption('dark');
+  await toggle.click();
   await expect(html).toHaveAttribute('data-theme', 'dark');
 
   await page.reload();
-  await expect(select).toHaveValue('dark');
   await expect(html).toHaveAttribute('data-theme', 'dark');
   await expect(chrome).toHaveAttribute('content', '#121214');
 });
 
 test('has no accessibility violations in the light theme', async ({ page }) => {
   await signIn(page);
-  await page.getByRole('combobox', { name: 'Motyw' }).selectOption('light');
+  await page.getByRole('button', { name: 'Przełącz motyw' }).click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
 
   const results = await new AxeBuilder({ page }).analyze();
@@ -329,7 +327,7 @@ test('switches the interface to English and remembers it after reload', async ({
   await signIn(page);
   await expect(page.locator('html')).toHaveAttribute('lang', 'pl');
 
-  await page.getByRole('combobox', { name: 'Język' }).selectOption('English');
+  await page.getByRole('button', { name: 'Zmień język na angielski' }).click();
 
   const heading = page.getByRole('heading', { level: 2 });
   await expect(heading).toHaveText('Your playlists (4)');
@@ -338,9 +336,9 @@ test('switches the interface to English and remembers it after reload', async ({
 
   await page.reload();
   await expect(heading).toHaveText('Your playlists (4)');
-  await expect(page.getByRole('combobox', { name: 'Language' })).toHaveValue(
-    'en',
-  );
+  await expect(
+    page.getByRole('button', { name: 'Switch the language to Polish' }),
+  ).toHaveText('🇬🇧');
   await expect(page.locator('html')).toHaveAttribute('lang', 'en');
 });
 
@@ -383,3 +381,33 @@ test('ships a content security policy that covers the inline theme script', asyn
   // Skrypt motywu przeszedł przez politykę: atrybut jest ustawiony przed startem Reacta
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
 });
+
+for (const width of [400, 1440]) {
+  test(`keeps one 56 px header row on the list and the profile at ${width} px`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 800 });
+    await signIn(page);
+
+    for (const open of [
+      async () => undefined,
+      () => page.getByRole('link', { name: 'Algorytmy', exact: true }).click(),
+    ]) {
+      await open();
+      const header = await page.getByRole('banner').boundingBox();
+      expect(header?.height).toBeCloseTo(56, 0);
+
+      const controls = page.locator('.app__actions > *');
+      const boxes = await controls.evaluateAll((elements) =>
+        elements.map((element) => element.getBoundingClientRect()),
+      );
+      expect(boxes.length).toBe(5);
+      const [first] = boxes;
+      for (const box of boxes) {
+        expect(box.height).toBeCloseTo(36, 0);
+        expect(box.top).toBeCloseTo(first?.top ?? 0, 0);
+      }
+      expect(await horizontalScroll(page)).toBe(0);
+    }
+  });
+}

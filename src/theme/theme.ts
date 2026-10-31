@@ -5,12 +5,6 @@ export type Theme = 'light' | 'dark';
 // `system` idzie za ustawieniem systemu, pozostałe wartości je nadpisują
 export type ThemePreference = Theme | 'system';
 
-export const THEME_PREFERENCES: readonly ThemePreference[] = [
-  'system',
-  'light',
-  'dark',
-];
-
 export const DEFAULT_PREFERENCE: ThemePreference = 'system';
 
 // Ten sam klucz czyta skrypt w index.html, zanim React się zamontuje

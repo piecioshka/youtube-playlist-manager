@@ -1,7 +1,6 @@
 import type { VisibilityFilter } from '../playlists/filterPlaylists';
 import type { SortOption } from '../playlists/sortPlaylists';
 import type { VideoSortOption } from '../profile/sortVideos';
-import type { ThemePreference } from '../theme/theme';
 import type { ApiErrorKind, PrivacyStatus } from '../youtube/types';
 
 export type Locale = 'pl' | 'en';
@@ -9,12 +8,6 @@ export type Locale = 'pl' | 'en';
 export const LOCALES: readonly Locale[] = ['pl', 'en'];
 
 export const DEFAULT_LOCALE: Locale = 'pl';
-
-// Nazwa każdego języka w nim samym, niezależnie od bieżącego języka interfejsu
-export const LOCALE_NAMES: Record<Locale, string> = {
-  pl: 'Polski',
-  en: 'English',
-};
 
 export type AuthMessage =
   'signInFailed' | 'popupFailed' | 'scriptFailed' | 'sessionExpired';
@@ -47,13 +40,9 @@ function englishPlural(count: number, one: string, many: string): string {
 
 const pl = {
   appTitle: 'YouTube Playlist Manager',
-  languageLabel: 'Język',
-  themeLabel: 'Motyw',
-  themeOptions: {
-    system: 'Systemowy',
-    light: 'Jasny',
-    dark: 'Ciemny',
-  } satisfies Record<ThemePreference, string>,
+  languageLabel: 'Zmień język na angielski',
+  themeLabel: 'Przełącz motyw',
+  githubLabel: 'Kod źródłowy na GitHubie',
   signOut: 'Wyloguj',
   accountLabel: 'Twój kanał',
   openChannel: 'Otwórz kanał na YouTube',
@@ -235,13 +224,9 @@ export type Messages = typeof pl;
 
 const en: Messages = {
   appTitle: 'YouTube Playlist Manager',
-  languageLabel: 'Language',
-  themeLabel: 'Theme',
-  themeOptions: {
-    system: 'System',
-    light: 'Light',
-    dark: 'Dark',
-  },
+  languageLabel: 'Switch the language to Polish',
+  themeLabel: 'Toggle theme',
+  githubLabel: 'Source code on GitHub',
   signOut: 'Sign out',
   accountLabel: 'Your channel',
   openChannel: 'Open the channel on YouTube',

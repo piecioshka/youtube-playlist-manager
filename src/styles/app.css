@@ -159,38 +159,98 @@ a.external-link:focus-visible .external-link__text {
 
 .app__header {
   display: flex;
-  flex-wrap: wrap;
   gap: 12px;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 24px;
+  height: 56px;
+  margin-bottom: 16px;
 }
 
 .app__title {
+  min-width: 0;
   margin: 0;
   font-size: 1.5rem;
+  line-height: 1.2;
 }
 
 .app__home {
   display: inline-flex;
   gap: 10px;
   align-items: center;
+  max-width: 100%;
   border-radius: 6px;
   color: inherit;
   text-decoration: none;
 }
 
-/* stretch: listy języków i motywów oraz Wyloguj mają tę samą wysokość */
+.app__title-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* All header controls share one height: 36 px */
 .app__actions {
   display: flex;
+  flex: none;
   gap: 8px;
-  align-items: stretch;
+  align-items: center;
+}
+
+.app__actions > * {
+  height: 36px;
+}
+
+/* Scoped to the header so it wins over `.button--icon` padding further down */
+.app__actions .app__icon-button {
+  width: 36px;
+  padding: 0;
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.app__flag {
+  font-size: 1.125rem;
+  line-height: 1;
+}
+
+.app__sign-out {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
 }
 
 .app__logo {
   flex: none;
   width: 28px;
   height: 28px;
+}
+
+/* A phone keeps one header row: the logo alone, icon-only sign-out */
+@media (max-width: 640px) {
+  .app__header {
+    gap: 8px;
+  }
+
+  .app__title-text,
+  .app__sign-out-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .app__actions {
+    gap: 6px;
+  }
+
+  .app__actions .app__sign-out {
+    width: 36px;
+    justify-content: center;
+    padding: 0;
+  }
 }
 
 .button {

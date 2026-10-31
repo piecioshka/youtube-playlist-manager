@@ -315,29 +315,44 @@ describe('App', () => {
     ).toBeInTheDocument();
   });
 
-  it('follows the system theme until another one is chosen', async () => {
+  it('follows the system theme until the toggle is clicked', async () => {
     localStorage.clear();
     renderWithI18n(<App />);
-    const select = screen.getByRole('combobox', { name: 'Motyw' });
+    const toggle = screen.getByRole('button', { name: 'Przełącz motyw' });
 
-    // jsdom nie zna preferencji systemu, więc tryb systemowy daje ciemny
-    expect(select).toHaveValue('system');
+    // jsdom does not know the system preference, so the system theme is dark
     expect(document.documentElement.dataset.theme).toBe('dark');
 
-    await userEvent.selectOptions(select, 'Jasny');
+    await userEvent.click(toggle);
     expect(document.documentElement.dataset.theme).toBe('light');
+    expect(localStorage.getItem('youtube-playlist-manager.theme')).toBe(
+      'light',
+    );
 
-    await userEvent.selectOptions(select, 'Ciemny');
+    await userEvent.click(toggle);
     expect(document.documentElement.dataset.theme).toBe('dark');
   });
 
-  it('offers the theme switch next to the sign-out button', () => {
+  it('ends the header with sign-out, language, theme and GitHub', () => {
     vi.mocked(useGoogleAuth).mockReturnValue(
       auth({ status: 'signedIn', token: 'tok-1' }),
     );
     renderWithI18n(<App />);
-    expect(screen.getByRole('combobox', { name: 'Motyw' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Wyloguj' })).toBeInTheDocument();
+    const banner = screen.getByRole('banner');
+    const names = within(banner)
+      .getAllByRole('button')
+      .map((button) => button.getAttribute('aria-label') ?? button.textContent);
+    expect(names).toEqual([
+      'Wyloguj',
+      'Zmień język na angielski',
+      'Przełącz motyw',
+    ]);
+    expect(
+      within(banner).getByRole('link', { name: 'Kod źródłowy na GitHubie' }),
+    ).toHaveAttribute(
+      'href',
+      'https://github.com/piecioshka/youtube-playlist-manager',
+    );
   });
 
   it('signs out with a message when the session expires', async () => {
@@ -356,7 +371,9 @@ describe('App', () => {
   it('starts in Polish', () => {
     renderWithI18n(<App />);
     expect(document.documentElement.lang).toBe('pl');
-    expect(screen.getByRole('combobox', { name: 'Język' })).toHaveValue('pl');
+    expect(
+      screen.getByRole('button', { name: 'Zmień język na angielski' }),
+    ).toHaveTextContent('🇵🇱');
     expect(
       screen.getByRole('button', { name: 'Zaloguj przez Google' }),
     ).toBeInTheDocument();
@@ -366,35 +383,19 @@ describe('App', () => {
     localStorage.clear();
     renderWithI18n(<App />);
 
-    await userEvent.selectOptions(
-      screen.getByRole('combobox', { name: 'Język' }),
-      'English',
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Zmień język na angielski' }),
     );
 
     expect(
       screen.getByRole('button', { name: 'Sign in with Google' }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('combobox', { name: 'Language' })).toHaveValue(
-      'en',
-    );
-    expect(screen.getByRole('combobox', { name: 'Theme' })).toBeVisible();
+    expect(
+      screen.getByRole('button', { name: 'Switch the language to Polish' }),
+    ).toHaveTextContent('🇬🇧');
+    expect(screen.getByRole('button', { name: 'Toggle theme' })).toBeVisible();
     expect(localStorage.getItem('youtube-playlist-manager.locale')).toBe('en');
     expect(document.documentElement.lang).toBe('en');
-  });
-
-  it('labels each language in its own language', () => {
-    renderWithI18n(<App />, 'en');
-    const options = within(
-      screen.getByRole('combobox', { name: 'Language' }),
-    ).getAllByRole('option');
-    expect(options.map((option) => option.textContent)).toEqual([
-      'Polski',
-      'English',
-    ]);
-    expect(options.map((option) => option.getAttribute('lang'))).toEqual([
-      'pl',
-      'en',
-    ]);
   });
 
   it('translates the header, the footer and auth messages to English', () => {
