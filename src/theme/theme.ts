@@ -7,11 +7,11 @@ export type ThemePreference = Theme | 'system';
 
 export const DEFAULT_PREFERENCE: ThemePreference = 'system';
 
-// Ten sam klucz czyta skrypt w index.html, zanim React się zamontuje
+// src/theme/themeBoot.js reads the same key before React mounts
 const STORAGE_KEY = 'youtube-playlist-manager.theme';
 const LIGHT_QUERY = '(prefers-color-scheme: light)';
 
-// Tło strony z app.css (`--color-bg`); te same wartości ma skrypt w index.html
+// Page background from app.css (`--color-bg`); src/theme/themeBoot.js has the same values
 const CHROME_COLORS: Record<Theme, string> = {
   light: '#f7f7f8',
   dark: '#121214',

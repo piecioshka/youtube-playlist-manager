@@ -38,6 +38,125 @@ function englishPlural(count: number, one: string, many: string): string {
   return count === 1 ? one : many;
 }
 
+export type PrivacyLink = { label: string; href: string };
+
+export type PrivacySection = {
+  heading: string;
+  paragraphs: string[];
+  links: PrivacyLink[];
+};
+
+const GOOGLE_PERMISSIONS_URL = 'https://myaccount.google.com/permissions';
+const YOUTUBE_TERMS_URL = 'https://www.youtube.com/t/terms';
+const GOOGLE_PRIVACY_URL = 'https://policies.google.com/privacy';
+const AUTHOR_URL = 'https://piecioshka.pl/';
+
+const plPrivacySections: PrivacySection[] = [
+  {
+    heading: 'Do czego aplikacja ma dostęp',
+    paragraphs: [
+      'Po zalogowaniu przez Google aplikacja prosi o uprawnienie do zarządzania Twoim kontem YouTube (zakres https://www.googleapis.com/auth/youtube).',
+      'Używa go wyłącznie do tego, co robisz w interfejsie: pokazuje nazwę i statystyki kanału, listę playlist i ich filmów, zmienia nazwę, opis i widoczność playlisty, dodaje, przestawia i usuwa filmy oraz usuwa playlisty.',
+    ],
+    links: [],
+  },
+  {
+    heading: 'Gdzie trafiają dane',
+    paragraphs: [
+      'Aplikacja nie ma serwera, bazy danych ani analityki. Przeglądarka łączy się bezpośrednio z YouTube Data API i Google Identity Services.',
+      'Dane z Twojego konta nie trafiają na żaden inny serwer. Nie są sprzedawane, przekazywane innym firmom ani używane do reklam czy trenowania modeli AI.',
+    ],
+    links: [],
+  },
+  {
+    heading: 'Co zostaje w przeglądarce',
+    paragraphs: [
+      'Token dostępu Google leży w sessionStorage tej karty. Znika po zamknięciu karty, a po wylogowaniu aplikacja dodatkowo go unieważnia w Google.',
+      'W localStorage zostają tylko ustawienia interfejsu: język, motyw, sortowanie i filtr widoczności playlist. Aplikacja nie używa ciasteczek.',
+    ],
+    links: [],
+  },
+  {
+    heading: 'Usługi YouTube i Google',
+    paragraphs: [
+      'Aplikacja korzysta z YouTube API Services. Korzystając z niej, akceptujesz Warunki korzystania z YouTube. Dane, które przetwarza Google, podlegają Polityce prywatności Google.',
+    ],
+    links: [
+      { label: 'Warunki korzystania z YouTube', href: YOUTUBE_TERMS_URL },
+      { label: 'Polityka prywatności Google', href: GOOGLE_PRIVACY_URL },
+    ],
+  },
+  {
+    heading: 'Jak cofnąć dostęp',
+    paragraphs: [
+      'Wyloguj się w aplikacji albo usuń jej dostęp na stronie uprawnień konta Google. Ustawienia interfejsu usuniesz, czyszcząc dane tej strony w przeglądarce.',
+    ],
+    links: [
+      { label: 'Uprawnienia konta Google', href: GOOGLE_PERMISSIONS_URL },
+    ],
+  },
+  {
+    heading: 'Kontakt i zmiany',
+    paragraphs: [
+      'Autorem aplikacji jest Piotr Kowalski. Zmiany tej polityki pojawią się na tej stronie razem z nową datą aktualizacji.',
+    ],
+    links: [{ label: 'piecioshka.pl', href: AUTHOR_URL }],
+  },
+];
+
+const enPrivacySections: PrivacySection[] = [
+  {
+    heading: 'What the app can access',
+    paragraphs: [
+      'After you sign in with Google, the app asks for permission to manage your YouTube account (the https://www.googleapis.com/auth/youtube scope).',
+      'It uses that permission only for what you do in the interface: it shows the name and statistics of your channel and the list of your playlists and their videos, changes the title, description and visibility of a playlist, adds, reorders and removes videos, and deletes playlists.',
+    ],
+    links: [],
+  },
+  {
+    heading: 'Where your data goes',
+    paragraphs: [
+      'The app has no server, no database and no analytics. Your browser talks directly to the YouTube Data API and Google Identity Services.',
+      'Data from your account is not sent to any other server. It is not sold, shared with other companies or used for advertising or to train AI models.',
+    ],
+    links: [],
+  },
+  {
+    heading: 'What stays in your browser',
+    paragraphs: [
+      'The Google access token is kept in the sessionStorage of this tab. It is gone when you close the tab, and when you sign out the app also revokes it at Google.',
+      'localStorage keeps only interface settings: language, theme, sorting and the playlist visibility filter. The app uses no cookies.',
+    ],
+    links: [],
+  },
+  {
+    heading: 'YouTube and Google services',
+    paragraphs: [
+      'The app uses YouTube API Services. By using it you agree to the YouTube Terms of Service. Data processed by Google is covered by the Google Privacy Policy.',
+    ],
+    links: [
+      { label: 'YouTube Terms of Service', href: YOUTUBE_TERMS_URL },
+      { label: 'Google Privacy Policy', href: GOOGLE_PRIVACY_URL },
+    ],
+  },
+  {
+    heading: 'How to revoke access',
+    paragraphs: [
+      'Sign out in the app or remove its access on the permissions page of your Google account. To remove the interface settings, clear the data of this site in your browser.',
+    ],
+    links: [
+      { label: 'Google account permissions', href: GOOGLE_PERMISSIONS_URL },
+    ],
+  },
+  {
+    heading: 'Contact and changes',
+    paragraphs: [
+      'The app is made by Piotr Kowalski. Changes to this policy will appear on this page together with a new update date.',
+    ],
+    links: [{ label: 'piecioshka.pl', href: AUTHOR_URL }],
+  },
+];
+
 const pl = {
   appTitle: 'YouTube Playlist Manager',
   languageLabel: 'Zmień język na angielski',
@@ -65,7 +184,16 @@ const pl = {
   footerNoServer: 'Bez serwera: dane zostają w tej karcie',
   footerWorksWith: 'Działa z',
   footerAuthor: 'Autor:',
+  footerPrivacy: 'Polityka prywatności',
   footerLicense: 'Licencja MIT',
+
+  privacyPolicy: {
+    heading: 'Polityka prywatności',
+    updated: 'Ostatnia aktualizacja: 2026-11-12',
+    intro:
+      'YouTube Playlist Manager działa w całości w Twojej przeglądarce. Ta strona opisuje, z jakich danych korzysta i co się z nimi dzieje.',
+    sections: plPrivacySections,
+  },
 
   signInHeading: 'Zaloguj się',
   signInLead:
@@ -248,7 +376,16 @@ const en: Messages = {
   footerNoServer: 'No server: your data stays in this tab',
   footerWorksWith: 'Works with',
   footerAuthor: 'Author:',
+  footerPrivacy: 'Privacy policy',
   footerLicense: 'MIT License',
+
+  privacyPolicy: {
+    heading: 'Privacy policy',
+    updated: 'Last updated: 2026-11-12',
+    intro:
+      'YouTube Playlist Manager runs entirely in your browser. This page describes what data it uses and what happens to it.',
+    sections: enPrivacySections,
+  },
 
   signInHeading: 'Sign in',
   signInLead:

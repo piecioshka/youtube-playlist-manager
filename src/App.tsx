@@ -1,21 +1,17 @@
-import { useCallback, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { AccountChip } from './account/AccountChip';
 import { useChannel, type ChannelState } from './account/useChannel';
 import { LoginScreen } from './auth/LoginScreen';
 import { useGoogleAuth } from './auth/useGoogleAuth';
 import { getGoogleClientId } from './config';
-import { GitHubLink } from './GitHubLink';
-import { LanguageToggle } from './i18n/LanguageToggle';
 import { useI18n } from './i18n/LocaleProvider';
+import { Layout } from './layout/Layout';
 import { PlaylistsView } from './playlists/PlaylistsView';
 import { usePlaylists } from './playlists/usePlaylists';
 import { PlaylistProfile } from './profile/PlaylistProfile';
 import { ProfileUnavailable } from './profile/ProfileUnavailable';
-import { routeToHash } from './routing/route';
 import { useRoute } from './routing/useRoute';
 import { useVideoIndex } from './search/useVideoIndex';
-import { ThemeToggle } from './theme/ThemeToggle';
-import { YouTubeLink } from './youtube/YouTubeLink';
 import { createYouTubeSession } from './youtube/session';
 import { YouTubeProvider } from './youtube/YouTubeProvider';
 
@@ -35,79 +31,6 @@ function SignOutIcon() {
     >
       <path d="m16 17 5-5-5-5M21 12H9M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
     </svg>
-  );
-}
-
-type LayoutProps = {
-  actions?: ReactNode;
-  children: ReactNode;
-};
-
-function Layout({ actions, children }: LayoutProps) {
-  const { t } = useI18n();
-
-  return (
-    <div className="app">
-      <header className="app__header">
-        <h1 className="app__title">
-          {/* Logo i nazwa prowadzą na stronę główną, czyli do tabeli playlist */}
-          <a className="app__home" href={routeToHash({ name: 'list' })}>
-            <img
-              className="app__logo"
-              src={`${import.meta.env.BASE_URL}favicon.svg`}
-              alt=""
-              width={28}
-              height={28}
-            />
-            <span className="app__title-text">{t.appTitle}</span>
-          </a>
-        </h1>
-        {/* Account actions first, then the same trio as every app: language, theme, GitHub */}
-        <div className="app__actions">
-          {actions}
-          <LanguageToggle />
-          <ThemeToggle />
-          <GitHubLink />
-        </div>
-      </header>
-      <main className="app__main">{children}</main>
-      <footer className="app__footer">
-        {/* Jedna linia na szerokim ekranie; na wąskim łamie się między członami, nie w ich środku */}
-        <p className="app__footer-line">
-          <span className="app__footer-item">{t.footerNoServer}</span> ·{' '}
-          <span className="app__footer-item">
-            {t.footerWorksWith}{' '}
-            <YouTubeLink
-              className="app__footer-link"
-              href="https://www.youtube.com"
-            >
-              YouTube
-            </YouTubeLink>
-          </span>{' '}
-          ·{' '}
-          <span className="app__footer-item">
-            {t.footerAuthor}{' '}
-            <a
-              className="app__footer-link"
-              href="https://piecioshka.pl/"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Piotr Kowalski
-            </a>
-          </span>{' '}
-          ·{' '}
-          <a
-            className="app__footer-link app__footer-item"
-            href="https://piecioshka.mit-license.org"
-            target="_blank"
-            rel="noreferrer"
-          >
-            {t.footerLicense}
-          </a>
-        </p>
-      </footer>
-    </div>
   );
 }
 

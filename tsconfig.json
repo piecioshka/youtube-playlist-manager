@@ -20,6 +20,7 @@
     "e2e",
     "vite.config.ts",
     "vite-plugin-csp.ts",
+    "vite-plugin-theme-boot.ts",
     "vitest.config.ts",
     "playwright.config.ts"
   ]

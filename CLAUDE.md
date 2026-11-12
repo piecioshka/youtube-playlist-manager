@@ -16,6 +16,8 @@ Static React SPA that signs in to a YouTube account with Google Identity Service
 - `src/playlists/` the playlist list (`usePlaylists`: load, update, delete, notice), sorting, filtering, `PlaylistsView`, `PlaylistRow`
 - `src/search/` video index (`useVideoIndex`) and search across playlists and their videos
 - `src/routing/` hash routes (`#/`, `#/playlists/<id>`) and `useRoute`
+- `src/layout/` the shared `Layout` (topbar 56 px and footer) for every page
+- `src/privacy/` the privacy policy, a separate page `privacy.html` with its own entry `src/privacy.tsx`
 - `src/profile/` playlist profile: edit form, videos (`usePlaylistVideos`: move, remove, add, bulk removal), delete
 - `src/test/` factories, the fake YouTube session and render helpers for specs
 - `src/**/*.spec.ts(x)` Vitest next to the code, `e2e/` Playwright against a stubbed Google

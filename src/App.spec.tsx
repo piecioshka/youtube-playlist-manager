@@ -102,7 +102,7 @@ describe('App', () => {
     renderWithI18n(<App />);
     const footer = screen.getByRole('contentinfo');
     expect(footer).toHaveTextContent(
-      'Bez serwera: dane zostają w tej karcie · Działa z YouTube · Autor: Piotr Kowalski · Licencja MIT',
+      'Bez serwera: dane zostają w tej karcie · Działa z YouTube · Autor: Piotr Kowalski · Polityka prywatności · Licencja MIT',
     );
     expect(footer.querySelectorAll('p')).toHaveLength(1);
     const links = [
@@ -116,6 +116,12 @@ describe('App', () => {
       expect(link).toHaveAttribute('target', '_blank');
       expect(link).toHaveAttribute('rel', 'noreferrer');
     }
+    // The policy is part of the app, so it opens in the same tab
+    const privacy = within(footer).getByRole('link', {
+      name: 'Polityka prywatności',
+    });
+    expect(privacy).toHaveAttribute('href', '/privacy.html');
+    expect(privacy).not.toHaveAttribute('target');
   });
 
   it('explains a missing client id', () => {
@@ -409,7 +415,7 @@ describe('App', () => {
     );
     expect(screen.getByRole('button', { name: 'Try again' })).toBeVisible();
     expect(screen.getByRole('contentinfo')).toHaveTextContent(
-      'No server: your data stays in this tab · Works with YouTube · Author: Piotr Kowalski · MIT License',
+      'No server: your data stays in this tab · Works with YouTube · Author: Piotr Kowalski · Privacy policy · MIT License',
     );
   });
 

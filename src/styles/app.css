@@ -1727,3 +1727,45 @@ a.external-link:focus-visible .external-link__text {
     border-bottom: 0;
   }
 }
+
+.privacy {
+  display: grid;
+  /* `auto` would let the long scope URL widen the track past a phone screen */
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  max-width: 720px;
+}
+
+.privacy__paragraph {
+  overflow-wrap: anywhere;
+}
+
+.privacy__heading,
+.privacy__updated,
+.privacy__intro,
+.privacy__section-heading,
+.privacy__paragraph {
+  margin: 0;
+}
+
+.privacy__updated {
+  color: var(--color-muted);
+  font-size: 0.875rem;
+}
+
+.privacy__section {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.privacy__section-heading {
+  font-size: 1.0625rem;
+}
+
+.privacy__links {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-left: 20px;
+}
