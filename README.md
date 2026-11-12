@@ -8,6 +8,8 @@
 
 <!-- prettier-ignore-end -->
 
+[![YouTube Playlist Manager: sort, rename, reorder and clean up your playlists](.github/assets/banner.png)](https://piecioshka.github.io/youtube-playlist-manager/)
+
 🛠️ Browse, sort, rename and delete your YouTube playlists in one place.
 
 **Live:** https://piecioshka.github.io/youtube-playlist-manager/
