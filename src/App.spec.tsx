@@ -102,12 +102,11 @@ describe('App', () => {
     renderWithI18n(<App />);
     const footer = screen.getByRole('contentinfo');
     expect(footer).toHaveTextContent(
-      'Bez serwera: dane zostają w tej karcie · Działa z YouTube · Autor: Piotr Kowalski · Polityka prywatności · Licencja MIT',
+      'Bez serwera: dane zostają w tej karcie · Działa z YouTube · Polityka prywatności · Licencja MIT',
     );
     expect(footer.querySelectorAll('p')).toHaveLength(1);
     const links = [
       ['YouTube', 'https://www.youtube.com'],
-      ['Piotr Kowalski', 'https://piecioshka.pl/'],
       ['Licencja MIT', 'https://piecioshka.mit-license.org'],
     ];
     for (const [name, href] of links) {
@@ -415,7 +414,7 @@ describe('App', () => {
     );
     expect(screen.getByRole('button', { name: 'Try again' })).toBeVisible();
     expect(screen.getByRole('contentinfo')).toHaveTextContent(
-      'No server: your data stays in this tab · Works with YouTube · Author: Piotr Kowalski · Privacy policy · MIT License',
+      'No server: your data stays in this tab · Works with YouTube · Privacy policy · MIT License',
     );
   });
 

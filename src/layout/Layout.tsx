@@ -62,18 +62,6 @@ export function Layout({
             </YouTubeLink>
           </span>{' '}
           ·{' '}
-          <span className="app__footer-item">
-            {t.footerAuthor}{' '}
-            <a
-              className="app__footer-link"
-              href="https://piecioshka.pl/"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Piotr Kowalski
-            </a>
-          </span>{' '}
-          ·{' '}
           <a
             className="app__footer-link app__footer-item"
             href={`${base}${PRIVACY_POLICY_PATH}`}

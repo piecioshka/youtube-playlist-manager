@@ -49,7 +49,7 @@ export type PrivacySection = {
 const GOOGLE_PERMISSIONS_URL = 'https://myaccount.google.com/permissions';
 const YOUTUBE_TERMS_URL = 'https://www.youtube.com/t/terms';
 const GOOGLE_PRIVACY_URL = 'https://policies.google.com/privacy';
-const AUTHOR_URL = 'https://piecioshka.pl/';
+const REPOSITORY_URL = 'https://github.com/piecioshka/youtube-playlist-manager';
 
 const plPrivacySections: PrivacySection[] = [
   {
@@ -98,9 +98,9 @@ const plPrivacySections: PrivacySection[] = [
   {
     heading: 'Kontakt i zmiany',
     paragraphs: [
-      'Autorem aplikacji jest Piotr Kowalski. Zmiany tej polityki pojawią się na tej stronie razem z nową datą aktualizacji.',
+      'Kod aplikacji jest otwarty. Pytania i zgłoszenia przyjmuje repozytorium. Zmiany tej polityki pojawią się na tej stronie razem z nową datą aktualizacji.',
     ],
-    links: [{ label: 'piecioshka.pl', href: AUTHOR_URL }],
+    links: [{ label: 'GitHub', href: REPOSITORY_URL }],
   },
 ];
 
@@ -151,9 +151,9 @@ const enPrivacySections: PrivacySection[] = [
   {
     heading: 'Contact and changes',
     paragraphs: [
-      'The app is made by Piotr Kowalski. Changes to this policy will appear on this page together with a new update date.',
+      'The code is open source. Questions and reports go to the repository. Changes to this policy will appear on this page together with a new update date.',
     ],
-    links: [{ label: 'piecioshka.pl', href: AUTHOR_URL }],
+    links: [{ label: 'GitHub', href: REPOSITORY_URL }],
   },
 ];
 
@@ -183,7 +183,6 @@ const pl = {
 
   footerNoServer: 'Bez serwera: dane zostają w tej karcie',
   footerWorksWith: 'Działa z',
-  footerAuthor: 'Autor:',
   footerPrivacy: 'Polityka prywatności',
   footerLicense: 'Licencja MIT',
 
@@ -375,7 +374,6 @@ const en: Messages = {
 
   footerNoServer: 'No server: your data stays in this tab',
   footerWorksWith: 'Works with',
-  footerAuthor: 'Author:',
   footerPrivacy: 'Privacy policy',
   footerLicense: 'MIT License',
 

@@ -269,7 +269,7 @@ test('marks every link to YouTube with an icon and a dotted underline', async ({
   // Link poza YouTube zostaje zwykłym linkiem
   await expect(
     page
-      .getByRole('link', { name: 'Piotr Kowalski' })
+      .getByRole('link', { name: /Licencja MIT|MIT License/ })
       .locator('.external-link__icon'),
   ).toHaveCount(0);
 });
