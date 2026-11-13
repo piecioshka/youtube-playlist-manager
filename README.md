@@ -8,11 +8,16 @@
 
 <!-- prettier-ignore-end -->
 
-[![YouTube Playlist Manager: sort, rename, reorder and clean up your playlists](.github/assets/banner.png)](https://piecioshka.github.io/youtube-playlist-manager/)
+[![YouTube Playlist Manager: sort, rename, reorder and clean up your playlists](docs/banner.png)](https://piecioshka.github.io/youtube-playlist-manager/)
 
 🛠️ Browse, sort, rename and delete your YouTube playlists in one place.
 
 **Live:** https://piecioshka.github.io/youtube-playlist-manager/
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/playlists-dark.png">
+  <img alt="YouTube Playlist Manager - playlists" src="docs/screenshots/playlists-light.png">
+</picture>
 
 The hosted app only works for Google accounts added as test users of its OAuth client. To use it with your own account, deploy your own copy (see [CONTRIBUTING.md](CONTRIBUTING.md)).
 
